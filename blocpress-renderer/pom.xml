@@ -4,6 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <artifactId>blocpress-renderer</artifactId>
+    <groupId>org.blocpress</groupId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>blocpress renderer</name>
+    <description>Blocpress — printing made (mostly) simple - Renderer LibreOffice (ODT) documents</description>
+    <url>https://github.com/flaechsig/blocpress</url>
+
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -12,9 +21,18 @@
         </license>
     </licenses>
 
-    <artifactId>blocpress-renderer</artifactId>
-    <groupId>org.blocpress</groupId>
-    <version>1.0.0-SNAPSHOT</version>
+    <developers>
+        <developer>
+            <name>Hans Flächsig</name>
+            <email>hans@flaechsig.de</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/flaechsig/blocpress.git</connection>
+        <developerConnection>scm:git:https://github.com/flaechsig/blocpress.git</developerConnection>
+        <url>https://github.com/flaechsig/blocpress</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
