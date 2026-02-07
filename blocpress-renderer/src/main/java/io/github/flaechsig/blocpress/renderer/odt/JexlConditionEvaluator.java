@@ -1,10 +1,7 @@
-package org.blocpress.renderer.odt;
+package io.github.flaechsig.blocpress.renderer.odt;
 
 import org.apache.commons.jexl3.*;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Hilfsklasse zur Auswertung von ODF/Writer-Bedingungen mittels Apache Commons JEXL.

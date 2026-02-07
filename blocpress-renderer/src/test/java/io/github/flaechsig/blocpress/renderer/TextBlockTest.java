@@ -1,4 +1,4 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,9 +8,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.blocpress.util.ResourceUtil.extractOdtContent;
-import static org.blocpress.util.ResourceUtil.loadDocumentAsBytes;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TextBlockTest {

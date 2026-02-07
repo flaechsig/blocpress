@@ -1,12 +1,12 @@
-package org.blocpress.renderer.odt;
+package io.github.flaechsig.blocpress.renderer.odt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
-import org.blocpress.renderer.TemplateDocument;
-import org.blocpress.renderer.TemplateElement;
-import org.blocpress.renderer.TemplateSectionElement;
+import io.github.flaechsig.blocpress.renderer.TemplateDocument;
+import io.github.flaechsig.blocpress.renderer.TemplateElement;
+import io.github.flaechsig.blocpress.renderer.TemplateSectionElement;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.text.TextSectionElement;
@@ -17,8 +17,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;

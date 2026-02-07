@@ -1,4 +1,4 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.NonNull;
@@ -12,9 +12,6 @@ import java.net.URL;
 
 @Slf4j
 public class RenderEngine {
-    private static final String STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
-    private static final String TEXT_NS = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
-
     /**
      * Rendert ein ODT-Template (OpenDocument Text) durch Ersetzen von Platzhaltern
      * mit den übergebenen JSON-Daten und gibt das resultierende ODT-Dokument als Byte-Array zurück.
@@ -136,7 +133,7 @@ public class RenderEngine {
      * After duplication, all loop-references inside the clone are indexed:
      * policy_holder.full_name  -> policy_holder.0.full_name (clone #0)
      */
-    private static void processLoops(TemplateDocument doc, JsonNode data) throws Exception {
+    private static void processLoops(TemplateDocument doc, JsonNode data)  {
         var elements = doc.findRepeatGroups(data);
 
         for (var element : elements.entrySet()) {

@@ -1,14 +1,12 @@
-package org.blocpress.renderer.odt;
+package io.github.flaechsig.blocpress.renderer.odt;
 
+import io.github.flaechsig.blocpress.renderer.DataType;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
-import org.blocpress.renderer.DataType;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.pkg.OdfElement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -22,7 +20,10 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Helper für text:user-field-get / text:variable-get.
@@ -32,9 +33,6 @@ import java.util.*;
  */
 public final class UserFieldFormatter {
 
-    private static final Logger log = LoggerFactory.getLogger(UserFieldFormatter.class);
-
-    private static final String DATSTYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0";
     private static final String STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
 
     private UserFieldFormatter() { /* utility */ }

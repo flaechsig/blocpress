@@ -1,4 +1,4 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 /**
  * Legt das Ausgabeformat für das Druckstück fest

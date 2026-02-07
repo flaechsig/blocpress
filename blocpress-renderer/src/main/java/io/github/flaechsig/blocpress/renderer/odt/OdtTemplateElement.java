@@ -1,9 +1,9 @@
-package org.blocpress.renderer.odt;
+package io.github.flaechsig.blocpress.renderer.odt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
-import org.blocpress.renderer.TemplateElement;
+import io.github.flaechsig.blocpress.renderer.TemplateElement;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.text.TextSpanElement;
 import org.odftoolkit.odfdom.pkg.OdfElement;

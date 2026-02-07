@@ -1,8 +1,8 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.blocpress.renderer.odt.OdtTemplateDocument;
-import org.blocpress.renderer.odt.OdtTemplateSectionElement;
+import io.github.flaechsig.blocpress.renderer.odt.OdtTemplateDocument;
+import io.github.flaechsig.blocpress.renderer.odt.OdtTemplateSectionElement;
 
 import java.io.OutputStream;
 import java.net.URL;
@@ -38,7 +38,7 @@ public interface TemplateDocument {
      * Merges the content of the template document into the current section.
      *
      * @param tbDocument The template document to merge.
-     * @param section
+     * @param section Section to merge into.
      */
     void merge(TemplateDocument tbDocument, TemplateSectionElement section);
 

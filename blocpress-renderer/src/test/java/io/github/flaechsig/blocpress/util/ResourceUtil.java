@@ -1,4 +1,4 @@
-package org.blocpress.util;
+package io.github.flaechsig.blocpress.util;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -6,13 +6,11 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
-import java.util.Base64;
 
 public class ResourceUtil {
 

@@ -1,4 +1,4 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 import com.sun.star.beans.PropertyValue;
 import com.sun.star.comp.helper.Bootstrap;
@@ -9,7 +9,6 @@ import com.sun.star.lang.XMultiComponentFactory;
 import com.sun.star.text.XTextFieldsSupplier;
 import com.sun.star.uno.UnoRuntime;
 import com.sun.star.uno.XComponentContext;
-import com.sun.star.util.URL;
 import com.sun.star.util.XCloseable;
 import com.sun.star.util.XRefreshable;
 import com.sun.star.util.XUpdatable;

@@ -1,19 +1,14 @@
-package org.blocpress.renderer.odt;
+package io.github.flaechsig.blocpress.renderer.odt;
 
+import io.github.flaechsig.blocpress.renderer.TemplateSectionElement;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
-import org.blocpress.renderer.TemplateDocument;
-import org.blocpress.renderer.TemplateSectionElement;
 import org.odftoolkit.odfdom.pkg.OdfElement;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Represents a template section element in an ODT document.

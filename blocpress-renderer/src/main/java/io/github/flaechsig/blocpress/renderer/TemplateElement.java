@@ -1,4 +1,4 @@
-package org.blocpress.renderer;
+package io.github.flaechsig.blocpress.renderer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
