@@ -62,9 +62,9 @@ image::docs/images/projectstructure.png[Project structure]
 [source,xml]
 ----
 <dependency>
-  <groupId>org.blocpress</groupId>
-  <artifactId>blocpress-renderer</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>blocpress-renderer</artifactId>
+    <groupId>io.github.flaechsig</groupId>
+    <version>1.0.0</version>
 </dependency>
 ----
 
