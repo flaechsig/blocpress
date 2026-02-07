@@ -6,7 +6,7 @@
 
     <artifactId>blocpress-renderer</artifactId>
     <groupId>io.github.flaechsig</groupId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <name>blocpress renderer</name>
