@@ -1,0 +1,23 @@
+{
+  "kunde": {
+    "vorname": "Mini",
+    "nachname": "Müller",
+    "adresse": {
+      "strasse": "Musterstr.",
+      "hausnummer" : "1",
+      "plz": "54321",
+      "ort": "Teststadt"
+    }
+  },
+  "gesellschaft": {
+    "name": "Muster GmbH & Co. KG",
+    "strasse": "Musterstraße",
+    "plz": "12345",
+    "ort": "Hamburg"
+  },
+  "vertrag": {
+    "sparte": "Handyvertrag",
+    "nummer": "0174/123456789",
+    "endedatum": "01.02.2026"
+  }
+}
