@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Path;
 
 import static io.github.flaechsig.blocpress.util.ResourceUtil.extractOdtContent;
+import static io.github.flaechsig.blocpress.util.ResourceUtil.loadDocumentAsBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -66,6 +69,7 @@ public class SectionTest {
                 }
                 """;
         JsonNode node = mapper.readTree(json);
+        byte[] odt = loadDocumentAsBytes("/section.odt");
         var expected = """
                 Wenn weder Frau oder Herr im Attribut steht, dann wird für dieser Text angezeigt.""";
         var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));

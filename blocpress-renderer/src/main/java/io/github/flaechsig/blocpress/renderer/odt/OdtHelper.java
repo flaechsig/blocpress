@@ -1,6 +1,7 @@
 package io.github.flaechsig.blocpress.renderer.odt;
 
 import lombok.SneakyThrows;
+import io.github.flaechsig.blocpress.renderer.TemplateElement;
 import org.odftoolkit.odfdom.pkg.OdfElement;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
