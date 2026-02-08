@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  title: Blocpress Server API
+  version: 1.0.0
+  description: >
+    Blocpress Server provides HTTP APIs for document rendering and related services.
+    The API is designed to be extensible; additional endpoints and service domains
+    may be added over time without breaking existing integrations.
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Render
+    description: Rendering documents
+
+paths:
+  /render:
+    post:
+      tags: [Render]
+      operationId: renderDocument
+      summary: render ODT to different output formats (ODT/PDF/RTF)
+      description: >
+        Render an ODT template to ODT/PDF/RTF. The rendering of ODT to ODT is usefull to update
+        calculated fields like date or page numbers.
+      parameters:
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            example: application/pdf, application/rtf, application/vnd.oasis.opendocument.text
+          description: >
+            Desired response media type. If omitted, the server may choose a default.
+      requestBody:
+        required: true
+        content:
+          application/vnd.oasis.opendocument.text:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Rendered document (binary) in 'outputFormat'
+          headers:
+            Content-Disposition:
+              description: download filename
+              schema:
+                type: string
+                example: attachment; filename="output.[pdf|rtf|odt]"
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/rtf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.oasis.opendocument.text:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request (e.g. missing data, unknown output format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "415":
+          description: Unsupported Media Type (e.g. no ODT uploaded)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Rendering failed
+        code:
+          type: string
+          example: RENDER_ERROR
+        details:
+          type: object
+          additionalProperties: true

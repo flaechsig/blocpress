@@ -9,10 +9,6 @@ The Apache Software Foundation (http://www.apache.org/).
 
 This product uses the following third-party libraries:
 
-- LibreOffice libraries
-  Licensed under the Mozilla Public License v2.0 (MPL-2.0)
-  and the GNU Lesser General Public License v3 or later (LGPL-3.0+)
-
 - ODF Toolkit (odfdom-java)
   Licensed under the Apache License, Version 2.0
 
