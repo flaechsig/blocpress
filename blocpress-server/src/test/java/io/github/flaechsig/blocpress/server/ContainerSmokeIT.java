@@ -2,6 +2,9 @@ package io.github.flaechsig.blocpress.server;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.jacoco.core.tools.ExecDumpClient;
+import org.jacoco.core.tools.ExecFileLoader;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +18,7 @@ import org.testcontainers.utility.DockerImageName;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.rtf.RTFEditorKit;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,6 +26,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -33,16 +38,64 @@ class ContainerSmokeIT {
     private static final Logger LOG = LoggerFactory.getLogger(ContainerSmokeIT.class);
     private static String IMAGE = System.getProperty("it.image");
 
+    private static final int JACOCO_PORT = 6300;
+
+    private static final Path JACOCO_DIR;
+    private static final Path JACOCO_AGENT_JAR;
+
+    static {
+        try {
+            JACOCO_DIR = Path.of("target", "jacoco-it").toAbsolutePath();
+            Files.createDirectories(JACOCO_DIR);
+
+            JACOCO_AGENT_JAR = Path.of("target", "jacoco", "jacocoagent.jar").toAbsolutePath();
+            if (!Files.exists(JACOCO_AGENT_JAR)) {
+                throw new IllegalStateException(
+                        "JaCoCo agent jar not found: " + JACOCO_AGENT_JAR +
+                                " (did maven-dependency-plugin copy it to target/jacoco/jacocoagent.jar?)"
+                );
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Container
     static final GenericContainer<?> app =
             new GenericContainer<>(DockerImageName.parse(IMAGE))
-                    .withExposedPorts(8080)
+                    .withExposedPorts(8080, JACOCO_PORT)
                     .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("app"))
+                    .withFileSystemBind(JACOCO_DIR.toString(), "/jacoco")
+                    .withCopyFileToContainer(
+                            org.testcontainers.utility.MountableFile.forHostPath(JACOCO_AGENT_JAR),
+                            "/jacoco/jacocoagent.jar"
+                    )
+                    .withEnv("JAVA_TOOL_OPTIONS",
+                            "-javaagent:/jacoco/jacocoagent.jar=output=tcpserver,address=*,port="
+                                    + JACOCO_PORT + ",append=true")
                     .waitingFor(
                             Wait.forHttp("/q/health/ready")
+                                    .forPort(8080)
                                     .forStatusCode(200)
                                     .withStartupTimeout(Duration.ofMinutes(2))
                     );
+
+    @AfterAll
+    static void dumpJacocoExecFromContainer() throws Exception {
+        Path destExec = JACOCO_DIR.resolve("jacoco-it.exec");
+
+        String host = app.getHost();
+        int port = app.getMappedPort(JACOCO_PORT);
+
+        ExecFileLoader loader = new ExecDumpClient().dump(host, port);
+        loader.save(destExec.toFile(), true);
+
+        long bytes = Files.exists(destExec) ? Files.size(destExec) : 0;
+        LOG.info("JaCoCo exec dumped to {} ({} bytes)", destExec, bytes);
+        if (bytes == 0) {
+            throw new IllegalStateException("Dump produced empty exec file: " + destExec);
+        }
+    }
 
     @Test
     void containerStarts_andLibreOfficeIsInstalled() throws Exception {
@@ -52,7 +105,6 @@ class ContainerSmokeIT {
         assertTrue(out.contains("LibreOffice 24.2.7"),
                 () -> "Expected LibreOffice 24.2.7 but got:\n" + out);
     }
-
 
     @Test
     void renderPdf() throws Exception {
@@ -144,6 +196,53 @@ class ContainerSmokeIT {
         assertEquals(normalizeText(expectedContentXml), normalizeText(actualContentXml));
     }
 
+    @Test
+    public void noContent() throws IOException, InterruptedException {
+        URI baseUri = URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8080));
+
+        var request = HttpRequest.newBuilder(
+                        baseUri.resolve("/render"))
+                .header("Content-Type", "application/vnd.oasis.opendocument.text")
+                .header("Accept", "application/vnd.oasis.opendocument.text")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<byte[]> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    public void wrongContentType() throws IOException, InterruptedException {
+        URI baseUri = URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8080));
+
+        var request = HttpRequest.newBuilder(
+                        baseUri.resolve("/render"))
+//                .header("Content-Type", "application/vnd.oasis.opendocument.text")
+                .header("Accept", "application/vnd.oasis.opendocument.text")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<byte[]> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    public void wrongAccept() throws IOException, InterruptedException {
+        URI baseUri = URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8080));
+
+        var request = HttpRequest.newBuilder(
+                        baseUri.resolve("/render"))
+                .header("Content-Type", "application/vnd.oasis.opendocument.text")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<byte[]> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(406, response.statusCode());
+    }
 
     private static String extractPdfText(byte[] pdf) throws Exception {
         try (PDDocument doc = PDDocument.load(pdf)) {

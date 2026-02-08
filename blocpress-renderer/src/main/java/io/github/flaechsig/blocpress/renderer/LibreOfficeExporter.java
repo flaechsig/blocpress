@@ -2,21 +2,17 @@ package io.github.flaechsig.blocpress.renderer;
 
 import lombok.NonNull;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class LibreOfficeExporter {
-    private static final String LOFFICE_PATH = "/usr/bin/soffice";
-
     /**
      * Refreshes and transforms document to specified output format
      */
-    public static byte[] refreshAndTransform(@NonNull byte[] input, @NonNull OutputFormat format) throws Exception {
+    public static byte[] refreshAndTransform(byte[] input, @NonNull OutputFormat format) throws IOException {
         Path in = Files.createTempFile("blocpress_", ".odt");
         in.toFile().deleteOnExit();
         Files.write(in, input);
@@ -28,7 +24,6 @@ public class LibreOfficeExporter {
                 case PDF -> "pdf";
                 case RTF -> "rtf";
                 case ODT -> "odt:writer8";
-                default -> throw new IllegalArgumentException("Unsupported output format: " + format);
             };
 
             List<String> cmd = new ArrayList<>();
@@ -59,6 +54,8 @@ public class LibreOfficeExporter {
             if (!Files.exists(out)) {
                 throw new IllegalStateException("LibreOffice did not produce expected file: " + out);
             }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         } finally {
             Files.deleteIfExists(in);
         }
