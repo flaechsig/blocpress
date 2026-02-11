@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.server;
+package io.github.flaechsig.blocpress.server.render;
 
 import io.github.flaechsig.blocpress.renderer.LibreOfficeExporter;
 import io.github.flaechsig.blocpress.renderer.OutputFormat;
@@ -10,11 +10,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class RenderApiImpl implements RenderApi {
+public class RenderHandler implements RenderApi {
 
     @Override
-    public File renderDocument(File body, String accept) {
-
+    public File renderDocument(String accept, File body) {
         try {
             byte[] odtBytes = Files.readAllBytes(body.toPath());
             if (odtBytes.length == 0) {
@@ -40,4 +39,5 @@ public class RenderApiImpl implements RenderApi {
             throw new RuntimeException(e);
         }
     }
+
 }

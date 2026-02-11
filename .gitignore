@@ -1,3 +1,6 @@
 /.idea/
 /blocpress-renderer/target/
 /blocpress-server/target/
+/blocpress-server/blocpress-server.iml
+/.continue/
+CLAUDE.md
