@@ -10,6 +10,12 @@ import java.util.*;
 
 /**
  * Base class for template documents.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-e-1">E-1: Template</a></li>
+ *   <li>SDC: <a href="docs/Solution_Design_Concept.adoc#sdc-ia-template">Template (Information Architecture)</a></li>
+ * </ul>
  */
 public interface TemplateDocument {
     /**

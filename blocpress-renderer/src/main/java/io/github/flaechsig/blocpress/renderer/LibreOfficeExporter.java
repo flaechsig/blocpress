@@ -8,6 +8,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Konvertiert ODT-Dokumente in andere Formate (PDF, RTF) mittels LibreOffice headless.
+ * Startet einen externen {@code soffice}-Prozess zur Konvertierung.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-ti-3">TI-3: LibreOffice API</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-c-2">C-2: LibreOffice Version</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-c-5">C-5: Export-Formate</a></li>
+ * </ul>
+ */
 public class LibreOfficeExporter {
 
     private static final Path WORK_BASE = Path.of(System.getProperty("user.home"), ".blocpress");

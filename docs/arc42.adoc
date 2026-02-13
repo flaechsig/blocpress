@@ -1,0 +1,2074 @@
+ifndef::imagesdir[:imagesdir: .]
+
+image:blocpress-logo-large.png[]
+
+= blocpress - Architecture Documentation
+:revnumber: 1.0
+:revdate: {docdate}
+:revremark: Initiale Version
+
+:toc-title: Inhaltsverzeichnis
+:keywords: software-architecture, documentation, blocpress, template-engine, document-generation
+:numbered:
+
+<<<<
+[[section-introduction-and-goals]]
+== Einführung und Ziele
+
+blocpress ist ein template-basierter Print-Server zur automatisierten Generierung professioneller Dokumente. Das System führt LibreOffice-Templates (ODT) mit strukturierten JSON-Daten zusammen und erzeugt Dokumente in den Formaten ODT, PDF und RTF.
+
+=== Aufgabenstellung
+
+*Kernaufgabe:* blocpress ermöglicht die automatisierte, qualitätsgesicherte und compliance-konforme Erstellung von Dokumenten aus Templates.
+
+*Wesentliche funktionale Anforderungen:*
+
+* *Template-Verwaltung:* Zentrale Speicherung und Versionierung von LibreOffice-Templates und wiederverwendbaren Bausteinen
+* *Dokumentengenerierung:* Automatisierte Befüllung von Templates mit JSON-Daten über REST-API
+- User-Fields in Punkt-Notation (z.B. `kunde.name`)
+- Wiederholungsgruppen für Arrays (Sections und Tables)
+- IF-Bedingungen für dynamische Inhalte
+- Export in ODT, PDF und RTF
+* *Workflow-gesteuerte Freigabe:* Mehrstufiger Freigabeprozess mit Vier-Augen-Prinzip (Designer ≠ Freigeber)
+* *Compliance-Management:* Automatische Überwachung turnusmäßiger Reviews (1, 3 oder 5 Jahre)
+* *Test-Framework:* Verwaltung von Testdaten, Baseline-PDFs und automatisierte Regressionstests
+* *Content Search:* Performante Volltextsuche nach fachlichen Konstrukten über alle Templates
+
+*Treibende Kräfte:*
+
+* Transformation von manueller, fehleranfälliger Dokumentenerstellung zu automatisiertem Workflow
+* Sicherstellung inhaltlicher Aktualität durch turnusmäßige Reviews
+* Konsistenz über alle Dokumente durch zentrale Template-Verwaltung
+* Qualitätssicherung durch Freigabeprozess und Regressionstests
+
+*Referenzen:*
+
+* xref:Solution_Design_Concept.adoc#sdc-vision[Solution Design Concept: blocpress] -- Vision, Value Creation Architecture, Information Architecture, Business Processes
+* xref:System_Design_Concept.adoc#sydc-goals[System Design Concept: blocpress] -- Systemziele, Systemarchitektur, Szenarien
+* xref:Element_Design_Concept.adoc#edc-goals[Element Design Concept: blocpress Core] -- Goals, Use Cases, Technical Functions, Entities
+
+=== Qualitätsziele
+
+[cols="1,2,3,1" options="header"]
+|===
+| Priorität | Qualitätsziel | Szenario | Kapitel
+
+| 1
+| *Performance*
+| Dokumentengenerierung für Standard-Dokumente (bis 20 Seiten) innerhalb von 5 Sekunden. Suche über alle Templates innerhalb von 2 Sekunden.
+| 10.2
+
+| 2
+| *Zuverlässigkeit (Determinismus)*
+| Identische Eingaben (Template + JSON-Daten) erzeugen immer identische Ausgabedokumente. Essentiell für Regressionstests.
+| 10.1
+
+| 3
+| *Wartbarkeit*
+| Templates und Code müssen versioniert sein. Änderungen nachvollziehbar. Storage Abstraction Layer ermöglicht Wechsel zu S3.
+| 9, 10.3
+
+| 4
+| *Sicherheit*
+| Vier-Augen-Prinzip (Designer ≠ Freigeber) technisch erzwungen. RBAC für alle Funktionen. API-Rate-Limiting.
+| 2.3, 10.4
+
+| 5
+| *Skalierbarkeit*
+| Horizontal skalierbar: Bis zu 100 gleichzeitige Dokumentengenerierungen. Asynchrone Verarbeitung über Message Queue.
+| 8.1, 10.5
+|===
+
+=== Stakeholder
+
+[cols="1,1,2" options="header"]
+|===
+| Rolle | Kontakt | Erwartungshaltung
+
+| Template-Designer
+| Fachabteilungen
+| Einfaches Erstellen von Templates in vertrauter LibreOffice-Umgebung. Klare Validierungsmeldungen.
+
+| Qualitätsmanager
+| QS-Abteilung
+| Strukturierter Freigabeprozess. Testmöglichkeiten mit Beispieldaten vor Freigabe.
+
+| Compliance-Reviewer
+| Compliance-Abteilung
+| Automatische Benachrichtigung bei fälligen Reviews. Nachvollziehbare Review-Historie.
+
+| Test-Manager
+| QS-Abteilung
+| Einfache Verwaltung von Testdaten. Automatisierte Regressionstests nach Template-Änderungen.
+
+| Entwicklungsteams
+| IT-Abteilung
+| Stabile REST-API für Dokumentengenerierung. Gute Performance (< 5s). Klare Fehlermeldungen.
+
+| Administratoren
+| IT-Betrieb
+| Einfache Installation als Docker-Container. Monitoring-Integration. RBAC-Verwaltung.
+
+| Architekten
+| IT-Architektur
+| Klare Architektur. Modularer Aufbau. Technologie-Stack: Quarkus, PostgreSQL, LibreOffice.
+
+| Projektleitung
+| Management
+| Einhaltung von Compliance-Vorgaben. Wirtschaftlicher Betrieb (< 5.000 Dokumente in PostgreSQL).
+|===
+
+<<<<
+[[section-architecture-constraints]]
+== Randbedingungen
+
+=== Technische Randbedingungen
+
+_Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Constraints im Element Design Concept] | xref:Solution_Design_Concept.adoc#sdc-constraints[Constraints im Solution Design Concept]_
+
+[cols="1,2" options="header"]
+|===
+| Randbedingung | Erläuterung
+
+| Quarkus Framework
+| blocpress Core muss mit Quarkus implementiert werden (schnelle Startup-Zeit, geringer Memory-Footprint, native Kompilierung möglich).
+
+| LibreOffice ≥ 24
+| LibreOffice Version 24 oder höher muss headless in blocpress Core integriert sein. Ältere Versionen nicht unterstützt.
+
+| PostgreSQL ≥ 18
+| Datenbank muss PostgreSQL Version 18 oder höher sein. JSONB-Indizes erforderlich.
+
+| Docker-Container
+| blocpress muss als Docker-Container betreibbar sein. Kubernetes-Deployment optional.
+
+| Template-Format
+| Nur ODT und OTT als Template-Eingabeformat. DOCX/DOC nicht unterstützt.
+
+| Export-Formate
+| Nur ODT, PDF und RTF als Ausgabeformat. DOCX/HTML nicht unterstützt.
+
+| Elasticsearch ≥ 7.x
+| Content Search Engine basiert auf Elasticsearch 7.x oder höher.
+
+| Message Queue
+| RabbitMQ oder Kafka für asynchrone Dokumentengenerierung.
+|===
+
+=== Organisatorische Randbedingungen
+
+[cols="1,2" options="header"]
+|===
+| Randbedingung | Erläuterung
+
+| Vier-Augen-Prinzip
+| Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen durch TF-2.
+
+| Compliance-Reviews
+| Templates mit rechtlicher/regulatorischer Relevanz müssen nach 1, 3 oder 5 Jahren zur Review vorgelegt werden.
+
+| Freigabe-Pflicht
+| Templates ohne Status "Freigegeben" dürfen nicht für Produktiv-Generierung verwendet werden.
+
+| Identity Provider Integration
+| Benutzer-Authentifizierung muss über externen IdP erfolgen (SAML 2.0 oder OpenID Connect).
+|===
+
+=== Konventionen
+
+[cols="1,2" options="header"]
+|===
+| Konvention | Erläuterung
+
+| RESTful API Design
+| REST-API folgt RESTful Prinzipien: Ressourcen-orientiert, HTTP-Verben, JSON-Response.
+
+| JSON-Punkt-Notation
+| User-Fields referenzieren JSON-Pfade in Punkt-Notation: `kunde.name`, `vertrag.positionen[0].preis`
+
+| Storage Abstraction Layer
+| Zugriff auf Binärdaten nur über `StorageService` Interface. Ermöglicht zukünftigen Wechsel zu S3.
+
+| Audit-Logging
+| Alle Workflow-Änderungen, Freigaben und Reviews müssen audit-log-tauglich protokolliert werden.
+|===
+
+<<<<
+[[section-context-and-scope]]
+== Kontextabgrenzung
+
+=== Fachlicher Kontext
+
+[plantuml, fachlicher-kontext, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+actor "Template-Designer" as Designer
+actor "Qualitätsmanager" as QM
+actor "Compliance-Reviewer" as CR
+actor "Test-Manager" as TM
+actor "Administrator" as Admin
+
+rectangle "Anwendungssystem" as App
+
+rectangle "blocpress" as System {
+}
+
+rectangle "Identity Provider" as IdP
+rectangle "SMTP-Server" as SMTP
+rectangle "Elasticsearch" as ES
+rectangle "Monitoring" as Monitor
+
+Designer --> System : Templates hochladen\nBausteine verwalten
+QM --> System : Templates prüfen\nFreigeben/Ablehnen
+CR --> System : Reviews durchführen
+TM --> System : Testdaten verwalten\nTests ausführen
+Admin --> System : Benutzer verwalten\nSystem konfigurieren
+
+App --> System : Dokumente generieren\n(REST-API)
+
+System --> IdP : Benutzer authentifizieren
+System --> SMTP : Benachrichtigungen senden
+System --> ES : Templates indexieren\nSuche durchführen
+System --> Monitor : Metriken & Logs senden
+@enduml
+----
+
+*Kommunikationsbeziehungen:*
+
+[cols="1,2,2" options="header"]
+|===
+| Partner | Eingabe | Ausgabe
+
+| Template-Designer
+| ODT-Templates, Bausteine, Metadaten
+| Validierungsergebnisse, Template-Status, Freigabe-Historie
+
+| Qualitätsmanager
+| Prüfkommentare, Freigabe-/Ablehnungsentscheidung
+| Template zur Prüfung, Testdokumente, Freigabestatus
+
+| Compliance-Reviewer
+| Review-Ergebnis, Kommentare
+| Fällige Reviews, Template-Inhalte, Review-Historie
+
+| Test-Manager
+| JSON-Testdaten, Baseline-Updates
+| Test-Ergebnisse, PDF-Vergleiche, Abweichungen
+
+| Administrator
+| Benutzerdaten, Rollen, System-Konfiguration
+| Benutzerliste, Audit-Logs, System-Status
+
+| Anwendungssystem
+| Template-ID, JSON-Daten, gewünschtes Format
+| Generiertes Dokument (ODT/PDF/RTF), Generierungs-ID, Status
+
+| Identity Provider
+| SAML/OIDC Token
+| Authentifizierungsergebnis, Benutzerattribute
+
+| SMTP-Server
+| Empfänger, Betreff, Nachrichtentext
+| Versandbestätigung
+
+| Elasticsearch
+| Template-Inhalt zur Indexierung, Suchanfragen
+| Indexierungsbestätigung, Suchergebnisse mit Kontext
+
+| Monitoring
+| (keine Eingabe)
+| Metriken (CPU, RAM, Latenz), strukturierte Logs (JSON)
+|===
+
+=== Technischer Kontext
+
+[plantuml, technischer-kontext, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+node "Client-Browser" as Browser
+node "Externe Anwendung" as ExtApp
+
+node "Docker Host / Kubernetes" as Docker {
+  component "blocpress Core\n(Quarkus)" as Core
+  component "Web-Oberfläche\n(React SPA)" as WebUI
+  database "PostgreSQL ≥ 18" as DB
+  queue "RabbitMQ/Kafka" as MQ
+}
+
+node "Externe Services" {
+  component "Elasticsearch ≥ 7.x" as ES
+  component "Identity Provider\n(SAML/OIDC)" as IdP
+  component "SMTP-Server" as SMTP
+  component "Monitoring\n(Prometheus/ELK)" as Monitor
+}
+
+Browser -down-> WebUI : HTTPS/TLS
+WebUI -down-> Core : REST-API\nJSON over HTTPS
+ExtApp -down-> Core : REST-API\nJSON over HTTPS
+
+Core -down-> DB : JDBC\nPostgreSQL Protocol
+Core -right-> MQ : AMQP / Kafka Protocol
+Core -down-> ES : REST-API\nHTTP/JSON
+Core -left-> IdP : SAML 2.0 / OIDC
+Core -left-> SMTP : SMTP/TLS
+Core -right-> Monitor : HTTP (Prometheus)\nTCP (Logs)
+
+note right of Core
+  LibreOffice ≥ 24
+  headless integriert
+end note
+@enduml
+----
+
+*Technische Schnittstellen:*
+
+[cols="1,1,2" options="header"]
+|===
+| Schnittstelle | Protokoll/Technologie | Mapping fachlicher Daten
+
+| Web-Oberfläche → blocpress Core
+| HTTPS, REST-API, JSON
+| Alle UI-Aktionen (Template-Upload, Freigabe, Reviews, Tests, Suche)
+
+| Externe Anwendung → blocpress Core
+| HTTPS, REST-API, JSON
+| Dokumentengenerierung: `POST /api/documents/generate`
+
+| blocpress Core → PostgreSQL
+| JDBC, PostgreSQL Wire Protocol
+| Alle Entities (E-1 bis E-10), inkl. Binärdaten (bytea)
+
+| blocpress Core → RabbitMQ/Kafka
+| AMQP (RabbitMQ) / Kafka Protocol
+| Asynchrone Dokumentengenerierung, Regressionstests
+
+| blocpress Core → Elasticsearch
+| REST-API, HTTP/JSON
+| Template-Indexierung, Volltextsuche
+
+| blocpress Core → Identity Provider
+| SAML 2.0 oder OpenID Connect
+| Benutzer-Authentifizierung, Token-Validierung
+
+| blocpress Core → SMTP-Server
+| SMTP/TLS (Port 587)
+| E-Mail-Benachrichtigungen (Freigaben, Reviews, Tests)
+
+| blocpress Core → Monitoring
+| Prometheus (HTTP Pull), Logs (TCP/JSON)
+| Metriken (Request-Latenz, Fehlerraten), Audit-Logs
+|===
+
+<<<<
+[[section-solution-strategy]]
+== Lösungsstrategie
+
+=== Technologieentscheidungen
+
+[cols="1,2,2" options="header"]
+|===
+| Entscheidung | Begründung | Qualitätsziel
+
+| *Quarkus Framework*
+| Schnelle Startup-Zeit, geringer Memory-Footprint, Cloud-native, native Kompilierung möglich
+| Performance, Skalierbarkeit
+
+| *LibreOffice headless ≥ 24*
+| Ausgereiftes ODT-Template-Processing, Export in ODT/PDF/RTF, kostenlos, Open Source
+| Funktionale Eignung, Kosteneffizienz
+
+| *PostgreSQL ≥ 18 mit bytea*
+| Reife relationale DB, JSONB für strukturierte Daten, bytea für Binärdaten (< 5.000 Dokumente), bewährte Technologie
+| Zuverlässigkeit, Wartbarkeit
+
+| *Storage Abstraction Layer*
+| Ermöglicht zukünftigen Wechsel zu S3 ohne Code-Änderungen in Business-Logik
+| Wartbarkeit, Flexibilität
+
+| *Elasticsearch für Content Search*
+| Hochperformante Volltextsuche, Relevanz-Ranking, Highlighting
+| Performance (< 2s Suchzeit)
+
+| *Message Queue (RabbitMQ/Kafka)*
+| Asynchrone Verarbeitung zeitaufwändiger Operationen, Entkopplung, Skalierbarkeit
+| Performance, Skalierbarkeit
+
+| *React SPA für Web-Oberfläche*
+| Moderne UI, komponentenbasiert, gute Developer Experience
+| Benutzbarkeit, Wartbarkeit
+
+| *Docker-Container*
+| Standardisierte Deployment-Einheit, Portabilität, einfache Skalierung
+| Übertragbarkeit, Betriebseffizienz
+|===
+
+=== Top-Level-Zerlegung
+
+*Architekturmuster:* Layered Architecture mit Hexagonal Architecture Elementen
+
+* *Presentation Layer:* React-SPA (Web-Oberfläche)
+* *API Layer:* REST-API (TI-1) mit API Gateway
+* *Business Logic Layer:* Use Cases (UC-1 bis UC-22), Technical Functions (TF-1 bis TF-7)
+* *Domain Layer:* Entities (E-1 bis E-10)
+* *Infrastructure Layer:* Technical Interfaces (TI-2 bis TI-7)
+
+*Ports & Adapters:*
+
+* Primary Ports: REST-API, Web-UI
+* Secondary Ports: DatabasePort, StoragePort, EmailPort, SearchPort, QueuePort
+* Adapters: PostgresAdapter, ElasticsearchAdapter, SMTPAdapter, RabbitMQAdapter
+
+=== Erreichung wichtigster Qualitätsziele
+
+*Q1: Performance*
+
+* LibreOffice headless läuft im gleichen JVM-Prozess (keine IPC-Overhead)
+* Asynchrone Dokumentengenerierung über Message Queue (nicht blockierend)
+* Elasticsearch für schnelle Volltextsuche
+* PostgreSQL-Indizes auf häufig abgefragte Spalten (template_id, status, user_id)
+
+*Q2: Zuverlässigkeit (Determinismus)*
+
+* LibreOffice-Verarbeitung strikt sequenziell für gleiche Template-Version
+* Keine Zufallswerte, keine zeitabhängigen Werte in Template-Processing
+* Versionierung von Templates: Gleiche Version = gleiche Binärdaten
+* Regressionstests validieren Determinismus automatisch
+
+*Q3: Wartbarkeit*
+
+* Storage Abstraction Layer (`StorageService` Interface) entkoppelt Business-Logik von Storage-Implementierung
+* Template-Versionierung: Jede Änderung = neue Version
+* Code-Versionierung: Git mit Semantic Versioning
+* Strukturierte Logs (JSON) für einfaches Debugging
+
+*Q4: Sicherheit*
+
+* TF-2 (Workflow-Status ändern) prüft technisch: `userId != template.erstellerId`
+* RBAC: Rollen in E-9 (Benutzer), Prüfung bei jedem API-Call
+* API-Rate-Limiting im API Gateway: 1.000 Requests/h pro API-Key
+* HTTPS/TLS für alle externen Verbindungen
+
+*Q5: Skalierbarkeit*
+
+* Horizontal skalierbar: Mehrere blocpress Core-Instanzen hinter Load Balancer
+* Message Queue entkoppelt Request-Handling von Dokumentengenerierung
+* PostgreSQL Connection Pooling (HikariCP)
+* Caching von Templates (Caffeine Cache) reduziert DB-Last
+
+=== Organisatorische Entscheidungen
+
+* *Entwicklungsprozess:* Agil (Scrum), 2-Wochen-Sprints
+* *CI/CD:* Automatische Tests bei jedem Commit, automatisches Deployment zu Test-Umgebung
+* *Code-Reviews:* Vier-Augen-Prinzip auch bei Code (mindestens 1 Reviewer)
+* *Dokumentation:* arc42 für Architektur, Javadoc für Code, OpenAPI für REST-API
+
+<<<<
+[[section-building-block-view]]
+== Bausteinsicht
+
+_Detaillierte Beschreibung der Bausteine: xref:Element_Design_Concept.adoc#edc-functions[Technical Functions] | xref:Element_Design_Concept.adoc#edc-interfaces[Technical Interfaces] | xref:Element_Design_Concept.adoc#edc-usecases[Use Cases]_
+
+=== Whitebox Gesamtsystem
+
+[plantuml, bausteinsicht-ebene1, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+package "blocpress Gesamtsystem" {
+  component "Web-Oberfläche\n(React SPA)" as WebUI
+  component "API Gateway\n(Kong)" as Gateway
+  component "blocpress Core\n(Quarkus)" as Core
+  database "PostgreSQL\nDatenbank" as DB
+  queue "Message Queue\n(RabbitMQ)" as MQ
+  component "Content Search\n(Elasticsearch)" as Search
+}
+
+WebUI -down-> Gateway : HTTPS
+Gateway -down-> Core : HTTP
+Core -down-> DB : JDBC
+Core -right-> MQ : AMQP
+Core -down-> Search : HTTP
+
+note right of Core
+  Enthält:
+  - REST-API (TI-1)
+  - Business Logic
+  - LibreOffice headless
+  - Technical Interfaces
+end note
+@enduml
+----
+
+*Begründung:*
+
+Die Zerlegung folgt dem Prinzip der Separation of Concerns:
+
+* *Web-Oberfläche* ist vollständig entkoppelt vom Backend (SPA)
+* *API Gateway* übernimmt Querschnittsbelange (Authentifizierung, Rate Limiting, Logging)
+* *blocpress Core* enthält gesamte Business-Logik
+* *PostgreSQL* persistiert alle Daten (Metadaten + Binärdaten)
+* *Message Queue* ermöglicht asynchrone Verarbeitung
+* *Elasticsearch* ist spezialisiert auf Volltextsuche
+
+*Enthaltene Bausteine:*
+
+[cols="1,2" options="header"]
+|===
+| Name | Verantwortung
+
+| Web-Oberfläche
+| Präsentationsschicht für Template-Designer, Qualitätsmanager, Compliance-Reviewer, Test-Manager, Administratoren. Single-Page-Application (React).
+
+| API Gateway
+| Authentifizierung (Integration mit Identity Provider), Rate Limiting, Request-Logging, Routing zu blocpress Core.
+
+| blocpress Core
+| Gesamte Business-Logik: Use Cases, Technical Functions, REST-API, Integration mit LibreOffice, Workflow-Engine, Compliance-Manager, Test-Framework.
+
+| PostgreSQL Datenbank
+| Persistente Speicherung aller Entities (E-1 bis E-10), inkl. Binärdaten (Templates, generierte Dokumente, Test-PDFs).
+
+| Message Queue
+| Asynchrone Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests). Entkopplung.
+
+| Content Search (Elasticsearch)
+| Indexierung von Template-Inhalten, Volltextsuche nach fachlichen Konstrukten, Highlighting.
+|===
+
+*Wichtige Schnittstellen:*
+
+* *TI-1 (REST-API):* Primäre Schnittstelle zwischen Web-Oberfläche/externen Anwendungen und blocpress Core
+* *TI-2 (Datenbank-Interface):* JDBC-Zugriff auf PostgreSQL
+* *TI-5 (Message Queue Interface):* AMQP-Zugriff auf RabbitMQ
+* *TI-7 (Elasticsearch API):* HTTP-REST-Zugriff auf Elasticsearch
+
+=== Ebene 2
+
+==== Whitebox blocpress Core
+
+[plantuml, bausteinsicht-ebene2-core, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+package "blocpress Core (Quarkus)" {
+  component "REST-API\nController" as API
+  component "Use Case\nServices" as UC
+  component "Technical\nFunctions" as TF
+  component "Workflow\nEngine" as WF
+  component "Compliance\nManager" as CM
+  component "Test\nFramework" as TestFW
+  component "LibreOffice\nProcessor" as LO
+  component "Storage\nService" as Storage
+  component "Repository\nLayer" as Repo
+}
+
+API -down-> UC : aufrufen
+UC -down-> TF : nutzen
+UC -down-> WF : nutzen
+UC -down-> CM : nutzen
+UC -down-> TestFW : nutzen
+TF -down-> LO : nutzen
+TF -down-> Storage : nutzen
+TF -down-> Repo : nutzen
+Repo -down-> "PostgreSQL" : JDBC
+Storage -down-> "PostgreSQL" : JDBC (bytea)
+
+note right of LO
+  LibreOffice ≥ 24
+  headless integriert
+  UNO-API
+end note
+
+note right of Storage
+  Storage Abstraction Layer
+  Interface: save/load
+  Impl: PostgresStorageService
+  Future: S3StorageService
+end note
+@enduml
+----
+
+*Begründung:*
+
+Klare Schichtenarchitektur mit Dependency Inversion:
+
+* REST-API Controller delegieren an Use Case Services
+* Use Cases orchestrieren Technical Functions
+* Technical Functions nutzen Infrastructure Services (LibreOffice, Storage, Repository)
+* Storage Abstraction Layer ermöglicht Austausch der Storage-Implementierung
+
+*Enthaltene Bausteine:*
+
+[cols="1,2" options="header"]
+|===
+| Name | Verantwortung
+
+| REST-API Controller
+| HTTP-Endpunkte (TI-1), Request-Validierung, Response-Serialisierung, Exception-Handling
+
+| Use Case Services
+| Implementierung der Use Cases (UC-1 bis UC-22), Orchestrierung von Technical Functions
+
+| Technical Functions
+| Implementierung wiederverwendbarer technischer Funktionen (TF-1 bis TF-7)
+
+| Workflow Engine
+| Steuerung von Freigabeprozessen (E-4), Statusübergänge, Vier-Augen-Prüfung
+
+| Compliance Manager
+| Überwachung von Review-Zyklen (E-5), Benachrichtigungen bei fälligen Reviews, geplanter Job
+
+| Test Framework
+| Verwaltung von Test Cases (E-6, E-7), PDF-Vergleich (TF-6), Regressionstests
+
+| LibreOffice Processor
+| Integration mit LibreOffice headless, Template-Validierung (TF-1), Dokumentengenerierung (TF-5)
+
+| Storage Service
+| Abstraktionsschicht für Binärdaten-Speicherung, Interface mit Implementierungen (Postgres, zukünftig S3)
+
+| Repository Layer
+| Datenzugriff auf Entities (E-1 bis E-10), JPA/Hibernate, CRUD-Operationen
+|===
+
+==== Blackbox LibreOffice Processor
+
+*Zweck/Verantwortung:*
+
+Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates.
+
+*Schnittstellen:*
+
+* `validateTemplate(byte[] odtBinary): ValidationResult` - TF-1
+* `generateDocument(Template template, String jsonData, OutputFormat format): byte[]` - TF-5
+
+*Qualitäts-/Leistungsmerkmale:*
+
+* Deterministisch: Gleiche Eingabe → gleiche Ausgabe
+* Performance: < 5s für Standard-Dokumente (20 Seiten)
+* Thread-Safe: Mehrere parallele LibreOffice-Instanzen möglich
+
+*Ablageort/Datei:*
+
+* Package: `de.blocpress.core.libreoffice`
+* Hauptklasse: `LibreOfficeProcessor`
+
+*Offene Punkte:*
+
+* Thread-Pool-Größe für LibreOffice-Instanzen (aktuell: 10)
+* Memory-Limitierung pro LibreOffice-Instanz
+
+==== Blackbox Storage Service
+
+*Zweck/Verantwortung:*
+
+Abstraktionsschicht für Speicherung von Binärdaten (Templates, generierte Dokumente, Test-PDFs).
+
+*Schnittstellen:*
+
+* `save(byte[] data, String key): StorageId`
+* `load(StorageId id): byte[]`
+* `delete(StorageId id): void`
+
+*Qualitäts-/Leistungsmerkmale:*
+
+* Austauschbar: Interface erlaubt Wechsel von PostgreSQL zu S3 ohne Code-Änderungen in Business-Logik
+* Performance: Optimiert für < 5.000 Dokumente in PostgreSQL
+* Transaktional: Speicherung in PostgreSQL erfolgt transaktional mit Metadaten
+
+*Ablageort/Datei:*
+
+* Interface: `de.blocpress.core.storage.StorageService`
+* Implementierung: `de.blocpress.core.storage.PostgresStorageService`
+* Zukünftig: `de.blocpress.core.storage.S3StorageService`
+
+<<<<
+[[section-runtime-view]]
+== Laufzeitsicht
+
+_Systemszenarien: xref:System_Design_Concept.adoc#sydc-scenarios[System Scenarios im System Design Concept] | Business Processes: xref:Solution_Design_Concept.adoc#sdc-bp[Business Processes im Solution Design Concept]_
+
+=== Template hochladen und validieren
+
+*Szenario:* Template-Designer lädt neues ODT-Template hoch (UC-1)
+
+[plantuml, laufzeit-template-upload, svg]
+----
+@startuml
+actor "Template-Designer" as User
+participant "Web-UI" as UI
+participant "API Gateway" as Gateway
+participant "REST-API" as API
+participant "TemplateService\n(UC-1)" as UC
+participant "LibreOfficeProcessor\n(TF-1)" as LO
+participant "StorageService" as Storage
+participant "TemplateRepository" as Repo
+participant "Elasticsearch" as ES
+
+User -> UI : Upload ODT-Datei
+UI -> Gateway : POST /api/templates\n(multipart/form-data)
+Gateway -> Gateway : Authentifizierung\nRate Limiting
+Gateway -> API : forward request
+API -> UC : uploadTemplate(file, name, desc)
+UC -> LO : validateTemplate(odtBinary)
+LO -> LO : LibreOffice UNO-API:\nDokument öffnen,\nUser-Fields extrahieren,\nWiederholungsgruppen identifizieren
+LO --> UC : ValidationResult\n(isValid, userFields, ...)
+UC -> Storage : save(odtBinary, key)
+Storage -> Storage : INSERT INTO templates\n(template_binary = bytea)
+Storage --> UC : StorageId
+UC -> Repo : save(Template entity)
+Repo -> Repo : INSERT INTO templates\n(metadata)
+Repo --> UC : Template (id, ...)
+UC -> ES : indexTemplate(templateId, content)
+ES -> ES : PUT /templates/_doc/{id}
+ES --> UC : OK
+UC --> API : TemplateDTO
+API --> Gateway : 201 Created + JSON
+Gateway --> UI : JSON Response
+UI --> User : Template-Details anzeigen
+
+note right of LO
+  TF-1: Template validieren
+  - ODT-Struktur prüfen
+  - User-Fields extrahieren
+  - Wiederholungsgruppen finden
+end note
+
+note right of Storage
+  Storage Abstraction Layer
+  PostgreSQL bytea
+  (zukünftig: S3)
+end note
+@enduml
+----
+
+=== Dokument über API generieren (asynchron)
+
+*Szenario:* Externe Anwendung generiert Dokument über REST-API (UC-10, TF-5)
+
+[plantuml, laufzeit-doc-generation, svg]
+----
+@startuml
+participant "Externe\nAnwendung" as App
+participant "API Gateway" as Gateway
+participant "REST-API" as API
+participant "DocumentService\n(UC-10)" as UC
+participant "Message Queue" as MQ
+participant "DocumentWorker" as Worker
+participant "LibreOfficeProcessor\n(TF-5)" as LO
+participant "StorageService" as Storage
+participant "DocumentRepository" as Repo
+
+App -> Gateway : POST /api/documents/generate\n{templateId, jsonData, format}
+Gateway -> API : forward
+API -> UC : generateDocument(...)
+UC -> Repo : createGenerationRecord()\nStatus: "In Bearbeitung"
+Repo --> UC : GenerationId
+UC -> MQ : sendMessage(generationId, templateId,\njsonData, format)
+MQ --> UC : MessageId
+UC --> API : GenerationId
+API --> Gateway : 202 Accepted\n{generationId}
+Gateway --> App : GenerationId
+
+... Asynchrone Verarbeitung ...
+
+MQ -> Worker : consumeMessage
+Worker -> Repo : loadTemplate(templateId)
+Repo --> Worker : Template (incl. binary)
+Worker -> LO : generateDocument(template,\njsonData, format)
+LO -> LO : LibreOffice UNO-API:\n- Template öffnen\n- User-Fields befüllen\n- Wiederholungsgruppen iterieren\n- IF-Bedingungen auswerten\n- Export (ODT/PDF/RTF)
+LO --> Worker : documentBinary
+Worker -> Storage : save(documentBinary)
+Storage --> Worker : StorageId
+Worker -> Repo : updateGenerationRecord()\nStatus: "Erfolgreich"
+Repo --> Worker : OK
+
+... Polling durch Anwendung ...
+
+App -> Gateway : GET /api/documents/{id}/status
+Gateway -> API : forward
+API -> Repo : findById(generationId)
+Repo --> API : Document (status, storageId)
+API --> Gateway : {status: "Erfolgreich",\ndownloadUrl: "/api/documents/{id}/download"}
+Gateway --> App : JSON Response
+
+App -> Gateway : GET /api/documents/{id}/download
+Gateway -> API : forward
+API -> Storage : load(storageId)
+Storage --> API : documentBinary
+API --> Gateway : 200 OK\nContent-Type: application/pdf\nbinary stream
+Gateway --> App : PDF-Datei
+
+note right of LO
+  TF-5: Dokument generieren
+  - Template mit JSON befüllen
+  - Punkt-Notation auflösen
+  - Arrays iterieren
+  - IF-Bedingungen auswerten
+  - Export in ODT/PDF/RTF
+end note
+@enduml
+----
+
+=== Automatischer Regressionstest
+
+*Szenario:* Nach Template-Änderung werden automatisch Regressionstests ausgeführt (UC-16, TF-6)
+
+[plantuml, laufzeit-regression-test, svg]
+----
+@startuml
+participant "TemplateService" as Template
+participant "TestFramework" as TF
+participant "Message Queue" as MQ
+participant "TestWorker" as Worker
+participant "LibreOfficeProcessor\n(TF-5)" as LO
+participant "PDFComparator\n(TF-6)" as Compare
+participant "TestRepository" as Repo
+participant "SMTP" as Mail
+
+Template -> TF : templateUpdated(templateId)
+TF -> Repo : findTestCasesByTemplate(templateId)
+Repo --> TF : List<TestCase>
+
+loop für jeden TestCase
+  TF -> MQ : sendTestMessage(testCaseId)
+end
+
+MQ -> Worker : consumeMessage(testCaseId)
+Worker -> Repo : loadTestCase(testCaseId)
+Repo --> Worker : TestCase\n(jsonData, baselinePdf)
+Worker -> LO : generateDocument(template, jsonData, PDF)
+LO --> Worker : currentPdf
+Worker -> Compare : comparePdfs(baselinePdf, currentPdf)
+Compare -> Compare : - Seitenanzahl prüfen\n- Text extrahieren\n- Zeile für Zeile vergleichen
+Compare --> Worker : ComparisonResult\n(isIdentical, differences)
+
+alt PDFs identisch
+  Worker -> Repo : updateTestCase()\nStatus: "Bestanden"
+else PDFs unterschiedlich
+  Worker -> Repo : updateTestCase()\nStatus: "Fehlgeschlagen"\ndifferences: [...]
+  Worker -> Mail : sendNotification(testManager,\n"Test fehlgeschlagen")
+end
+
+Repo --> Worker : OK
+@enduml
+----
+
+=== Compliance Review-Überwachung
+
+*Szenario:* Geplanter Job prüft täglich fällige Reviews (TF-7, UC-12)
+
+[plantuml, laufzeit-compliance-check, svg]
+----
+@startuml
+participant "Scheduler\n(Quartz)" as Scheduler
+participant "ComplianceManager\n(TF-7)" as CM
+participant "TemplateRepository" as TRepo
+participant "ReviewRepository" as RRepo
+participant "SMTP" as Mail
+
+Scheduler -> CM : checkReviews()\n(täglich 06:00 Uhr)
+CM -> TRepo : findAllApprovedTemplates()
+TRepo --> CM : List<Template>
+
+loop für jedes Template
+  CM -> RRepo : findLatestReview(templateId)
+  RRepo --> CM : ComplianceReview (oder null)
+
+  alt kein Review existiert ODER letztes Review abgeschlossen
+    CM -> CM : calculateNextReviewDate()\nbaseierend auf Review-Zyklus\n(1, 3 oder 5 Jahre)
+
+    alt nextReviewDate <= heute + 30 Tage
+      CM -> RRepo : createReview(templateId,\ntype, dueDate, status: "Anstehend")
+      RRepo --> CM : ReviewId
+      CM -> Mail : sendNotification(complianceReviewer,\n"Review fällig für Template X")
+    end
+  end
+end
+
+CM -> RRepo : findOverdueReviews()
+RRepo --> CM : List<ComplianceReview>
+
+loop für jedes überfällige Review
+  CM -> RRepo : updateStatus(reviewId, "Überfällig")
+  CM -> Mail : sendEscalation(complianceReviewer,\nmanager)
+end
+
+note right of CM
+  TF-7: Compliance-Reviews überprüfen
+  Läuft als geplanter Job
+  Erstellt Reviews 30 Tage im Voraus
+end note
+@enduml
+----
+
+<<<<
+[[section-deployment-view]]
+== Verteilungssicht
+
+_Systemarchitektur und Hardware-Elemente: xref:System_Design_Concept.adoc#sydc-architecture[System Architecture im System Design Concept]_
+
+=== Infrastruktur Ebene 1 (Docker-Compose)
+
+[plantuml, deployment-docker-compose, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+node "Docker Host" {
+  node "blocpress-core Container" {
+    component "Quarkus App" as App
+    component "LibreOffice\nheadless ≥ 24" as LO
+  }
+
+  node "postgresql Container" {
+    database "PostgreSQL ≥ 18" as DB
+  }
+
+  node "rabbitmq Container" {
+    queue "RabbitMQ" as MQ
+  }
+
+  node "elasticsearch Container" {
+    component "Elasticsearch ≥ 7.x" as ES
+  }
+
+  node "nginx Container" {
+    component "Web-Oberfläche\n(React SPA)" as WebUI
+  }
+}
+
+cloud "Externe Services" {
+  component "Identity Provider" as IdP
+  component "SMTP-Server" as SMTP
+}
+
+WebUI -down-> App : HTTPS
+App -down-> DB : JDBC (5432)
+App -right-> MQ : AMQP (5672)
+App -down-> ES : HTTP (9200)
+App -left-> IdP : SAML/OIDC (443)
+App -left-> SMTP : SMTP (587)
+
+note right of DB
+  Volumes:
+  - /var/lib/postgresql/data
+  Speichert:
+  - Metadaten
+  - Binärdaten (bytea)
+end note
+
+note right of App
+  Environment:
+  - QUARKUS_DATASOURCE_JDBC_URL
+  - RABBITMQ_HOST
+  - ELASTICSEARCH_URL
+  - LIBREOFFICE_HOME
+end note
+@enduml
+----
+
+*Deployment-Konfiguration (docker-compose.yml):*
+
+[source,yaml]
+----
+version: '3.8'
+services:
+  postgresql:
+    image: postgres:18-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: blocpress
+      POSTGRES_USER: blocpress
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
+  blocpress-core:
+    build: ./blocpress-core
+    depends_on:
+      - postgresql
+      - rabbitmq
+      - elasticsearch
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress
+      RABBITMQ_HOST: rabbitmq
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      LIBREOFFICE_HOME: /usr/lib/libreoffice
+    ports:
+      - "8080:8080"
+    volumes:
+      - libreoffice_cache:/tmp/libreoffice
+
+  web-ui:
+    image: nginx:alpine
+    volumes:
+      - ./web-ui/build:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "443:443"
+    depends_on:
+      - blocpress-core
+
+volumes:
+  postgres_data:
+  libreoffice_cache:
+----
+
+=== Infrastruktur Ebene 2 (Kubernetes - Produktiv)
+
+[plantuml, deployment-kubernetes, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+cloud "Kubernetes Cluster" {
+  node "Namespace: blocpress-prod" {
+    rectangle "Deployment: blocpress-core" {
+      component "Pod 1\nblocpress-core" as Pod1
+      component "Pod 2\nblocpress-core" as Pod2
+      component "Pod 3\nblocpress-core" as Pod3
+    }
+
+    component "Service:\nblocpress-core-svc" as CoreSvc
+
+    rectangle "StatefulSet: postgresql" {
+      database "PostgreSQL\nPrimary" as DBPrimary
+      database "PostgreSQL\nReplica" as DBReplica
+    }
+
+    component "Service:\npostgresql-svc" as DBSvc
+
+    rectangle "Deployment: rabbitmq" {
+      queue "RabbitMQ" as MQ
+    }
+
+    rectangle "StatefulSet: elasticsearch" {
+      component "ES Node 1" as ES1
+      component "ES Node 2" as ES2
+    }
+
+    component "Ingress\nController" as Ingress
+
+    component "PersistentVolume\nClaim: postgres-pvc" as PVC
+  }
+}
+
+Pod1 -down-> DBSvc : JDBC
+Pod2 -down-> DBSvc : JDBC
+Pod3 -down-> DBSvc : JDBC
+DBSvc -down-> DBPrimary
+DBSvc -down-> DBReplica
+DBPrimary -down-> PVC
+
+Pod1 -right-> MQ : AMQP
+Pod2 -right-> MQ : AMQP
+Pod3 -right-> MQ : AMQP
+
+Pod1 -down-> ES1 : HTTP
+Pod2 -down-> ES2 : HTTP
+Pod3 -down-> ES1 : HTTP
+
+Ingress -down-> CoreSvc : HTTP
+CoreSvc -down-> Pod1
+CoreSvc -down-> Pod2
+CoreSvc -down-> Pod3
+
+note right of Ingress
+  TLS-Terminierung
+  Load Balancing
+  Rate Limiting
+end note
+
+note right of PVC
+  Storage Class: SSD
+  Size: 100Gi
+  Speichert:
+  - PostgreSQL Daten
+  - Binärdaten (bytea)
+end note
+@enduml
+----
+
+*Kubernetes-Konfiguration (deployment.yaml):*
+
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-core
+  namespace: blocpress-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: blocpress-core
+  template:
+    metadata:
+      labels:
+        app: blocpress-core
+    spec:
+      containers:
+      - name: blocpress-core
+        image: blocpress/core:1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: QUARKUS_DATASOURCE_JDBC_URL
+          value: jdbc:postgresql://postgresql-svc:5432/blocpress
+        - name: RABBITMQ_HOST
+          value: rabbitmq-svc
+        - name: ELASTICSEARCH_URL
+          value: http://elasticsearch-svc:9200
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+----
+
+*Qualitätsmerkmale der Verteilungssicht:*
+
+* *Skalierbarkeit:* Kubernetes-Deployment mit 3 Replicas, horizontal skalierbar
+* *Verfügbarkeit:* PostgreSQL mit Primary-Replica-Setup, Elasticsearch mit 2 Nodes
+* *Performance:* SSD-Storage für PostgreSQL, Connection Pooling, Load Balancing
+* *Überwachbarkeit:* Liveness- und Readiness-Probes für Health-Checks
+
+<<<<
+[[section-concepts]]
+== Querschnittliche Konzepte
+
+_Detaillierte Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities im Element Design Concept] | Geschäftsentitäten: xref:Solution_Design_Concept.adoc#sdc-ia[Information Architecture im Solution Design Concept]_
+
+=== Domänenmodell
+
+[plantuml, domain-model, svg]
+----
+@startuml
+!define ENTITY class
+
+ENTITY Template {
+  + id: Long
+  + name: String
+  + version: Integer
+  + status: String
+  + template_binary: bytea
+  + user_fields: JSONB
+  + review_zyklus: Integer
+}
+
+ENTITY Baustein {
+  + id: Long
+  + name: String
+  + typ: String
+  + inhalt: bytea
+}
+
+ENTITY Freigabeprozess {
+  + id: Long
+  + workflow_status: String
+  + pruefer_id: Long
+  + freigeber_id: Long
+}
+
+ENTITY ComplianceReview {
+  + id: Long
+  + review_typ: String
+  + faelligkeitsdatum: Date
+  + review_status: String
+  + review_ergebnis: String
+}
+
+ENTITY TestCase {
+  + id: Long
+  + test_name: String
+  + json_testdaten: JSONB
+  + erwartetes_pdf: bytea
+  + test_status: String
+}
+
+ENTITY Dokumentengenerierung {
+  + id: Long
+  + json_daten: JSONB
+  + output_format: String
+  + generiertes_dokument: bytea
+  + status: String
+}
+
+ENTITY Benutzer {
+  + id: Long
+  + name: String
+  + email: String
+  + rollen: JSONB
+}
+
+Template "1" -- "0..*" Freigabeprozess : hat >
+Template "1" -- "0..*" ComplianceReview : unterliegt >
+Template "1" -- "0..*" TestCase : wird getestet durch >
+Template "1" -- "0..*" Dokumentengenerierung : erzeugt >
+Template "0..*" -- "0..*" Baustein : verwendet >
+
+Benutzer "1" -- "0..*" Template : erstellt >
+Benutzer "1" -- "0..*" Freigabeprozess : prüft/gibt frei >
+Benutzer "1" -- "0..*" ComplianceReview : führt durch >
+@enduml
+----
+
+=== Benutzerverwaltung und Sicherheit
+
+*Authentifizierung:*
+
+* Integration mit externem Identity Provider via SAML 2.0 oder OpenID Connect
+* Single Sign-On (SSO) für Web-Oberfläche
+* API-Keys für externe Anwendungen (generiert durch Administrator)
+* Token-Validierung bei jedem Request im API Gateway
+
+*Autorisierung:*
+
+Rollenbasierte Zugriffskontrolle (RBAC):
+
+[cols="2,3,3" options="header"]
+|===
+| Rolle | Berechtigungen | Use Cases
+
+| Template-Designer
+| Template erstellen, Template bearbeiten, Template einreichen
+| UC-1, UC-2, UC-3, UC-5
+
+| Qualitätsmanager
+| Template prüfen, Testdokumente generieren
+| UC-6, UC-7, UC-10
+
+| Freigeber
+| Template freigeben, Template ablehnen
+| UC-8, UC-9
+
+| Compliance-Reviewer
+| Reviews durchführen, Review-Ergebnisse speichern
+| UC-11, UC-12, UC-13
+
+| Test-Manager
+| Test Cases erstellen, Tests ausführen, Baselines aktualisieren
+| UC-14, UC-15, UC-16, UC-17, UC-18
+
+| Administrator
+| Benutzer verwalten, Rollen zuweisen, System konfigurieren
+| UC-22, UC-23, UC-24
+
+| API-Konsument
+| Dokumente generieren (nur via API)
+| TI-1: POST /api/documents/generate
+|===
+
+*Sicherheitskonzepte:*
+
+* *Vier-Augen-Prinzip:* Technisch erzwungen in TF-2 (Workflow-Status ändern): `userId != template.erstellerId`
+* *API-Rate-Limiting:* 1.000 Requests/h pro API-Key (im API Gateway)
+* *HTTPS/TLS:* Alle externen Verbindungen verschlüsselt
+* *SQL-Injection-Schutz:* Prepared Statements, JPA/Hibernate
+* *DSGVO-Compliance:* Löschfunktion für personenbezogene Daten in E-3, E-6
+
+=== Persistenz und Storage
+
+*Storage Abstraction Layer:*
+
+[source,java]
+----
+public interface StorageService {
+    StorageId save(byte[] data, String key);
+    byte[] load(StorageId id);
+    void delete(StorageId id);
+}
+
+public class PostgresStorageService implements StorageService {
+    @Override
+    public StorageId save(byte[] data, String key) {
+        // INSERT INTO ... (template_binary) VALUES (?)
+        // bytea-Spalte in PostgreSQL
+    }
+}
+
+// Zukünftig:
+public class S3StorageService implements StorageService {
+    @Override
+    public StorageId save(byte[] data, String key) {
+        // PUT object to S3
+    }
+}
+----
+
+*Datenbank-Schema (Auszug):*
+
+[source,sql]
+----
+CREATE TABLE templates (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    version INTEGER NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    ersteller_id BIGINT REFERENCES benutzer(id),
+    template_binary BYTEA,  -- Binärdaten
+    user_fields JSONB,      -- Strukturierte Daten
+    review_zyklus INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_templates_status ON templates(status);
+CREATE INDEX idx_templates_ersteller ON templates(ersteller_id);
+
+CREATE TABLE dokumentengenerierung (
+    id BIGSERIAL PRIMARY KEY,
+    template_id BIGINT REFERENCES templates(id),
+    json_daten JSONB,
+    generiertes_dokument BYTEA,  -- Binärdaten
+    status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+----
+
+*Transaktionsmanagement:*
+
+* JTA-Transaktionen für atomare Operationen (z.B. TF-2: Status ändern + Freigabeprozess erstellen)
+* Isolation Level: READ_COMMITTED
+* Rollback bei Fehlern in Use Cases
+
+=== Template-Verarbeitung mit LibreOffice
+
+*LibreOffice-Integration:*
+
+[source,java]
+----
+public class LibreOfficeProcessor {
+    private XComponentLoader componentLoader;
+
+    public ValidationResult validateTemplate(byte[] odtBinary) {
+        // 1. Lade ODT über LibreOffice UNO-API
+        XComponent doc = componentLoader.loadComponentFromURL(...);
+
+        // 2. Extrahiere User-Fields
+        XTextFieldsSupplier fieldsSupplier = (XTextFieldsSupplier) doc;
+        XNameAccess fields = fieldsSupplier.getTextFields();
+
+        // 3. Identifiziere Wiederholungsgruppen (Sections/Tables)
+        XTextSectionsSupplier sectionsSupplier = (XTextSectionsSupplier) doc;
+
+        // 4. Validiere Punkt-Notation in Field-Namen
+        // z.B. "kunde.name" ist valide, "kunde name" ist invalide
+
+        return new ValidationResult(...);
+    }
+
+    public byte[] generateDocument(Template template,
+                                   String jsonData,
+                                   OutputFormat format) {
+        // 1. Parse JSON zu Map/Object
+        JsonNode json = objectMapper.readTree(jsonData);
+
+        // 2. Öffne Template
+        XComponent doc = loadTemplate(template.getTemplateBinary());
+
+        // 3. Befülle User-Fields
+        for (UserField field : template.getUserFields()) {
+            String value = resolveJsonPath(json, field.getName());
+            setFieldValue(doc, field.getName(), value);
+        }
+
+        // 4. Iteriere Wiederholungsgruppen
+        for (RepetitionGroup group : template.getRepetitionGroups()) {
+            JsonNode array = resolveJsonPath(json, group.getArrayRef());
+            duplicateAndFillGroup(doc, group, array);
+        }
+
+        // 5. Evaluiere IF-Bedingungen
+        evaluateConditions(doc, json);
+
+        // 6. Exportiere
+        return exportDocument(doc, format); // ODT/PDF/RTF
+    }
+}
+----
+
+*Determinismus:*
+
+* Keine Zufallswerte, keine Zeitstempel in Template-Verarbeitung
+* Sortierung von Arrays im JSON konsistent (z.B. nach ID)
+* LibreOffice-Version fixiert (≥ 24)
+* Gleiche Template-Binärdaten + gleiche JSON-Daten = gleiches Ausgabedokument
+
+=== Asynchrone Verarbeitung
+
+*Message Queue Pattern:*
+
+[source,java]
+----
+// Producer (UC-10: Testdokument generieren)
+public class DocumentService {
+    @Inject
+    MqttClient mqttClient;
+
+    public GenerationId generateDocument(Long templateId,
+                                         String jsonData,
+                                         OutputFormat format) {
+        // 1. Erstelle Generierungs-Record
+        Dokumentengenerierung gen = new Dokumentengenerierung();
+        gen.setStatus("In Bearbeitung");
+        repository.save(gen);
+
+        // 2. Sende Message an Queue
+        GenerationMessage msg = new GenerationMessage(
+            gen.getId(), templateId, jsonData, format);
+        mqttClient.send("document.generation", msg);
+
+        return gen.getId();
+    }
+}
+
+// Consumer (Worker)
+@ApplicationScoped
+public class DocumentWorker {
+    @Inject
+    LibreOfficeProcessor processor;
+
+    @Incoming("document.generation")
+    public void processGeneration(GenerationMessage msg) {
+        try {
+            Template template = loadTemplate(msg.getTemplateId());
+            byte[] doc = processor.generateDocument(
+                template, msg.getJsonData(), msg.getFormat());
+
+            storageService.save(doc, ...);
+            updateStatus(msg.getGenerationId(), "Erfolgreich");
+        } catch (Exception e) {
+            updateStatus(msg.getGenerationId(), "Fehlgeschlagen");
+            log.error("Generation failed", e);
+        }
+    }
+}
+----
+
+*Vorteile:*
+
+* Nicht-blockierend: API gibt sofort GenerationId zurück
+* Skalierbar: Worker-Pool kann unabhängig skaliert werden
+* Fehlertoleranz: Retry-Mechanismus bei Fehlern
+* Entkopplung: Producer und Consumer unabhängig deploybar
+
+=== Logging und Monitoring
+
+*Structured Logging:*
+
+[source,java]
+----
+@Slf4j
+public class TemplateService {
+    public Template uploadTemplate(byte[] file, String name) {
+        log.info("Template upload started",
+            kv("templateName", name),
+            kv("fileSize", file.length),
+            kv("userId", SecurityContext.getUserId()));
+
+        try {
+            // ... Business Logic ...
+            log.info("Template uploaded successfully",
+                kv("templateId", template.getId()),
+                kv("templateName", name));
+        } catch (ValidationException e) {
+            log.warn("Template validation failed",
+                kv("templateName", name),
+                kv("errors", e.getErrors()),
+                e);
+            throw e;
+        }
+    }
+}
+----
+
+Output (JSON):
+[source,json]
+----
+{
+  "timestamp": "2024-02-13T10:15:30.123Z",
+  "level": "INFO",
+  "message": "Template uploaded successfully",
+  "templateId": 42,
+  "templateName": "Vertragsvorlage_2024",
+  "userId": 17,
+  "traceId": "abc-123-def"
+}
+----
+
+*Metriken (Prometheus):*
+
+* `blocpress_document_generation_duration_seconds` - Histogram der Generierungszeiten
+* `blocpress_template_upload_total` - Counter: Anzahl hochgeladener Templates
+* `blocpress_api_requests_total{endpoint, status}` - Counter: API-Requests
+* `blocpress_test_failures_total` - Counter: Fehlgeschlagene Regressionstests
+* `blocpress_compliance_reviews_overdue` - Gauge: Anzahl überfälliger Reviews
+
+*Health-Checks:*
+
+[source,java]
+----
+@Liveness
+public class LivenessCheck implements HealthCheck {
+    public HealthCheckResponse call() {
+        return HealthCheckResponse.up("blocpress-core");
+    }
+}
+
+@Readiness
+public class ReadinessCheck implements HealthCheck {
+    @Inject
+    DataSource dataSource;
+
+    public HealthCheckResponse call() {
+        try (Connection conn = dataSource.getConnection()) {
+            return HealthCheckResponse.up("database");
+        } catch (SQLException e) {
+            return HealthCheckResponse.down("database");
+        }
+    }
+}
+----
+
+<<<<
+[[section-design-decisions]]
+== Architekturentscheidungen
+
+_Zugehörige Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Constraints im Element Design Concept] | xref:System_Design_Concept.adoc#sydc-constraints[Constraints im System Design Concept]_
+
+=== ADR-001: Binärdaten in PostgreSQL statt S3
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Wir müssen entscheiden, wo Template-Binärdaten (ODT), generierte Dokumente (PDF/RTF) und Test-Baselines (PDF) gespeichert werden. Optionen: PostgreSQL (bytea) oder S3-kompatibler Object Storage.
+
+*Entscheidung:*
+
+Speicherung in PostgreSQL bytea-Spalten. Erwartetes Datenvolumen: < 5.000 Dokumente + Templates.
+
+*Begründung:*
+
+* *Einfachheit:* Keine zusätzliche Infrastruktur-Komponente
+* *Transaktionalität:* Metadaten + Binärdaten in einer Transaktion
+* *Performance:* Bei < 5.000 Dokumenten ist PostgreSQL performant genug
+* *Kosteneffizienz:* Kein separater S3-Service notwendig
+* *Zukunftssicherheit:* Storage Abstraction Layer ermöglicht späteren Wechsel zu S3
+
+*Konsequenzen:*
+
+* Positiv: Einfacheres Deployment, weniger Moving Parts, ACID-Garantien
+* Negativ: PostgreSQL-Backup größer, bei > 5.000 Dokumenten Migration zu S3 notwendig
+* Mitigation: Storage Abstraction Layer implementiert, Migration zu S3 vorbereitet
+
+=== ADR-002: Quarkus statt Spring Boot
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Wahl des Java-Frameworks für blocpress Core. Optionen: Spring Boot, Quarkus, Micronaut.
+
+*Entscheidung:*
+
+Quarkus Framework
+
+*Begründung:*
+
+* *Performance:* Schnellere Startup-Zeit (< 1s vs. 5-10s bei Spring Boot)
+* *Memory-Footprint:* Geringerer RAM-Verbrauch (wichtig bei Container-Deployment)
+* *Cloud-Native:* Entwickelt für Kubernetes, native Kompilierung möglich (GraalVM)
+* *Developer Experience:* Live-Reload, Dev-Services, gute Dokumentation
+* *Standards:* Jakarta EE, MicroProfile (nicht vendor-locked)
+
+*Konsequenzen:*
+
+* Positiv: Bessere Container-Performance, niedrigere Infrastruktur-Kosten
+* Negativ: Kleineres Ökosystem als Spring Boot, weniger Extensions
+* Risiko: Team muss Quarkus lernen (Schulung einplanen)
+
+=== ADR-003: Asynchrone Dokumentengenerierung
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Dokumentengenerierung kann 5-30 Sekunden dauern. Soll der REST-API-Call blockieren oder asynchron sein?
+
+*Entscheidung:*
+
+Asynchrone Verarbeitung über Message Queue (RabbitMQ/Kafka)
+
+*Begründung:*
+
+* *Responsiveness:* API gibt sofort (< 100ms) GenerationId zurück
+* *Skalierbarkeit:* Worker-Pool kann unabhängig von API-Servern skaliert werden
+* *Fehlertoleranz:* Retry-Mechanismus bei LibreOffice-Fehlern
+* *Monitoring:* Queue-Länge zeigt System-Last
+
+*Konsequenzen:*
+
+* Positiv: Bessere User Experience, horizontal skalierbar
+* Negativ: Komplexere Architektur, Client muss pollen oder WebSocket nutzen
+* Mitigation: Klares API-Design (202 Accepted, Polling-Endpoint)
+
+=== ADR-004: Elasticsearch für Content Search
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Volltextsuche über alle Templates nach fachlichen Konstrukten. Optionen: PostgreSQL Full-Text-Search, Elasticsearch, Apache Solr.
+
+*Entscheidung:*
+
+Elasticsearch ≥ 7.x
+
+*Begründung:*
+
+* *Performance:* Sub-2-Sekunden-Suche auch bei 1.000+ Templates
+* *Relevanz:* Besseres Ranking als PostgreSQL FTS
+* *Highlighting:* Zeigt Treffer im Kontext
+* *Skalierbarkeit:* Horizontal skalierbar (mehrere Nodes)
+* *Reife:* Bewährte Technologie, große Community
+
+*Konsequenzen:*
+
+* Positiv: Exzellente Suchperformance und -qualität
+* Negativ: Zusätzliche Infrastruktur-Komponente, höhere Komplexität
+* Risiko: Eventual Consistency (Index kann wenige Sekunden verzögert sein)
+
+=== ADR-005: LibreOffice headless statt Cloud-Conversion-Service
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Template-Verarbeitung und Dokumentengenerierung. Optionen: LibreOffice headless (self-hosted), Cloud-Conversion-Service (z.B. Aspose, CloudConvert).
+
+*Entscheidung:*
+
+LibreOffice ≥ 24 headless, integriert in blocpress Core
+
+*Begründung:*
+
+* *Kosteneffizienz:* Keine Lizenzkosten, keine API-Kosten
+* *Datenschutz:* Templates verlassen nicht die eigene Infrastruktur
+* *Kontrolle:* Vollständige Kontrolle über Verarbeitungs-Pipeline
+* *Determinismus:* LibreOffice-Version fixiert, reproduzierbare Ergebnisse
+* *ODT-Support:* Native Unterstützung für OpenDocument-Format
+
+*Konsequenzen:*
+
+* Positiv: Keine externe Abhängigkeit, DSGVO-konform, kosteneffizient
+* Negativ: LibreOffice-Deployment komplex, Memory-Verbrauch höher
+* Risiko: LibreOffice-Bugs, Performance-Tuning notwendig
+
+<<<<
+[[section-quality-requirements]]
+== Qualitätsanforderungen
+
+_Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr[Quality Requirements im Solution Design Concept] | auf Systemebene: xref:System_Design_Concept.adoc#sydc-qr[Quality Requirements im System Design Concept] | auf Elementebene: xref:Element_Design_Concept.adoc#edc-qr[Quality Requirements im Element Design Concept]_
+
+=== Qualitätsbaum
+
+[plantuml, quality-tree, svg]
+----
+@startmindmap
+* blocpress\nQualitätsanforderungen
+
+** Performance
+*** Dokumentengenerierung < 5s\n(Standard-Dokumente)
+*** Suche < 2s\n(über alle Templates)
+*** API-Latenz < 100ms\n(ohne Generierung)
+
+** Zuverlässigkeit
+*** Determinismus\n(gleiche Eingabe = gleiche Ausgabe)
+*** Transaktionale Integrität\n(ACID)
+*** Fehlertoleranz\n(Retry-Mechanismen)
+
+** Wartbarkeit
+*** Storage Abstraction Layer\n(Austauschbarkeit)
+*** Versionierung\n(Templates & Code)
+*** Strukturierte Logs\n(JSON)
+
+** Sicherheit
+*** Vier-Augen-Prinzip\n(technisch erzwungen)
+*** RBAC\n(rollenbasiert)
+*** Rate Limiting\n(1.000 req/h)
+*** HTTPS/TLS\n(verschlüsselt)
+
+** Skalierbarkeit
+*** Horizontal skalierbar\n(Kubernetes)
+*** 100 gleichzeitige\nGenerierungen
+*** Message Queue\n(Entkopplung)
+
+** Compliance
+*** DSGVO\n(Löschkonzept)
+*** Audit-Logging\n(manipulationssicher)
+*** Review-Zyklen\n(1/3/5 Jahre)
+
+@endmindmap
+----
+
+=== Qualitätsszenarien
+
+[cols="1,2,2,2" options="header"]
+|===
+| Qualitätsziel | Szenario | Stimulus | Response
+
+| *Performance*
+| Standard-Dokumentengenerierung
+| Externe Anwendung sendet Request mit Template (20 Seiten) und JSON-Daten
+| Dokument wird innerhalb von 5 Sekunden generiert und zurückgegeben
+
+| *Performance*
+| Volltextsuche
+| Template-Designer sucht nach "Beitragsanpassung" (1.000 Templates im Index)
+| Suchergebnisse werden innerhalb von 2 Sekunden angezeigt
+
+| *Zuverlässigkeit*
+| Deterministische Generierung
+| Gleiches Template + gleiche JSON-Daten, zweimal aufgerufen
+| Beide generierten PDFs sind Byte-für-Byte identisch (Regressionstests bestätigen)
+
+| *Zuverlässigkeit*
+| Transaktionale Integrität
+| Template-Freigabe schlägt fehl (z.B. DB-Fehler nach Status-Update)
+| Komplettes Rollback: Template behält alten Status, kein Freigabeprozess-Eintrag erstellt
+
+| *Wartbarkeit*
+| Storage-Austausch
+| Migration von PostgreSQL bytea zu S3
+| Storage Abstraction Layer ermöglicht Implementierungswechsel ohne Änderungen in Use Cases/TFs
+
+| *Wartbarkeit*
+| Template-Versionierung
+| Template wird geändert
+| Neue Version wird erstellt, alte Version bleibt verfügbar, Änderungen nachvollziehbar
+
+| *Sicherheit*
+| Vier-Augen-Prinzip
+| Designer versucht, sein eigenes Template freizugeben
+| TF-2 verweigert Freigabe mit Fehlermeldung "Designer darf nicht freigeben (Vier-Augen-Prinzip)"
+
+| *Sicherheit*
+| API-Rate-Limiting
+| Anwendung sendet 1.500 Requests in 1 Stunde
+| Nach 1.000 Requests: HTTP 429 Too Many Requests
+
+| *Skalierbarkeit*
+| Horizontale Skalierung
+| 150 gleichzeitige Dokumentengenerierungen
+| Kubernetes skaliert auf 5 blocpress-core Pods, Queue puffert Last, alle Requests erfolgreich
+
+| *Skalierbarkeit*
+| Message Queue Entkopplung
+| 100 Generierungsanfragen in 10 Sekunden
+| API nimmt alle Anfragen an (< 100ms Response), Queue verarbeitet asynchron
+
+| *Compliance*
+| DSGVO-Löschung
+| Administrator löscht personenbezogene Daten in Test Cases
+| JSON-Testdaten werden aus E-6 entfernt, Test-PDFs anonymisiert oder gelöscht
+
+| *Compliance*
+| Turnusmäßiges Review
+| Template mit 3-Jahres-Zyklus ist seit 3 Jahren freigegeben
+| Compliance Manager erstellt automatisch Review-Aufgabe, Reviewer wird per E-Mail benachrichtigt
+
+| *Benutzbarkeit*
+| Template-Upload mit Validierung
+| Designer lädt Template mit ungültigen User-Fields hoch
+| System zeigt klare Validierungsfehler ("Field 'kunde name' enthält Leerzeichen, Punkt-Notation erforderlich")
+
+| *Übertragbarkeit*
+| Docker-Deployment
+| blocpress soll in neuer Umgebung deployed werden
+| docker-compose up startet alle Services, keine manuellen Konfigurationsschritte
+|===
+
+<<<<
+[[section-risks-and-technical-debt]]
+== Risiken und technische Schulden
+
+=== Risiken
+
+[cols="1,2,1,2,2" options="header"]
+|===
+| ID | Risiko | Wahrscheinlichkeit | Auswirkung | Maßnahme
+
+| R-1
+| *LibreOffice Memory Leaks*: LibreOffice headless kann bei Langzeitbetrieb Memory Leaks entwickeln
+| Mittel
+| Hoch (Out-of-Memory, Systemausfall)
+| - Regelmäßiger Neustart von LibreOffice-Instanzen nach X Generierungen
+- Memory-Monitoring
+- Container-Restart bei Memory-Limit
+
+| R-2
+| *PostgreSQL bytea Performance*: Bei > 5.000 Dokumenten kann Performance von PostgreSQL bytea degradieren
+| Hoch
+| Mittel (Langsamere Queries)
+| - Storage Abstraction Layer bereits implementiert
+- Migration zu S3 vorbereitet
+- Monitoring der DB-Performance
+
+| R-3
+| *Determinismus-Verlust*: LibreOffice-Updates können Rendering ändern, Determinismus brechen
+| Mittel
+| Hoch (Regressionstests schlagen fehl)
+| - LibreOffice-Version in Dockerfile fixieren
+- Regressionstests bei jedem LibreOffice-Update
+- Baseline-PDFs bei bewusstem Update neu generieren
+
+| R-4
+| *Message Queue Single Point of Failure*: Wenn RabbitMQ ausfällt, keine asynchrone Verarbeitung möglich
+| Niedrig
+| Hoch (Keine Dokumentengenerierung)
+| - RabbitMQ Cluster (3 Nodes)
+- Persistent Messages
+- Monitoring & Alerting
+
+| R-5
+| *Elasticsearch Eventual Consistency*: Index kann wenige Sekunden verzögert sein
+| Hoch
+| Niedrig (Nutzer findet neu hochgeladenes Template nicht sofort)
+| - User informieren ("Index wird aktualisiert, Template erscheint in ca. 10 Sekunden")
+- Refresh-Button in UI
+
+| R-6
+| *Compliance Review-Backlog*: Viele Templates werden gleichzeitig fällig
+| Mittel
+| Mittel (Compliance-Reviewer überlastet)
+| - Frühwarnung (30 Tage im Voraus)
+- Priorisierung nach Kritikalität
+- Eskalation bei Überschreitung
+
+| R-7
+| *LibreOffice-API Breaking Changes*: LibreOffice-Updates können UNO-API ändern
+| Niedrig
+| Hoch (Code-Anpassungen notwendig)
+| - Versionsfixierung
+- Umfassende Integration-Tests
+- Update-Strategie dokumentiert
+|===
+
+=== Technische Schulden
+
+[cols="1,2,2,2" options="header"]
+|===
+| ID | Technische Schuld | Auswirkung | Refactoring-Plan
+
+| TD-1
+| *Fehlende Caching-Strategie*: Templates werden bei jeder Generierung aus DB geladen
+| Performance: Unnötige DB-Last, langsamere Generierung
+| - Caffeine Cache für Templates implementieren
+- Cache-Invalidierung bei Template-Update
+- TTL: 1 Stunde
+
+| TD-2
+| *Keine Batch-Generierung*: API unterstützt nur Single-Document-Generation
+| Effizienz: Viele API-Calls für Batch-Szenarien
+| - Batch-Endpoint hinzufügen: `POST /api/documents/batch`
+- Array von Generierungs-Requests
+- Transaktional verarbeiten
+
+| TD-3
+| *Hartcodierte LibreOffice-Pfade*: LibreOffice-Installation fest in Code
+| Wartbarkeit: Erschwert Deployment in verschiedenen Umgebungen
+| - Pfad als Environment-Variable
+- Auto-Detection von LibreOffice
+- Fallback-Mechanismus
+
+| TD-4
+| *Fehlende WebSocket-Unterstützung*: Client muss für Generierungs-Status pollen
+| Benutzbarkeit: Höhere Last, langsameres Feedback
+| - WebSocket-Endpoint für Status-Updates
+- Server-Sent Events (SSE) als Alternative
+| Geplant für Release 2.0
+
+| TD-5
+| *Kein PDF-Differenz-Highlighting*: TF-6 gibt nur Text-Unterschiede zurück
+| Testbarkeit: Test-Manager muss Unterschiede manuell finden
+| - PDF-Differenz visuell markieren (z.B. rote Umrandung)
+- Screenshot-Diff als Zusatzfeature
+| Geplant für Release 1.5
+
+| TD-6
+| *Fehlende Template-Preview*: Nutzer sehen Template erst nach Download
+| Benutzbarkeit: Umständlicher Workflow
+| - Template-Preview in Web-UI (PDF-Rendering)
+- Thumbnail-Generierung
+| Nice-to-have
+
+| TD-7
+| *Keine Versionsverwaltung für Bausteine*: Bausteine haben Version, aber keine Historie
+| Wartbarkeit: Änderungen an Bausteinen nicht nachvollziehbar
+| - Baustein-Versionierung wie bei Templates
+- Historie-View in UI
+| Geplant für Release 2.0
+|===
+
+<<<<
+[[section-glossary]]
+== Glossar
+
+[cols="1,3" options="header"]
+|===
+| Begriff | Definition
+
+| *Baustein*
+| Wiederverwendbares LibreOffice-Fragment (ODT), das in mehreren Templates eingebunden werden kann (z.B. Standardfußzeile, AGBs). Entity E-2.
+
+| *Baseline-PDF*
+| Erwartetes PDF-Ergebnis eines Test Cases, gegen das aktuelle Generierungen verglichen werden. Gespeichert in E-6.7.
+
+| *blocpress Core*
+| Hauptkomponente des Systems: Quarkus-Anwendung mit Business-Logik, REST-API, LibreOffice-Integration.
+
+| *Compliance Review*
+| Turnusmäßige Prüfung eines Templates auf inhaltliche Aktualität. Review-Zyklen: 1, 3 oder 5 Jahre. Entity E-5.
+
+| *Content Search Engine*
+| Elasticsearch-basierte Komponente zur Indexierung und Volltextsuche über alle Templates und Bausteine.
+
+| *Deterministische Generierung*
+| Eigenschaft, dass identische Eingaben (Template-Version + JSON-Daten) immer identische Ausgabedokumente erzeugen. Essentiell für Regressionstests.
+
+| *Dokumentengenerierung*
+| Prozess der automatisierten Befüllung eines Templates mit JSON-Daten und Export als ODT/PDF/RTF. Entity E-3, TF-5.
+
+| *Freigabeprozess*
+| Workflow zur Qualitätssicherung von Templates: Eingereicht → In Prüfung → Freigegeben/Abgelehnt. Entity E-4, UC-8, UC-9.
+
+| *IF-Bedingung*
+| Bedingung in einem Template, die Inhalte basierend auf JSON-Daten dynamisch ein- oder ausblendet.
+
+| *LibreOffice headless*
+| LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich.
+
+| *Message Queue*
+| RabbitMQ oder Kafka zur asynchronen Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests).
+
+| *ODT*
+| OpenDocument Text Format - Standardformat für LibreOffice-Textdokumente. Template-Eingabeformat für blocpress.
+
+| *Punkt-Notation*
+| Notation zur Referenzierung von JSON-Pfaden in User-Fields, z.B. `kunde.name` oder `vertrag.positionen[0].preis`.
+
+| *Regressionstest*
+| Automatisierter Test, der prüft, ob Template-Änderungen ungewollte Auswirkungen auf generierte Dokumente haben. UC-16, TF-6.
+
+| *Storage Abstraction Layer*
+| Interface (`StorageService`) zur Entkopplung von Binärdaten-Speicherung. Ermöglicht Wechsel von PostgreSQL bytea zu S3.
+
+| *Template*
+| LibreOffice-Dokument (ODT) mit Platzhaltern (User-Fields), Wiederholungsgruppen und Bedingungen. Entity E-1.
+
+| *Test Case*
+| Testfall für ein Template mit JSON-Testdaten und Baseline-PDF. Entity E-6.
+
+| *Testpool*
+| Sammlung von Test Cases für gemeinsame Ausführung (z.B. alle Tests für ein Template). Entity E-7.
+
+| *User-Field*
+| Platzhalter in einem Template, der durch JSON-Daten befüllt wird. Name in Punkt-Notation (z.B. `kunde.name`).
+
+| *Vier-Augen-Prinzip*
+| Sicherheitskonzept: Template-Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen in TF-2.
+
+| *Wiederholungsgruppe*
+| Section oder Table in einem Template, die für jedes Element eines JSON-Arrays dupliziert und befüllt wird.
+
+| *Workflow-Engine*
+| Komponente in blocpress Core zur Steuerung von Freigabeprozessen und Statusübergängen. Prüft Berechtigungen und Vier-Augen-Prinzip.
+|===
+
+<<<<
+
+== Über arc42
+
+arc42, das Template zur Dokumentation von Software- und
+Systemarchitekturen.
+
+Template Version 8.2 DE. (basiert auf AsciiDoc Version)
+Erstellt, gepflegt und © von Dr. Peter Hruschka, Dr. Gernot Starke und
+Mitwirkenden. Siehe https://arc42.org.
+
+=== Lizenz
+
+arc42 is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
+
+image::https://licensebuttons.net/l/by-sa/4.0/88x31.png[CC BY-SA 4.0]
+
+Weitere Informationen: https://creativecommons.org/licenses/by-sa/4.0/
+
+Under this license, you're free to:
+
+* *Share:* copy and redistribute the material in any medium or format
+* *Adapt:* remix, transform, and build upon the material for any purpose, even commercially.
+
+We, the licensors, (Gernot Starke and Peter Hruschka, the creators of arc42) cannot (and surely will not) revoke these freedoms as long as you follow the license terms.
+
+*You must:*
+
+* Give *appropriate credit*, provide a link to the license, and indicate if changes to arc42 were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+* If you remix, transform, or build upon material from arc42, you must distribute your contributions under the *same license* as the original.
+
+*Attribution for this document:*
+
+This architecture documentation for blocpress is based on the arc42 template by Dr. Gernot Starke and Dr. Peter Hruschka. The template structure follows arc42 Version 8.2 DE. Content specific to blocpress has been created and adapted for this project.
+
+arc42 template: https://arc42.org +
+License: https://creativecommons.org/licenses/by-sa/4.0/

@@ -14,6 +14,11 @@ import org.apache.commons.lang3.StringUtils;
  *
  * Verwendung:
  *   boolean result = JexlConditionEvaluator.evaluate(conditionText, dataMap);
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a> (Schritt 8: IF-Bedingungen evaluieren)</li>
+ * </ul>
  */
 public final class JexlConditionEvaluator {
     private static final JexlEngine JEXL = new JexlBuilder()

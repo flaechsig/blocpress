@@ -28,6 +28,11 @@ import java.util.*;
  * Liest den Rohwert (office:value / office:value-type oder TextContent),
  * ermittelt einen passenden number-style (falls vorhanden) und liefert
  * den formatierten String zurück oder ersetzt das Feld durch ein span.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a> (Schritt 6: User-Fields befüllen und formatieren)</li>
+ * </ul>
  */
 public final class UserFieldFormatter {
 

@@ -12,6 +12,11 @@ import java.util.Map;
 
 /**
  * Utility class for working with OpenDocument Text (ODT) elements.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-ti-3">TI-3: LibreOffice API</a></li>
+ * </ul>
  */
 public class OdtHelper {
     private OdtHelper() {

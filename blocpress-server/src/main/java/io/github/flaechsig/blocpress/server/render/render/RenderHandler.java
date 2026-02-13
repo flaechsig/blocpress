@@ -10,6 +10,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * REST-Endpoint zur Konvertierung von bereits zusammengeführten ODT-Dokumenten
+ * in andere Formate (PDF, RTF, ODT). Implementiert {@code POST /render}.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-ti-1">TI-1: REST-API</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-uc-10">UC-10: Testdokument mit Template generieren</a></li>
+ * </ul>
+ */
 public class RenderHandler implements RenderApi {
 
     @Override

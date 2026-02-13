@@ -18,6 +18,18 @@ import java.nio.file.StandardCopyOption;
 import static io.github.flaechsig.blocpress.renderer.OutputFormat.ODT;
 import static io.github.flaechsig.blocpress.renderer.OutputFormat.RTF;
 
+/**
+ * REST-Endpoint zum Zusammenführen eines ODT-Templates mit JSON-Daten und
+ * anschließender Konvertierung in das gewünschte Format.
+ * Implementiert {@code POST /template/merge}.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-ti-1">TI-1: REST-API</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-uc-1">UC-1: Template hochladen</a></li>
+ * </ul>
+ */
 public class TemplateResource implements TemplateApi {
     private static Logger logger = LoggerFactory.getLogger(TemplateResource.class);
     private static ObjectMapper mapper = new ObjectMapper();
