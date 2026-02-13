@@ -172,7 +172,6 @@ class RenderHandlerIT {
 
 
         byte[] odt = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
-        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
 
         var request = HttpRequest.newBuilder(
                         baseUri.resolve("/render"))
@@ -185,16 +184,12 @@ class RenderHandlerIT {
         HttpResponse<byte[]> response = HttpClient.newHttpClient()
                 .send(request, HttpResponse.BodyHandlers.ofByteArray());
         byte[] actual = response.body();
-
-        var tmp = Files.createTempFile("blocpress_out", ".odt");
-        Files.write(tmp, actual);
+        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
 
         assertEquals(200, response.statusCode(), () -> "Response: " + new String(response.body()));
         assertTrue(actual.length > 0, "Response body is empty");
 
-        String expectedContentXml = normalizeXml(readZipEntry(expected, "content.xml"));
-        String actualContentXml = normalizeXml(readZipEntry(actual, "content.xml"));
-        assertEquals(normalizeText(expectedContentXml), normalizeText(actualContentXml));
+        assertEquals(normalizeText(extractOdtText(expected)), normalizeText(extractOdtText(actual)));
     }
 
     @Test
