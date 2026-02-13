@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.server;
+package io.github.flaechsig.blocpress.server.render;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -31,11 +31,12 @@ import java.time.Duration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static io.github.flaechsig.blocpress.server.TestDocumentUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers
-class ContainerSmokeIT {
-    private static final Logger LOG = LoggerFactory.getLogger(ContainerSmokeIT.class);
+class RenderHandlerIT {
+    private static final Logger LOG = LoggerFactory.getLogger(RenderHandlerIT.class);
     private static String IMAGE = System.getProperty("it.image");
 
     private static final int JACOCO_PORT = 6300;
@@ -244,49 +245,4 @@ class ContainerSmokeIT {
         assertEquals(406, response.statusCode());
     }
 
-    private static String extractPdfText(byte[] pdf) throws Exception {
-        try (PDDocument doc = PDDocument.load(pdf)) {
-            var stripper = new PDFTextStripper();
-            return stripper.getText(doc);
-        }
-    }
-
-    private static String extractRtfText(byte[] rtf) throws Exception {
-        var kit = new RTFEditorKit();
-        var doc = new DefaultStyledDocument();
-        try (InputStream in = new ByteArrayInputStream(rtf)) {
-            kit.read(in, doc, 0);
-        }
-        return doc.getText(0, doc.getLength());
-    }
-
-    private static String readZipEntry(byte[] zipBytes, String entryName) throws Exception {
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
-            ZipEntry e;
-            while ((e = zis.getNextEntry()) != null) {
-                if (entryName.equals(e.getName())) {
-                    return new String(zis.readAllBytes(), StandardCharsets.UTF_8);
-                }
-            }
-        }
-        fail("ZIP entry not found: " + entryName);
-        return null; // unreachable
-    }
-
-    private static String normalizeText(String s) {
-        // Vereinheitlicht Zeilenenden/Whitespace, damit Layout-Minidiffs nicht flaken
-        return s.replace("\r\n", "\n")
-                .replace('\r', '\n')
-                .replaceAll("[ \\t\\x0B\\f]+", " ")
-                .replaceAll("\\n{3,}", "\n\n")
-                .trim();
-    }
-
-    private static String normalizeXml(String xml) {
-        // Minimal-Normalisierung (keine Canonicalization), meist ausreichend für content.xml
-        return xml.replace("\r\n", "\n")
-                .replace('\r', '\n')
-                .replaceAll(">\\s+<", "><")
-                .trim();
-    }
 }

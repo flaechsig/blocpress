@@ -8,7 +8,6 @@ import java.net.URI;
 import java.nio.file.Path;
 
 import static io.github.flaechsig.blocpress.util.ResourceUtil.extractOdtContent;
-import static io.github.flaechsig.blocpress.util.ResourceUtil.loadDocumentAsBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -29,7 +28,7 @@ public class IfConditionTest {
                 }
                 """;
         JsonNode node = mapper.readTree(json);
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("IfCondition.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("IfCondition.odt").normalize().toURL(), node));
         assertNotNull(actual);
         assertEquals("Liebe Frau Müller", actual);
     }
@@ -46,7 +45,7 @@ public class IfConditionTest {
                 }
                 """;
         JsonNode node = mapper.readTree(json);
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("IfCondition.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("IfCondition.odt").normalize().toURL(), node));
         assertNotNull(actual);
         assertEquals("Lieber Herr Müller", actual);
     }

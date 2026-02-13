@@ -33,7 +33,7 @@ public class LoopTest {
                 """;
         JsonNode node = mapper.readTree(json);
         var expected = extractOdtContent(loadDocumentAsBytes("/loop_table_expected.odt"));
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("loop_table.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("loop_table.odt").normalize().toURL(), node));
 
         assertNotNull(actual);
         assertEquals(expected, actual);
@@ -75,7 +75,7 @@ public class LoopTest {
                 """;
         JsonNode node = mapper.readTree(json);
 //        var expected = extractOdtContent(loadDocumentAsBytes("/loop_table_expected.odt"));
-        var actual = RenderEngine.renderTemplate(baseUri.resolve("sample-04.odt").normalize().toURL(), node);
+        var actual = RenderEngine.mergeTemplate(baseUri.resolve("sample-04.odt").normalize().toURL(), node);
         Files.write(Path.of("/tmp", "sample-04.odt"), actual);
         assertNotNull(actual);
 //        assertEquals(expected, actual);

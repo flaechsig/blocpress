@@ -42,7 +42,7 @@ public class RenderEngine {
      * @see OdfTextDocument für Details zum ODT-Dokumentenmodell.
      */
     @SneakyThrows
-    public static byte[] renderTemplate(@NonNull URL template, @NonNull JsonNode data) {
+    public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data) {
         byte[] output;
         TemplateDocument doc = TemplateDocument.getInstance(template);
 

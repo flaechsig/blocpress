@@ -8,8 +8,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static io.github.flaechsig.blocpress.util.ResourceUtil.extractOdtContent;
-import static io.github.flaechsig.blocpress.util.ResourceUtil.loadDocumentAsBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -54,7 +52,7 @@ public class TextBlockTest {
                     }
                 """;
         JsonNode node = mapper.readTree(json);
-        var actual = RenderEngine.renderTemplate(baseUri.resolve("sample-05.odt").normalize().toURL(), node);
+        var actual = RenderEngine.mergeTemplate(baseUri.resolve("sample-05.odt").normalize().toURL(), node);
         assertNotNull(actual);
         Files.write(Files.createTempFile("textblock-", ".odt"), actual);
     }

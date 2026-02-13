@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.server.render;
+package io.github.flaechsig.blocpress.server.render.render;
 
 import io.github.flaechsig.blocpress.renderer.LibreOfficeExporter;
 import io.github.flaechsig.blocpress.renderer.OutputFormat;
@@ -31,7 +31,6 @@ public class RenderHandler implements RenderApi {
 
             String suffix = "." + rendererFormat;
             Path out = Files.createTempFile("blocpress_render_", suffix);
-            out.toFile().deleteOnExit();
             Files.write(out, transformed);
 
             return out.toFile();

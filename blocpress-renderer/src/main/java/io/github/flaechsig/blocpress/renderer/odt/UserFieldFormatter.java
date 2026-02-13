@@ -149,7 +149,6 @@ public final class UserFieldFormatter {
     private static String formatDate(OdfTextDocument document, String styleName, String raw) {
         if (StringUtils.isBlank(raw)) return "";
 
-        // Einfachere Logik: wir akzeptieren gängige Eingabeformate und liefern immer "yyyy-MM-dd" zurück.
         List<DateTimeFormatter> parseCandidates = List.of(
                 DateTimeFormatter.ISO_OFFSET_DATE_TIME,
                 DateTimeFormatter.ISO_LOCAL_DATE_TIME,
@@ -170,21 +169,18 @@ public final class UserFieldFormatter {
             }
         }
         if (parsed == null) {
-            // Fallback: unverändertes Raw zurückgeben
             return raw;
         }
 
-        DateTimeFormatter outFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd").withLocale(Locale.getDefault());
+        DateTimeFormatter outFmt = buildDateFormatter(document, styleName);
 
         try {
             if (parsed.query(TemporalQueries.localDate()) != null) {
                 LocalDate ld = LocalDate.from(parsed);
                 return outFmt.format(ld);
             } else if (parsed.query(TemporalQueries.localDate()) == null && parsed.query(TemporalQueries.localTime()) != null) {
-                // Nur Zeit enthalten — kein Datum ableitbar, Raw zurückgeben
                 return raw;
             } else if (parsed.query(TemporalQueries.offset()) != null) {
-                // OffsetDateTime -> Datumsteil extrahieren
                 LocalDate ld = OffsetDateTime.from(parsed).toLocalDate();
                 return outFmt.format(ld);
             } else {
@@ -193,6 +189,64 @@ public final class UserFieldFormatter {
         } catch (Exception e) {
             return raw;
         }
+    }
+
+    @SneakyThrows
+    private static DateTimeFormatter buildDateFormatter(OdfTextDocument document, String styleName) {
+        DateTimeFormatter fallback = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        if (document == null || StringUtils.isBlank(styleName)) {
+            return fallback;
+        }
+
+        OdfContentDom contentDom = document.getContentDom();
+        Document stylesDom = document.getStylesDom();
+
+        Element styleElement = findDateStyleElement(contentDom, styleName);
+        if (styleElement == null && stylesDom != null) {
+            styleElement = findDateStyleElement(stylesDom, styleName);
+        }
+        if (styleElement == null) {
+            return fallback;
+        }
+
+        String language = StringUtils.defaultIfBlank(styleElement.getAttribute("number:language"), "de");
+        String country = StringUtils.defaultIfBlank(styleElement.getAttribute("number:country"), "DE");
+        Locale locale = Locale.of(language, country);
+
+        StringBuilder pattern = new StringBuilder();
+        var children = styleElement.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (!(children.item(i) instanceof Element child)) continue;
+            boolean isLong = "long".equals(child.getAttribute("number:style"));
+
+            switch (child.getTagName()) {
+                case "number:day" -> pattern.append(isLong ? "dd" : "d");
+                case "number:month" -> pattern.append(isLong ? "MM" : "M");
+                case "number:year" -> pattern.append(isLong ? "yyyy" : "yy");
+                case "number:hours" -> pattern.append(isLong ? "HH" : "H");
+                case "number:minutes" -> pattern.append(isLong ? "mm" : "m");
+                case "number:seconds" -> pattern.append(isLong ? "ss" : "s");
+                case "number:text" -> pattern.append("'").append(child.getTextContent()).append("'");
+            }
+        }
+
+        if (pattern.isEmpty()) {
+            return fallback;
+        }
+        return DateTimeFormatter.ofPattern(pattern.toString()).withLocale(locale);
+    }
+
+    private static Element findDateStyleElement(Document dom, String styleName) {
+        for (String tag : List.of("number:date-style", "date:date-style", "number:time-style")) {
+            NodeList nl = dom.getElementsByTagName(tag);
+            for (int i = 0; i < nl.getLength(); i++) {
+                if (nl.item(i) instanceof Element elem
+                        && styleName.equals(elem.getAttribute("style:name"))) {
+                    return elem;
+                }
+            }
+        }
+        return null;
     }
 
     private static String formatNumber(OdfTextDocument document, String style, String value) {

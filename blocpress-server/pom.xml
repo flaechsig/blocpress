@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.flaechsig</groupId>
         <artifactId>blocpress-parent</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.1.0</version>
     </parent>
 
     <artifactId>blocpress-server</artifactId>
@@ -20,7 +20,7 @@
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <quarkus.container-image.build>false</quarkus.container-image.build>
-        <quarkus.container-image.registry>ghcr.io</quarkus.container-image.registry>
+        <quarkus.container-image.registry>docker.io</quarkus.container-image.registry>
         <quarkus.container-image.group>flaechsig</quarkus.container-image.group>
         <quarkus.container-image.name>${project.artifactId}</quarkus.container-image.name>
         <quarkus.container-image.tag>${project.version}</quarkus.container-image.tag>
@@ -310,4 +310,44 @@
             </plugin>
         </plugins>
     </build>
+
+<profiles>
+    <profile>
+        <id>release</id>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-maven-plugin</artifactId>
+                    <version>${quarkus.platform.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>build</goal>
+                            </goals>
+                        </execution>
+                        <!-- Build und Push des Images -->
+                        <execution>
+                            <id>build-and-push-image</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>build</goal>
+                            </goals>
+                            <configuration>
+                                <systemProperties>
+                                    <quarkus.container-image.build>true</quarkus.container-image.build>
+                                    <quarkus.container-image.push>true</quarkus.container-image.push>
+                                    <quarkus.container-image.registry>${quarkus.container-image.registry}</quarkus.container-image.registry>
+                                    <quarkus.container-image.group>${quarkus.container-image.registry}</quarkus.container-image.group>
+                                    <quarkus.container-image.name>${project.artifactId}</quarkus.container-image.name>
+                                    <quarkus.container-image.tag>${project.version}</quarkus.container-image.tag>
+                                </systemProperties>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </build>
+    </profile>
+</profiles>
 </project>

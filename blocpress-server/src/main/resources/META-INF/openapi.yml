@@ -13,11 +13,13 @@ servers:
 tags:
   - name: Render
     description: Rendering documents
+  - name: Template
+    description: Template handling and merging
 
 paths:
   /render:
     post:
-      tags: [Render]
+      tags: [ Render ]
       operationId: renderDocument
       summary: render ODT to different output formats (ODT/PDF/RTF)
       description: >
@@ -26,12 +28,15 @@ paths:
       parameters:
         - name: Accept
           in: header
-          required: false
+          required: true
           schema:
             type: string
-            example: application/pdf, application/rtf, application/vnd.oasis.opendocument.text
-          description: >
-            Desired response media type. If omitted, the server may choose a default.
+            enum:
+              - application/vnd.oasis.opendocument.text
+              - application/pdf
+              - application/rtf
+            example: application/pdf
+          description: Desired response media type. If omitted, the server may choose a default.
       requestBody:
         required: true
         content:
@@ -68,3 +73,70 @@ paths:
         "500":
           description: Internal server error
 
+  /template/merge:
+    post:
+      tags: [ Template ]
+      operationId: mergeTemplate
+      summary: Merge ODT template with JSON data and specify output format
+      description: >
+        Merge an ODT template with provided JSON data and specify the desired output format.
+        This endpoint allows dynamic document generation by filling templates with data.
+      parameters:
+        - name: Accept
+          in: header
+          required: true
+          schema:
+            type: string
+            enum:
+              - application/pdf
+              - application/rtf
+              - application/vnd.oasis.opendocument.text
+            example: application/pdf
+          description: >
+            Desired response media type. Must be one of: application/pdf, application/rtf, 
+            application/vnd.oasis.opendocument.text.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - template
+                - data
+              properties:
+                template:
+                  type: string
+                  format: binary
+                  description: ODT template
+                data:
+                  type: string
+                  description: JSON template data
+      responses:
+        "200":
+          description: Merged document (binary) in specified format
+          headers:
+            Content-Disposition:
+              description: download filename
+              schema:
+                type: string
+                example: attachment; filename="merged-document.[pdf|rtf|odt]"
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/rtf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.oasis.opendocument.text:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request (e.g. missing template, invalid JSON data, or invalid template structure)
+        "406":
+          description: Unsupported Media Type
+        "500":
+          description: Internal server error

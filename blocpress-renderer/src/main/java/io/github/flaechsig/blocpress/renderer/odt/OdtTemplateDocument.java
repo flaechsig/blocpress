@@ -17,6 +17,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -358,7 +359,7 @@ public class OdtTemplateDocument implements TemplateDocument {
     }
 
     /**
-     * Smart merge:
+     * Smart template:
      * - if name doesn't exist in target -> import
      * - if exists and definition identical -> skip (reuse master style)
      * - if exists but different -> import renamed copy and store mapping old->new

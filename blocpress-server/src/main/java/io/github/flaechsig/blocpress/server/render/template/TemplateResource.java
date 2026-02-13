@@ -18,8 +18,8 @@ import java.nio.file.StandardCopyOption;
 import static io.github.flaechsig.blocpress.renderer.OutputFormat.ODT;
 import static io.github.flaechsig.blocpress.renderer.OutputFormat.RTF;
 
-public class TemplateHandler implements TemplateApi {
-    private static Logger logger = LoggerFactory.getLogger(TemplateHandler.class);
+public class TemplateResource implements TemplateApi {
+    private static Logger logger = LoggerFactory.getLogger(TemplateResource.class);
     private static ObjectMapper mapper = new ObjectMapper();
 
     @Override
