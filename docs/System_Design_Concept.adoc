@@ -1,4 +1,8 @@
-= System Design Concept: blocpress
+ifndef::imagesdir[:imagesdir: .]
+
+image:blocpress-logo-large.png[]
+
+= System Design Concept
 
 [[sydc-goals]]
 == Goals
@@ -33,71 +37,67 @@ Die Systemarchitektur von blocpress besteht aus folgenden Elementen:
 [[sydc-users]]
 === User Types
 
-*Template-Designer:* Nutzt die Web-Oberfläche zum Hochladen, Bearbeiten und Verwalten von Templates und Bausteinen. Arbeitet primär in LibreOffice und lädt fertige Templates in blocpress hoch.
+*Template-Designer:* Nutzt blocpress-workbench (via blocpress-studio) zum Hochladen, Bearbeiten und Verwalten von Templates und Bausteinen. Arbeitet primär in LibreOffice und lädt fertige Templates hoch.
 
-*Qualitätsmanager:* Nutzt die Web-Oberfläche zur Prüfung von Templates, zum Hinterlassen von Kommentaren und zur Freigabe oder Ablehnung von Templates.
+*Prüfer (QM / Freigeber / Compliance):* Konsolidierte Rolle, die blocpress-proof (via blocpress-studio) nutzt. Prüft Templates, gibt frei oder lehnt ab, führt Compliance-Reviews durch, verwaltet Testdaten und führt Regressionstests aus.
 
-*Compliance-Reviewer:* Nutzt die Web-Oberfläche zur Durchführung turnusmäßiger Reviews und zur Bewertung der inhaltlichen Aktualität von Templates.
+*Administrator:* Nutzt blocpress-admin (via blocpress-studio) zur Verwaltung von Benutzerkonten, Rollen, Berechtigungen und System-Konfiguration.
 
-*Test-Manager:* Nutzt die Web-Oberfläche zum Erstellen und Verwalten von Testdaten, zum Ausführen von Tests und zur Verwaltung des Testpools.
-
-*Administrator:* Nutzt die Web-Oberfläche zur Verwaltung von Benutzerkonten, Rollen, Berechtigungen und System-Konfiguration.
-
-*API-Konsument (Entwickler):* Nutzt die REST-API zur programmatischen Dokumentengenerierung aus Anwendungssystemen heraus.
+*API-Konsument (Entwickler):* Nutzt die öffentliche REST-API von blocpress-render zur programmatischen Dokumentengenerierung aus Anwendungssystemen heraus.
 
 _Fachliche Kundensegmente: xref:Solution_Design_Concept.adoc#sdc-vp[Value Proposition im Solution Design Concept]_
 
 [[sydc-software]]
 === Software Elements
 
-*blocpress-server (Backend):* Quarkus-basierte Anwendung, die die Geschäftslogik implementiert. Verwaltet Templates, Bausteine, Versionen, Workflows, Compliance-Reviews und Tests. Stellt REST-API und interne Services bereit. Integriert LibreOffice headless (Version ≥ 24) für die Dokumentenverarbeitung. +
+Die Anwendung ist als Self-Contained Systems (SCS) strukturiert — fünf unabhängig deploybare Module mit eigener UI, eigenem Backend und eigenem Datenbank-Schema:
+
+*blocpress-studio (Portal-Shell):* Statische HTML/JS-Anwendung (nginx). Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Import Maps. Kein eigenes Backend. Lädt die Web Components der fachlichen Module.
+
+*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung. Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
+_Use Cases: UC-1 bis UC-5, UC-19 bis UC-21_ +
 _Detaillierte Beschreibung: xref:Element_Design_Concept.adoc#edc-goals[Goals im Element Design Concept]_
 
-*Web-Oberfläche (Frontend):* React-basierte Single-Page-Application für Template-Designer, Qualitätsmanager, Compliance-Reviewer, Test-Manager und Administratoren. Kommuniziert mit blocpress-server über REST-API. +
-_User Interfaces: xref:Element_Design_Concept.adoc#edc-uis[User Interfaces im Element Design Concept]_
+*blocpress-proof (Quarkus):* Prüfung und Freigabe — Workflow (TF-2, Vier-Augen-Prinzip), Testdaten, Regressionstests (TF-6), Compliance-Reviews (TF-7), Stufenübergabe nach production. Arbeitsumgebung für Prüfer. Nutzt Schema `proof`. +
+_Use Cases: UC-6 bis UC-9, UC-11 bis UC-18_ +
+_Technical Functions: xref:Element_Design_Concept.adoc#edc-tf-2[TF-2], xref:Element_Design_Concept.adoc#edc-tf-6[TF-6], xref:Element_Design_Concept.adoc#edc-tf-7[TF-7]_
 
-*LibreOffice Document Processor:* Integrierte Komponente in blocpress-server, die LibreOffice headless (Version ≥ 24) zur Verarbeitung von Templates nutzt. Befüllt User-Fields in Punkt-Notation, führt Wiederholungsgruppen aus, wertet IF-Bedingungen aus und exportiert Dokumente als ODT, PDF oder RTF. +
-_Technical Functions: xref:Element_Design_Concept.adoc#edc-tf-1[TF-1: Template validieren], xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren]_
+*blocpress-render (Quarkus):* Dokumentengenerierung — einzige öffentliche REST-API. Liest freigegebene Templates aus Schema `production`. Integriert LibreOffice headless (Version ≥ 24). Stateless, horizontal skalierbar. +
+_Technical Function: xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren]_
 
-*Workflow Engine:* Komponente innerhalb von blocpress-server, die Freigabeprozesse und Compliance-Reviews steuert. Verwaltet Zustände, Übergänge und Berechtigungsprüfungen. +
-_Technical Function: xref:Element_Design_Concept.adoc#edc-tf-2[TF-2: Workflow-Status ändern]_
+*blocpress-admin (Quarkus):* Administration — Benutzerverwaltung, Rollenzuweisung, Systemkonfiguration, Audit-Logs. Nutzt Schema `admin`. +
+_Use Cases: UC-22 bis UC-24_
 
-*Content Search Engine:* Elasticsearch-basierter Suchindex, der Templates und Bausteine indexiert. Ermöglicht Volltextsuche nach fachlichen Konstrukten mit Kontext und Positionsangaben. +
-_Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-7[TI-7: Elasticsearch API]_
+*Gemeinsame Infrastruktur:*
 
-*Test Framework:* Komponente innerhalb von blocpress-server, die Testdaten verwaltet, PDF-Vergleiche durchführt und Regressionstests automatisiert. Speichert Baselines und Test-Ergebnisse. +
-_Technical Function: xref:Element_Design_Concept.adoc#edc-tf-6[TF-6: PDF vergleichen]_
-
-*Compliance Manager:* Komponente innerhalb von blocpress-server, die Review-Zyklen überwacht, Fälligkeitstermine berechnet und fällige Review-Einträge erstellt. Compliance-Reviewer sehen fällige Reviews auf der Web-Oberfläche (UI-3). +
-_Technical Function: xref:Element_Design_Concept.adoc#edc-tf-7[TF-7: Compliance-Reviews überprüfen]_
-
-*Template Repository:* PostgreSQL-Datenbank (Version ≥ 18) zur persistenten Speicherung von Template-Metadaten, Bausteinen, Versionen, Workflow-Status, Test Cases und Compliance-Reviews. Binärdaten (Templates als ODT-Dateien, generierte Dokumente als ODT/PDF/RTF, Test-Baselines als PDF) werden ebenfalls in PostgreSQL gespeichert (erwartetes Volumen: < 5.000 Dokumente + Templates). Eine Storage Abstraction Layer ermöglicht zukünftigen Wechsel zu S3-kompatiblem Object Storage. +
+*PostgreSQL-Datenbank (Version ≥ 18):* Eine Datenbankinstanz mit vier getrennten Schemata (`workbench`, `proof`, `production`, `admin`). Template-Tabellen haben in workbench/proof/production identische Struktur für kopie-basierte Stufenübergabe. Binärdaten als bytea (< 5.000 Dokumente). Storage Abstraction Layer für zukünftigen S3-Wechsel. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-2[TI-2: Datenbank-Interface]_ +
 _Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities im Element Design Concept]_
 
-*API Gateway:* Kong oder ähnliches API Gateway zur Authentifizierung, Rate Limiting, Logging und Routing von API-Anfragen.
+*Content Search Engine (Elasticsearch ≥ 7.x):* Suchindex für Templates und Bausteine, genutzt von blocpress-workbench. +
+_Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-7[TI-7: Elasticsearch API]_
 
-*Message Queue:* RabbitMQ oder Kafka für asynchrone Dokumentengenerierung und zeitaufwändige Hintergrundprozesse wie Regressionstests. +
+*Message Queue (RabbitMQ/Kafka):* Asynchrone Dokumentengenerierung und Regressionstests. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-5[TI-5: Message Queue Interface]_
 
 [[sydc-hardware]]
 === Hardware Elements
 
-*Container Platform:* Docker-Host oder Kubernetes-Cluster zum Betrieb aller Software-Container. Mindestens 16 GB RAM und 4 CPU-Cores für produktive Umgebung.
+*Container Platform:* Docker-Host oder Kubernetes-Cluster zum Betrieb aller SCS-Container (studio, workbench, proof, render, admin). Mindestens 16 GB RAM und 4 CPU-Cores für produktive Umgebung.
 
-*Datenbank-Server:* Dedizierter Server oder Container für PostgreSQL (Version ≥ 18) mit persistentem Storage. Mindestens 8 GB RAM, 100 GB SSD-Storage für Metadaten und Binärdaten (Templates, generierte Dokumente, Test-PDFs).
+*Datenbank-Server:* Dedizierter Server oder Container für PostgreSQL (Version ≥ 18) mit persistentem Storage. Eine Instanz mit vier Schemata (workbench, proof, production, admin). Mindestens 8 GB RAM, 100 GB SSD-Storage.
 
-*Load Balancer:* Hardware- oder Software-Load-Balancer zur Verteilung von Last auf mehrere blocpress-server-Instanzen (optional, für Hochverfügbarkeit).
+*Load Balancer:* Hardware- oder Software-Load-Balancer zur Verteilung von Last auf mehrere blocpress-render-Instanzen (horizontal skalierbar für Dokumentengenerierung).
 
-*Client-Geräte:* Desktop-Computer oder Laptops für Template-Designer, Qualitätsmanager und Administratoren mit modernem Webbrowser (Chrome, Firefox, Edge) und LibreOffice-Installation.
+*Client-Geräte:* Desktop-Computer oder Laptops für Template-Designer, Prüfer und Administratoren mit modernem Webbrowser (Chrome, Firefox, Edge) und LibreOffice-Installation.
 
 [[sydc-partner]]
 === Partner Elements
 
-*JWT-basierte Authentifizierung:* blocpress-server validiert eingehende JSON Web Tokens (JWT) direkt mithilfe eines konfigurierten Issuers und Public Keys (Quarkus SmallRye JWT). Es besteht keine Laufzeitabhängigkeit zu einem externen Identity Provider. +
+*JWT-basierte Authentifizierung:* blocpress-studio übernimmt die Authentifizierung und reicht das JWT als Property an die Web Components weiter. Jedes SCS-Modul validiert JWTs eigenständig via Quarkus SmallRye JWT. Es besteht keine Laufzeitabhängigkeit zu einem externen Identity Provider. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-4[TI-4: JWT-Validierung]_
 
-*Observability (optional):* blocpress-server exportiert Traces, Metriken und Logs über OpenTelemetry (OTLP-Protokoll). Der Betreiber kann einen beliebigen OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent). Ohne konfiguriertem Endpoint läuft das System ohne externe Monitoring-Abhängigkeit.
+*Observability (optional):* Alle SCS-Module exportieren Traces, Metriken und Logs über OpenTelemetry (OTLP-Protokoll). Der Betreiber kann einen beliebigen OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent). Ohne konfiguriertem Endpoint laufen die Module ohne externe Monitoring-Abhängigkeit.
 
 *Backup-System:* Bestehendes Backup-System der Organisation zur regelmäßigen Sicherung der PostgreSQL-Datenbank (inkl. Binärdaten).
 
@@ -109,17 +109,17 @@ _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-4[TI-4: JWT-Validi
 
 *Ziel:* Ein Template-Designer erstellt ein neues Template und reicht es zur Qualitätsprüfung ein.
 
-1. Der Template-Designer meldet sich über die Web-Oberfläche an (Authentifizierung erfolgt über JWT)
-2. Die Web-Oberfläche sendet eine Anfrage an blocpress-server zur Verifizierung der Benutzerrolle
-3. blocpress-server prüft die Berechtigungen und gibt die Template-Verwaltungsseite frei
-4. Der Template-Designer lädt eine LibreOffice-Datei (.odt) über die Web-Oberfläche hoch
-5. Die Web-Oberfläche sendet die Datei an blocpress-server über die REST-API
-6. blocpress-server speichert die Datei als Binärdaten im Template Repository (PostgreSQL) und erstellt einen Metadaten-Eintrag
-7. blocpress-server sendet die Template-Datei an den LibreOffice Document Processor zur Validierung
-8. Der LibreOffice Document Processor analysiert die User-Fields, Wiederholungsgruppen und IF-Bedingungen und meldet Ergebnisse zurück
-9. blocpress-server speichert die Validierungsergebnisse und aktualisiert den Template-Status auf "Entwurf"
-10. Der Template-Designer sieht die Validierungsergebnisse in der Web-Oberfläche und reicht das Template zur Freigabe ein
-11. Die Workflow Engine ändert den Status auf "Eingereicht" — eingereichte Templates sind für Qualitätsmanager auf UI-2 sichtbar
+1. Der Template-Designer meldet sich über blocpress-studio an (Authentifizierung erfolgt über JWT)
+2. blocpress-studio lädt das Web Component `<bp-workbench>` und reicht das JWT als Property weiter
+3. Der Template-Designer lädt eine LibreOffice-Datei (.odt) über die Workbench-Oberfläche hoch
+4. Das Web Component sendet die Datei an blocpress-workbench über die interne REST-API
+5. blocpress-workbench speichert die Datei im Schema `workbench` (PostgreSQL) und erstellt einen Metadaten-Eintrag
+6. blocpress-workbench sendet die Template-Datei an den LibreOffice Document Processor zur Validierung
+7. Der Document Processor analysiert User-Fields, Wiederholungsgruppen und IF-Bedingungen und meldet Ergebnisse zurück
+8. blocpress-workbench speichert die Validierungsergebnisse und aktualisiert den Template-Status auf "Entwurf"
+9. Der Template-Designer sieht die Validierungsergebnisse und reicht das Template zur Prüfung ein
+10. blocpress-workbench kopiert das Template in das Schema `proof` (Stufenübergabe workbench → proof)
+11. Das Template ist nun in blocpress-proof für den Prüfer sichtbar
 
 _Use Cases: xref:Element_Design_Concept.adoc#edc-uc-1[UC-1: Template hochladen], xref:Element_Design_Concept.adoc#edc-uc-2[UC-2: Zur Freigabe einreichen]_ +
 _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template erstellen und freigeben]_
@@ -129,18 +129,18 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template 
 
 *Ziel:* Eine externe Anwendung generiert ein Dokument basierend auf einem freigegebenen Template.
 
-1. Die externe Anwendung sendet einen POST-Request mit Template-ID und JSON-Daten an das API Gateway
-2. Das API Gateway authentifiziert die Anfrage und leitet sie an blocpress-server weiter
-3. blocpress-server validiert die JSON-Daten gegen das Template-Schema
-4. blocpress-server lädt das Template aus dem Template Repository (PostgreSQL)
-5. blocpress-server legt die Generierungsanfrage in die Message Queue für asynchrone Verarbeitung
+1. Die externe Anwendung sendet einen POST-Request mit Template-ID und JSON-Daten an blocpress-render (einzige öffentliche API)
+2. blocpress-render authentifiziert die Anfrage (JWT-Validierung)
+3. blocpress-render validiert die JSON-Daten gegen das Template-Schema
+4. blocpress-render lädt das freigegebene Template aus dem Schema `production` (PostgreSQL)
+5. blocpress-render legt die Generierungsanfrage in die Message Queue für asynchrone Verarbeitung
 6. Der LibreOffice Document Processor nimmt die Anfrage aus der Queue entgegen
 7. Der Document Processor befüllt das Template mit den JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen)
 8. Der Document Processor exportiert das befüllte Dokument im gewünschten Format (ODT, PDF oder RTF)
-9. Der Document Processor speichert das generierte Dokument als Binärdaten im Template Repository (PostgreSQL)
-10. blocpress-server aktualisiert den Generierungs-Status auf "Erfolgreich" und speichert die Metadaten im Template Repository
+9. Das generierte Dokument wird im Schema `production` gespeichert
+10. blocpress-render aktualisiert den Generierungs-Status auf "Erfolgreich"
 11. Die externe Anwendung erhält die Generierungs-ID als Response und kann den Status abfragen
-12. Beim Status-Abruf liefert blocpress-server einen Download-Link für das generierte PDF zurück
+12. Beim Status-Abruf liefert blocpress-render einen Download-Link für das generierte Dokument zurück
 
 _Technical Function: xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren]_ +
 _Use Case: xref:Element_Design_Concept.adoc#edc-uc-10[UC-10: Testdokument mit Template generieren]_ +
@@ -151,17 +151,17 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-generieren[Dokument
 
 *Ziel:* Nach einer Template-Änderung werden automatisch alle zugehörigen Regressionstests ausgeführt.
 
-1. Ein Template-Designer aktualisiert ein Template und reicht die neue Version zur Freigabe ein
-2. Die Workflow Engine ändert den Template-Status und triggert das Test Framework
-3. Das Test Framework ermittelt alle Test Cases, die dem Template zugeordnet sind
-4. Für jeden Test Case lädt das Test Framework die gespeicherten JSON-Testdaten
-5. Das Test Framework sendet Generierungsanfragen an den LibreOffice Document Processor über die Message Queue
-6. Der Document Processor generiert PDFs für alle Test Cases
-7. Das Test Framework lädt die generierten PDFs und die gespeicherten Baseline-PDFs aus dem Template Repository (PostgreSQL)
+1. Ein Template wird von blocpress-workbench an blocpress-proof übergeben (Stufenübergabe workbench → proof)
+2. blocpress-proof empfängt das Template im Schema `proof` und triggert das Test Framework
+3. Das Test Framework (in blocpress-proof) ermittelt alle Test Cases, die dem Template zugeordnet sind
+4. Für jeden Test Case lädt das Test Framework die gespeicherten JSON-Testdaten aus dem Schema `proof`
+5. Das Test Framework sendet Generierungsanfragen an blocpress-render über die interne REST-API
+6. blocpress-render generiert PDFs für alle Test Cases
+7. Das Test Framework lädt die generierten PDFs und die gespeicherten Baseline-PDFs
 8. Das Test Framework vergleicht die PDFs pixel- oder textbasiert
-9. Abweichungen werden dokumentiert und im Template Repository gespeichert
-10. Der Test-Manager öffnet die Web-Oberfläche und sieht die Test-Ergebnisse auf UI-4
-11. Der Test-Manager entscheidet, ob Abweichungen akzeptabel sind oder das Template überarbeitet werden muss
+9. Abweichungen werden dokumentiert und im Schema `proof` gespeichert
+10. Der Prüfer öffnet blocpress-proof (via blocpress-studio) und sieht die Test-Ergebnisse
+11. Der Prüfer entscheidet, ob Abweichungen akzeptabel sind oder das Template überarbeitet werden muss
 
 _Technical Functions: xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren], xref:Element_Design_Concept.adoc#edc-tf-6[TF-6: PDF vergleichen]_ +
 _Use Case: xref:Element_Design_Concept.adoc#edc-uc-16[UC-16: Test ausführen]_ +
@@ -172,15 +172,15 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-testen[Template tes
 
 *Ziel:* Der Compliance Manager erkennt ein fälliges Review und benachrichtigt den zuständigen Reviewer.
 
-1. Der Compliance Manager läuft als geplanter Job und prüft täglich alle Templates im Template Repository
+1. Der Compliance Manager (in blocpress-proof) läuft als geplanter Job und prüft täglich alle freigegebenen Templates im Schema `proof`
 2. Für jedes Template berechnet der Compliance Manager das nächste Review-Datum basierend auf dem Review-Zyklus (1, 3 oder 5 Jahre)
 3. Der Compliance Manager identifiziert Templates, deren Review-Datum in den nächsten 30 Tagen liegt oder bereits überschritten ist
-4. Für jedes fällige Template erstellt der Compliance Manager einen Review-Eintrag im Template Repository mit Status "Anstehend"
-5. Der Compliance-Reviewer meldet sich in der Web-Oberfläche an und sieht fällige Reviews auf UI-3
-6. Der Reviewer öffnet ein Template zur Prüfung und vergleicht es mit aktuellen rechtlichen und fachlichen Anforderungen
-7. Der Reviewer hinterlässt Kommentare im System und markiert das Template als "Freigegeben" oder "Überarbeitung erforderlich"
-8. blocpress-server aktualisiert den Review-Status und berechnet das nächste Review-Datum
-9. Bei "Überarbeitung erforderlich" ist das Template auf UI-1 als "Überarbeitung erforderlich" markiert
+4. Für jedes fällige Template erstellt der Compliance Manager einen Review-Eintrag im Schema `proof` mit Status "Anstehend"
+5. Der Prüfer meldet sich über blocpress-studio an und sieht fällige Reviews in blocpress-proof
+6. Der Prüfer öffnet ein Template zur Prüfung und vergleicht es mit aktuellen rechtlichen und fachlichen Anforderungen
+7. Der Prüfer hinterlässt Kommentare und markiert das Template als "Freigegeben" oder "Überarbeitung erforderlich"
+8. blocpress-proof aktualisiert den Review-Status und berechnet das nächste Review-Datum
+9. Bei "Überarbeitung erforderlich" wird das Template in blocpress-workbench als "Überarbeitung erforderlich" markiert
 
 _Technical Function: xref:Element_Design_Concept.adoc#edc-tf-7[TF-7: Compliance-Reviews überprüfen]_ +
 _Use Case: xref:Element_Design_Concept.adoc#edc-uc-12[UC-12: Review durchführen]_ +
@@ -191,16 +191,16 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-review[Turnusmäßi
 
 *Ziel:* Ein Template-Designer sucht nach einem fachlichen Konstrukt, um zu prüfen, in welchen Dokumenten es verwendet wird.
 
-1. Der Template-Designer meldet sich in der Web-Oberfläche an
-2. Der Template-Designer gibt den Suchbegriff "Beitragsanpassung" in das Suchfeld ein
-3. Die Web-Oberfläche sendet eine Such-Anfrage an blocpress-server über die REST-API
-4. blocpress-server leitet die Anfrage an die Content Search Engine (Elasticsearch) weiter
+1. Der Template-Designer meldet sich über blocpress-studio an
+2. Der Template-Designer gibt den Suchbegriff "Beitragsanpassung" in das Suchfeld der Workbench-Oberfläche ein
+3. Das Web Component sendet eine Such-Anfrage an blocpress-workbench über die interne REST-API
+4. blocpress-workbench leitet die Anfrage an die Content Search Engine (Elasticsearch) weiter
 5. Die Content Search Engine durchsucht den Index nach dem Begriff in allen Templates und Bausteinen
 6. Die Search Engine liefert eine Liste von Treffern mit Template-ID, Baustein-ID, Kontext und Position zurück
-7. blocpress-server reichert die Suchergebnisse mit Metadaten (Template-Name, Status, Version) aus dem Template Repository an
-8. Die Web-Oberfläche zeigt die Suchergebnisse gruppiert nach Templates und Bausteinen an
+7. blocpress-workbench reichert die Suchergebnisse mit Metadaten (Template-Name, Status, Version) aus dem Schema `workbench` an
+8. Die Workbench-Oberfläche zeigt die Suchergebnisse gruppiert nach Templates und Bausteinen an
 9. Der Template-Designer wählt einen Treffer aus
-10. Die Web-Oberfläche öffnet das entsprechende Template oder den Baustein und markiert die gefundene Stelle
+10. Die Workbench-Oberfläche öffnet das entsprechende Template oder den Baustein und markiert die gefundene Stelle
 
 _Use Case: xref:Element_Design_Concept.adoc#edc-uc-19[UC-19: Nach Begriff suchen]_ +
 _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Konstrukte recherchieren]_
@@ -210,14 +210,13 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 
 *Ziel:* Nach dem Upload oder der Änderung eines Templates wird der Suchindex automatisch aktualisiert.
 
-1. Ein Template-Designer lädt ein neues Template hoch oder aktualisiert ein bestehendes Template
-2. blocpress-server speichert das Template als Binärdaten im Template Repository (PostgreSQL) und aktualisiert die Metadaten
-3. blocpress-server sendet eine Indexierungs-Anfrage an die Content Search Engine
-4. Die Content Search Engine lädt die Template-Datei aus dem Template Repository (PostgreSQL)
-5. Die Search Engine extrahiert den Textinhalt des Templates (inkl. User-Fields, statischer Text, Tabellen)
-6. Die Search Engine erstellt oder aktualisiert den Index-Eintrag mit Template-ID, extrahiertem Text und Positionsinformationen
-7. Die Search Engine bestätigt die erfolgreiche Indexierung an blocpress-server
-8. Bei Verwendung eines Bausteins in einem Template indexiert die Search Engine auch die Beziehung zwischen Baustein und Template
+1. Ein Template-Designer lädt ein neues Template hoch oder aktualisiert ein bestehendes Template in blocpress-workbench
+2. blocpress-workbench speichert das Template im Schema `workbench` (PostgreSQL) und aktualisiert die Metadaten
+3. blocpress-workbench sendet eine Indexierungs-Anfrage an die Content Search Engine (Elasticsearch)
+4. Die Content Search Engine extrahiert den Textinhalt des Templates (inkl. User-Fields, statischer Text, Tabellen)
+5. Die Search Engine erstellt oder aktualisiert den Index-Eintrag mit Template-ID, extrahiertem Text und Positionsinformationen
+6. Die Search Engine bestätigt die erfolgreiche Indexierung an blocpress-workbench
+7. Bei Verwendung eines Bausteins in einem Template indexiert die Search Engine auch die Beziehung zwischen Baustein und Template
 
 [[sydc-qr]]
 == Quality Requirements
@@ -230,7 +229,7 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 
 *Performance - Regressionstests:* Ein einzelner Regressionstest soll innerhalb von 30 Sekunden abgeschlossen sein. Die parallele Ausführung von bis zu 10 Tests soll unterstützt werden.
 
-*Skalierbarkeit:* Das System soll bis zu 100 gleichzeitige Dokumentengenerierungen verarbeiten können. Die Architektur soll horizontal skalierbar sein, sodass bei Bedarf weitere blocpress-server-Instanzen hinzugefügt werden können.
+*Skalierbarkeit:* Das System soll bis zu 100 gleichzeitige Dokumentengenerierungen verarbeiten können. blocpress-render ist horizontal skalierbar — bei Bedarf können weitere Instanzen hinzugefügt werden.
 
 *Zuverlässigkeit:* Die Dokumentengenerierung soll deterministisch sein – identische Eingabedaten (Template-Version + JSON-Daten) müssen immer identische Ausgabedokumente erzeugen. Wiederholte Generierungen dürfen keine Abweichungen aufweisen.
 
@@ -238,9 +237,9 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 
 *Nachvollziehbarkeit (Auditability):* Alle Workflow-Aktionen (Freigaben, Ablehnungen), Compliance-Reviews, Testausführungen und API-Zugriffe müssen protokolliert werden. Logs müssen mindestens 2 Jahre aufbewahrt werden.
 
-*Sicherheit - Authentifizierung:* Der Zugriff auf die Web-Oberfläche und die REST-API muss durch Authentifizierung geschützt sein. blocpress-server validiert JWTs direkt mittels konfiguriertem Issuer und Public Key (Quarkus SmallRye JWT). Eine Laufzeitabhängigkeit zu einem externen Identity Provider besteht nicht.
+*Sicherheit - Authentifizierung:* blocpress-studio übernimmt die Authentifizierung und reicht das JWT als Property an Web Components weiter. Jedes SCS-Modul validiert JWTs eigenständig via Quarkus SmallRye JWT. Eine Laufzeitabhängigkeit zu einem externen Identity Provider besteht nicht.
 
-*Sicherheit - Autorisierung:* Rollenbasierte Zugriffskontrolle (RBAC) muss implementiert sein. Template-Designer dürfen nur Templates erstellen und bearbeiten, aber nicht freigeben. Nur Qualitätsmanager und Freigeber dürfen Templates freigeben.
+*Sicherheit - Autorisierung:* Rollenbasierte Zugriffskontrolle (RBAC) muss implementiert sein. Template-Designer arbeiten in blocpress-workbench, Prüfer (konsolidierte Rolle) in blocpress-proof. Template-Designer dürfen nur Templates erstellen und bearbeiten, aber nicht freigeben.
 
 *Sicherheit - API:* API-Zugriffe müssen über API-Keys oder OAuth 2.0 authentifiziert werden. Rate Limiting (max. 1000 Requests pro Stunde pro API-Key) muss implementiert sein.
 
@@ -248,7 +247,7 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 
 *Backup & Recovery:* Tägliche Backups der PostgreSQL-Datenbank (inkl. aller Binärdaten) müssen erfolgen. Das System muss innerhalb von 4 Stunden aus einem Backup wiederhergestellt werden können (Recovery Time Objective: 4h). Datenverlust darf maximal 24 Stunden betragen (Recovery Point Objective: 24h).
 
-*Observability:* blocpress-server unterstützt OpenTelemetry (OTLP) für den Export von Traces, Metriken und Logs. Die Konfiguration eines OTLP-Endpoints ist optional — ohne Endpoint läuft das System ohne externe Monitoring-Abhängigkeit. Quarkus Health-Checks (`/q/health/live`, `/q/health/ready`) stehen unabhängig davon zur Verfügung.
+*Observability:* Alle SCS-Module unterstützen OpenTelemetry (OTLP) für den Export von Traces, Metriken und Logs. Die Konfiguration eines OTLP-Endpoints ist optional — ohne Endpoint laufen die Module ohne externe Monitoring-Abhängigkeit. Quarkus Health-Checks (`/q/health/live`, `/q/health/ready`) stehen je Modul unabhängig zur Verfügung.
 
 _Fachliche Quality Requirements: xref:Solution_Design_Concept.adoc#sdc-qr[Quality Requirements im Solution Design Concept]_ +
 _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-qr[Quality Requirements im Element Design Concept]_
@@ -258,12 +257,14 @@ _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-
 
 *Technologische Constraints:*
 
-- blocpress basiert auf Quarkus Framework
-- blocpress muss als Docker-Container betrieben werden können
-- LibreOffice Version ≥ 24 muss headless in blocpress-server integriert sein
+- blocpress ist als Self-Contained Systems (SCS) strukturiert: studio, workbench, proof, render, admin
+- Alle SCS-Module (außer studio) basieren auf Quarkus Framework
+- Jedes SCS-Modul wird als eigener Docker-Container betrieben
+- LibreOffice Version ≥ 24 muss headless in blocpress-render und blocpress-workbench integriert sein
 - Nur LibreOffice-kompatible Formate (ODT, OTT) werden als Template-Format unterstützt
 - Export nach ODT, PDF und RTF
-- PostgreSQL Version ≥ 18 als Datenbank für Metadaten und Binärdaten (Templates, generierte Dokumente, Test-PDFs)
+- PostgreSQL Version ≥ 18 als Datenbank mit vier getrennten Schemata (workbench, proof, production, admin)
+- Identische Template-Tabellenstrukturen in workbench/proof/production für kopie-basierte Stufenübergabe
 - Binärdaten werden in PostgreSQL gespeichert (< 5.000 Dokumente + Templates erwartet)
 - Storage Abstraction Layer muss implementiert sein, um zukünftigen Wechsel zu S3-kompatiblem Object Storage zu ermöglichen
 - Elasticsearch ab Version 7.x für Content Search

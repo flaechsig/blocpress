@@ -1,4 +1,8 @@
-= Element Design Concept: blocpress-server
+ifndef::imagesdir[:imagesdir: .]
+
+image:blocpress-logo-large.png[]
+
+= Element Design Concept
 
 [[edc-goals]]
 == Goals
@@ -7,54 +11,55 @@
 === G-1: Automatisierte Template-basierte Dokumentengenerierung
 
 *Description:*
-blocpress-server soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen und Dokumente in den Formaten ODT, PDF und RTF generieren. Die Generierung muss deterministisch, performant und über REST-API zugänglich sein. +
+blocpress-render soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen und Dokumente in den Formaten ODT, PDF und RTF generieren. Die Generierung muss deterministisch, performant und über die öffentliche REST-API zugänglich sein. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Automatisierte Dokumentengenerierung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-generieren[Dokument automatisiert generieren]_
 
 [[edc-g-2]]
 === G-2: Zentrale Verwaltung von Templates und Bausteinen
 
 *Description:*
-blocpress-server soll alle Templates, Bausteine und deren Versionen zentral in PostgreSQL speichern und verwalten. Änderungen müssen nachvollziehbar sein und der Freigabestatus jederzeit erkennbar. +
+blocpress-workbench soll alle Templates, Bausteine und deren Versionen im Schema `workbench` speichern und verwalten. Änderungen müssen nachvollziehbar sein und der Freigabestatus jederzeit erkennbar. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Zentrale Template-Verwaltung]_ | _Entities: xref:Solution_Design_Concept.adoc#sdc-ia[Information Architecture]_
 
 [[edc-g-3]]
 === G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Description:*
-blocpress-server soll einen mehrstufigen Freigabeprozess mit definierten Rollen (Template-Designer, Qualitätsmanager, Freigeber) implementieren. Templates dürfen nur nach erfolgreicher Prüfung in Produktion verwendet werden. +
+blocpress-proof soll einen mehrstufigen Freigabeprozess mit definiertem Vier-Augen-Prinzip (Template-Designer ≠ Prüfer) implementieren. Templates dürfen nur nach erfolgreicher Prüfung in das production-Schema übernommen werden. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Workflow-gesteuerte Qualitätssicherung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template erstellen und freigeben]_
 
 [[edc-g-4]]
 === G-4: Turnusmäßige Compliance-Reviews
 
 *Description:*
-blocpress-server soll automatisch Review-Zyklen (1, 3 oder 5 Jahre) überwachen, fällige Reviews identifizieren und Compliance-Reviewer benachrichtigen. +
+blocpress-proof soll automatisch Review-Zyklen (1, 3 oder 5 Jahre) überwachen, fällige Reviews identifizieren und für Prüfer sichtbar machen. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Compliance-Unterstützung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-review[Turnusmäßiges Compliance Review]_
 
 [[edc-g-5]]
 === G-5: Automatisierte Regressionstests
 
 *Description:*
-blocpress-server soll Testdaten verwalten, Test-PDFs generieren, mit Baselines vergleichen und Abweichungen erkennen. +
+blocpress-proof soll Testdaten verwalten, Test-PDFs generieren (via blocpress-render), mit Baselines vergleichen und Abweichungen erkennen. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Umfassende Testunterstützung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-testen[Template testen und Regressionstests]_
 
 [[edc-g-6]]
 === G-6: Performante Inhaltssuche
 
 *Description:*
-blocpress-server soll eine Integration mit Elasticsearch bereitstellen, um fachliche Konstrukte über alle Templates und Bausteine hinweg innerhalb von 2 Sekunden zu finden. +
+blocpress-workbench soll eine Integration mit Elasticsearch bereitstellen, um fachliche Konstrukte über alle Templates und Bausteine hinweg innerhalb von 2 Sekunden zu finden. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Intelligente Inhaltssuche]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Konstrukte recherchieren]_
 
 [[edc-uis]]
 == User Interfaces
 
 [[edc-ui-1]]
-=== UI-1: Template-Verwaltungsoberfläche
+=== UI-1: Template-Verwaltungsoberfläche (blocpress-workbench)
 
 *Description:*
-Web-basierte Oberfläche zum Hochladen, Bearbeiten, Anzeigen und Verwalten von Templates. Wird von Template-Designern genutzt.
+Web Component `<bp-workbench>` zum Hochladen, Bearbeiten, Anzeigen und Verwalten von Templates. Wird von Template-Designern genutzt. Geladen via Import Map in blocpress-studio.
 
 *Actions:*
+
 - Template hochladen (UC-1)
 - Template zur Freigabe einreichen (UC-2)
 - Template-Details anzeigen (UC-3)
@@ -62,18 +67,20 @@ Web-basierte Oberfläche zum Hochladen, Bearbeiten, Anzeigen und Verwalten von T
 - Baustein erstellen/bearbeiten (UC-5)
 
 *Visible Data:*
+
 - Template-Liste: Name, Version, Status, Ersteller, Erstellungsdatum (aus E-1: Template)
 - Template-Details: ID, Name, Beschreibung, Version, Status, User-Fields, Wiederholungsgruppen, Bedingungen (aus E-1: Template)
 - Validierungsergebnisse: Fehler, Warnungen (aus TF-1: Template validieren)
 - Baustein-Liste: Name, Typ, verwendende Templates (aus E-2: Baustein)
 
 [[edc-ui-2]]
-=== UI-2: Freigabe-Oberfläche
+=== UI-2: Freigabe-Oberfläche (blocpress-proof)
 
 *Description:*
-Web-basierte Oberfläche zur Prüfung und Freigabe von Templates. Wird von Qualitätsmanagern und Freigabern genutzt.
+Bestandteil des Web Components `<bp-proof>` zur Prüfung und Freigabe von Templates. Wird von Prüfern genutzt. Geladen via Import Map in blocpress-studio.
 
 *Actions:*
+
 - Template zur Prüfung öffnen (UC-6)
 - Kommentar hinzufügen (UC-7)
 - Template freigeben (UC-8)
@@ -81,33 +88,37 @@ Web-basierte Oberfläche zur Prüfung und Freigabe von Templates. Wird von Quali
 - Testdokument mit Template generieren (UC-10)
 
 *Visible Data:*
+
 - Eingereichte Templates: Name, Version, Einreicher, Einreichdatum (aus E-1: Template, E-4: Freigabeprozess)
 - Template-Details zur Prüfung: Komplette Metadaten, Validierungsergebnisse (aus E-1: Template)
 - Freigabe-Historie: Prüfer, Kommentare, Datum, Entscheidung (aus E-4: Freigabeprozess)
 
 [[edc-ui-3]]
-=== UI-3: Compliance-Review-Oberfläche
+=== UI-3: Compliance-Review-Oberfläche (blocpress-proof)
 
 *Description:*
-Web-basierte Oberfläche zur Durchführung turnusmäßiger Reviews. Wird von Compliance-Reviewern genutzt.
+Bestandteil des Web Components `<bp-proof>` zur Durchführung turnusmäßiger Reviews. Wird von Prüfern genutzt.
 
 *Actions:*
+
 - Fällige Reviews anzeigen (UC-11)
 - Review durchführen (UC-12)
 - Review-Ergebnis speichern (UC-13)
 
 *Visible Data:*
+
 - Review-Liste: Template-Name, Review-Typ, Fälligkeitsdatum, Status (aus E-5: Compliance Review)
 - Template-Inhalte zur Review (aus E-1: Template)
 - Review-Historie: Vergangene Reviews, Kommentare (aus E-5: Compliance Review)
 
 [[edc-ui-4]]
-=== UI-4: Test-Management-Oberfläche
+=== UI-4: Test-Management-Oberfläche (blocpress-proof)
 
 *Description:*
-Web-basierte Oberfläche zur Verwaltung von Testdaten und Regressionstests. Wird von Test-Managern genutzt.
+Bestandteil des Web Components `<bp-proof>` zur Verwaltung von Testdaten und Regressionstests. Wird von Prüfern genutzt.
 
 *Actions:*
+
 - Test Case erstellen (UC-14)
 - Testdaten bearbeiten (UC-15)
 - Test ausführen (UC-16)
@@ -115,38 +126,43 @@ Web-basierte Oberfläche zur Verwaltung von Testdaten und Regressionstests. Wird
 - Testpool verwalten (UC-18)
 
 *Visible Data:*
+
 - Test Cases: Name, Template, Status, letzte Ausführung (aus E-6: Test Case)
 - Testdaten: JSON-Struktur (aus E-6: Test Case)
 - Test-Ergebnisse: Bestanden/Fehlgeschlagen, Abweichungen (aus E-6: Test Case)
 - Testpools: Name, enthaltene Tests, Erfolgsrate (aus E-7: Testpool)
 
 [[edc-ui-5]]
-=== UI-5: Such-Oberfläche
+=== UI-5: Such-Oberfläche (blocpress-workbench)
 
 *Description:*
-Web-basierte Suchfunktion zur Recherche fachlicher Konstrukte. Wird von Template-Designern und Fachexperten genutzt.
+Bestandteil des Web Components `<bp-workbench>` zur Recherche fachlicher Konstrukte. Wird von Template-Designern genutzt.
 
 *Actions:*
+
 - Nach Begriff suchen (UC-19)
 - Suchergebnisse filtern (UC-20)
 - Template an Fundstelle öffnen (UC-21)
 
 *Visible Data:*
+
 - Suchergebnisse: Template-Name, Baustein-Name, Kontext, Position (aus E-8: Content Index via TI-7)
 - Suchfilter: Template-Typ, Baustein-Kategorie, Status (aus E-1, E-2)
 
 [[edc-ui-6]]
-=== UI-6: Administrator-Oberfläche
+=== UI-6: Administrator-Oberfläche (blocpress-admin)
 
 *Description:*
-Web-basierte Oberfläche zur Verwaltung von Benutzern, Rollen und System-Konfiguration. Wird von Administratoren genutzt.
+Web Component `<bp-admin>` zur Verwaltung von Benutzern, Rollen und System-Konfiguration. Wird von Administratoren genutzt. Geladen via Import Map in blocpress-studio.
 
 *Actions:*
+
 - Benutzer verwalten (UC-22)
 - Rollen zuweisen (UC-23)
 - System-Konfiguration ändern (UC-24)
 
 *Visible Data:*
+
 - Benutzerliste: Name, E-Mail, Rollen, Status (aus E-9: Benutzer)
 - Rollendefinitionen: Name, Berechtigungen (aus E-9: Benutzer)
 - System-Parameter: Review-Zyklen, Limits, API-Keys (aus E-10: Konfiguration)
@@ -161,10 +177,12 @@ Web-basierte Oberfläche zur Verwaltung von Benutzern, Rollen und System-Konfigu
 G-2: Zentrale Verwaltung von Templates und Bausteinen
 
 *Prerequisites:*
+
 - Benutzer ist authentifiziert
 - Benutzer hat Rolle "Template-Designer"
 
 *Actors:*
+
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -195,10 +213,12 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Prerequisites:*
+
 - UC-1 (Template hochladen) erfolgreich abgeschlossen
 - Template hat Status "Entwurf"
 
 *Actors:*
+
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -230,10 +250,12 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 G-2: Zentrale Verwaltung von Templates und Bausteinen
 
 *Prerequisites:*
+
 - Benutzer ist authentifiziert
 - Mindestens ein Template existiert
 
 *Actors:*
+
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -254,11 +276,13 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Prerequisites:*
+
 - Template hat Status "Eingereicht" oder "In Prüfung"
 - Benutzer hat Rolle "Freigeber"
 - UC-2 (Template zur Freigabe einreichen) erfolgreich abgeschlossen
 
 *Actors:*
+
 - Qualitätsmanager/Freigeber (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -292,10 +316,12 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Prerequisites:*
+
 - Template existiert
 - Benutzer hat Rolle "Qualitätsmanager" oder "Test-Manager"
 
 *Actors:*
+
 - Qualitätsmanager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -341,10 +367,12 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 G-4: Turnusmäßige Compliance-Reviews
 
 *Prerequisites:*
+
 - Compliance Review ist fällig (Status "Anstehend")
 - Benutzer hat Rolle "Compliance-Reviewer"
 
 *Actors:*
+
 - Compliance-Reviewer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -380,10 +408,12 @@ G-4: Turnusmäßige Compliance-Reviews
 G-5: Automatisierte Regressionstests
 
 *Prerequisites:*
+
 - Template existiert und ist freigegeben
 - Benutzer hat Rolle "Test-Manager"
 
 *Actors:*
+
 - Test-Manager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -411,10 +441,12 @@ G-5: Automatisierte Regressionstests
 G-5: Automatisierte Regressionstests
 
 *Prerequisites:*
+
 - Test Case existiert mit Baseline
 - Benutzer hat Rolle "Test-Manager" oder Test wird automatisch ausgeführt
 
 *Actors:*
+
 - Test-Manager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -453,10 +485,12 @@ G-5: Automatisierte Regressionstests
 G-6: Performante Inhaltssuche
 
 *Prerequisites:*
+
 - Benutzer ist authentifiziert
 - Content Search Engine ist aktiv und indexiert
 
 *Actors:*
+
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -486,9 +520,11 @@ G-6: Performante Inhaltssuche
 G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 
 *Prerequisites:*
+
 - Benutzer hat Rolle "Administrator"
 
 *Actors:*
+
 - Administrator (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
@@ -557,12 +593,14 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-2: Workflow-Status ändern
 
 *Input:*
+
 - templateId: Long
 - newStatus: String ("Entwurf", "Eingereicht", "In Prüfung", "Freigegeben", "Abgelehnt", "Archiviert")
 - userId: Long
 - comment: String (optional)
 
 *Output:*
+
 - success: boolean
 - errorMessage: String (optional)
 
@@ -598,10 +636,12 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-4: Review-Datum berechnen
 
 *Input:*
+
 - templateId: Long
 - reviewCycle: Integer (1, 3 oder 5 Jahre)
 
 *Output:*
+
 - nextReviewDate: LocalDate
 
 *Main Functional Flow:*
@@ -666,10 +706,12 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-6: PDF vergleichen
 
 *Input:*
+
 - baselinePdf: byte[]
 - currentPdf: byte[]
 
 *Output:*
+
 - comparisonResult: ComparisonResult
 - isIdentical: boolean
 - differences: List<Difference> (Seite, Position, Beschreibung)
@@ -702,9 +744,11 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-7: Compliance-Reviews überprüfen
 
 *Input:*
+
 - keines (läuft als geplanter Job)
 
 *Output:*
+
 - fälligeReviews: List<ComplianceReview>
 
 *Main Functional Flow:*
@@ -729,6 +773,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 Haupt-REST-API für alle Client-Anfragen (Web-Oberfläche, externe Anwendungen). Wird von Web-Oberfläche (Software Element) und externen Anwendungssystemen genutzt.
 
 *Input:*
+
 Verschiedene Endpoints:
 
 - `POST /api/templates` - Template hochladen
@@ -751,6 +796,7 @@ Verschiedene Endpoints:
 - Parameter: query (String), filter (String, optional)
 
 *Output:*
+
 JSON-Response je nach Endpoint:
 
 - Template-Objekt mit Metadaten
@@ -774,12 +820,15 @@ Ruft entsprechende Technical Functions auf:
 Zugriff auf PostgreSQL-Datenbank zum Lesen und Schreiben aller Entities. Wird intern von blocpress-server genutzt.
 
 *Input:*
+
 SQL-Queries über JPA/Hibernate
 
 *Output:*
+
 Entity-Objekte oder Anzahl betroffener Zeilen
 
 *Action:*
+
 CRUD-Operationen auf alle Entities (E-1 bis E-10)
 
 [[edc-ti-3]]
@@ -789,15 +838,18 @@ CRUD-Operationen auf alle Entities (E-1 bis E-10)
 Zugriff auf LibreOffice headless (Version ≥ 24) zur Verarbeitung von ODT-Templates. Wird intern von TF-1, TF-5 genutzt.
 
 *Input:*
+
 - ODT-Dokument (byte[])
 - Export-Format (ODT/PDF/RTF)
 - Field-Werte (Map<String, String>)
 
 *Output:*
+
 - Exportiertes Dokument (byte[])
 - Validierungsergebnisse
 
 *Action:*
+
 Ruft LibreOffice UNO-API auf:
 
 - Dokument öffnen: `XComponentLoader.loadComponentFromURL()`
@@ -811,13 +863,16 @@ Ruft LibreOffice UNO-API auf:
 blocpress-server validiert eingehende JWTs direkt, ohne einen externen Identity Provider zu benötigen. Der öffentliche Schlüssel (Public Key) und der erwartete Issuer werden in `application.properties` konfiguriert. Die Umsetzung erfolgt über die Quarkus SmallRye JWT Extension (`smallrye-jwt`). Für Testzwecke kann ein langlebiger Demo-JWT mit dem konfigurierten Schlüssel erzeugt werden.
 
 *Input:*
+
 - JWT Bearer Token (im `Authorization`-Header)
 
 *Output:*
+
 - Authentifizierungsergebnis (success/failure)
 - Benutzerinformationen aus JWT-Claims (sub, name, email, groups)
 
 *Action:*
+
 Validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Expiration. Extrahiert das Subject (`sub`-Claim) und gleicht es mit E-9 (Benutzer) ab.
 
 [[edc-ti-5]]
@@ -827,13 +882,16 @@ Validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Ex
 Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung, Regressionstests). Wird intern von blocpress-server genutzt.
 
 *Input:*
+
 - Queue-Name (String)
 - Message-Payload (JSON)
 
 *Output:*
+
 - Message-ID
 
 *Action:*
+
 Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress-server verarbeitet Message asynchron
 
 [[edc-ti-7]]
@@ -843,14 +901,17 @@ Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress-server verarbeitet
 Zugriff auf Content Search Engine zur Indexierung und Suche. Wird von blocpress-server für UC-19 (Nach Begriff suchen) genutzt.
 
 *Input:*
+
 - Indexierungs-Request: templateId (Long), content (String)
 - Such-Request: query (String)
 
 *Output:*
+
 - Indexierungs-Bestätigung
 - Such-Ergebnisse: List<SearchHit> mit templateId, baustein_id, kontext, position
 
 *Action:*
+
 Kommuniziert mit Elasticsearch über REST-API:
 
 - Indexierung: `PUT /templates/_doc/{id}`
@@ -863,7 +924,7 @@ Kommuniziert mit Elasticsearch über REST-API:
 === E-1: Template
 
 *Description:*
-Speichert Metadaten und Binärdaten von LibreOffice-Templates sowie deren Versionen und Status. +
+Speichert Metadaten und Binärdaten von LibreOffice-Templates sowie deren Versionen und Status. Existiert mit identischer Struktur in drei Schemata: `workbench` (Entwurf), `proof` (Prüfung), `production` (Freigegeben). +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template in der Information Architecture]_
 
 *Attributes:*
@@ -891,7 +952,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template 
 === E-2: Baustein
 
 *Description:*
-Speichert wiederverwendbare Dokumentfragmente, die in mehreren Templates verwendet werden können. +
+Speichert wiederverwendbare Dokumentfragmente, die in mehreren Templates verwendet werden können. Schema: `workbench`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-baustein[Baustein in der Information Architecture]_
 
 *Attributes:*
@@ -913,7 +974,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-baustein[Baustein 
 === E-3: Dokumentengenerierung
 
 *Description:*
-Speichert Metadaten und Ergebnisse von Dokumentengenerierungen. +
+Speichert Metadaten und Ergebnisse von Dokumentengenerierungen. Schema: `production`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-generierung[Dokumentengenerierung in der Information Architecture]_
 
 *Attributes:*
@@ -1062,7 +1123,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-benutzer[Benutzer 
 | 1 | id | Long | Eindeutige Benutzer-ID (Primary Key)
 | 2 | name | String(255) | Vollständiger Name
 | 3 | email | String(255) | E-Mail-Adresse
-| 4 | rollen | JSONB | Array von Rollen: ["Template-Designer", "Qualitätsmanager", "Freigeber", "Administrator", "Compliance-Reviewer", "Test-Manager"]
+| 4 | rollen | JSONB | Array von Rollen: ["Template-Designer", "Prüfer", "Administrator", "API-Konsument"]
 | 5 | berechtigungen | JSONB | Array von Berechtigungen: ["Template erstellen", "Template bearbeiten", "Template prüfen", "Template freigeben", "API nutzen", "Review durchführen", "Tests verwalten"]
 | 6 | external_id | String(255) | JWT Subject (sub-Claim)
 | 7 | aktiv | Boolean | Account aktiv/deaktiviert

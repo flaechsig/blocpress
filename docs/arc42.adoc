@@ -2,7 +2,7 @@ ifndef::imagesdir[:imagesdir: .]
 
 image:blocpress-logo-large.png[]
 
-= blocpress - Architecture Documentation
+= Architecture Documentation
 :revnumber: 1.0
 :revdate: {docdate}
 :revremark: Initiale Version
@@ -11,7 +11,6 @@ image:blocpress-logo-large.png[]
 :keywords: software-architecture, documentation, blocpress, template-engine, document-generation
 :numbered:
 
-<<<<
 [[section-introduction-and-goals]]
 == Einführung und Ziele
 
@@ -87,27 +86,19 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 | Template-Designer
 | Fachabteilungen
-| Einfaches Erstellen von Templates in vertrauter LibreOffice-Umgebung. Klare Validierungsmeldungen.
+| Einfaches Erstellen von Templates in vertrauter LibreOffice-Umgebung. Klare Validierungsmeldungen. Eigene Arbeitsumgebung (blocpress-workbench).
 
-| Qualitätsmanager
-| QS-Abteilung
-| Strukturierter Freigabeprozess. Testmöglichkeiten mit Beispieldaten vor Freigabe.
-
-| Compliance-Reviewer
-| Compliance-Abteilung
-| Übersichtliche Darstellung fälliger Reviews in der Web-Oberfläche. Nachvollziehbare Review-Historie.
-
-| Test-Manager
-| QS-Abteilung
-| Einfache Verwaltung von Testdaten. Automatisierte Regressionstests nach Template-Änderungen.
+| Prüfer (QM / Freigeber / Compliance)
+| QS- / Compliance-Abteilung
+| Strukturierter Freigabeprozess mit Vier-Augen-Prinzip. Testmöglichkeiten mit Beispieldaten. Übersichtliche Darstellung fälliger Compliance-Reviews. Eigene Arbeitsumgebung (blocpress-proof).
 
 | Entwicklungsteams
 | IT-Abteilung
-| Stabile REST-API für Dokumentengenerierung. Gute Performance (< 5s). Klare Fehlermeldungen.
+| Stabile REST-API für Dokumentengenerierung (blocpress-render). Gute Performance (< 5s). Klare Fehlermeldungen.
 
 | Administratoren
 | IT-Betrieb
-| Einfache Installation als Docker-Container. Monitoring-Integration. RBAC-Verwaltung.
+| Einfache Installation als Docker-Container. Monitoring-Integration. RBAC-Verwaltung (blocpress-admin).
 
 | Architekten
 | IT-Architektur
@@ -207,25 +198,30 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 skinparam componentStyle rectangle
 
 actor "Template-Designer" as Designer
-actor "Qualitätsmanager" as QM
-actor "Compliance-Reviewer" as CR
-actor "Test-Manager" as TM
+actor "Prüfer\n(QM / Freigeber / Compliance)" as Pruefer
 actor "Administrator" as Admin
 
 rectangle "Anwendungssystem" as App
 
 rectangle "blocpress" as System {
+  component "blocpress-studio\n(Portal)" as Studio
+  component "blocpress-workbench\n(Entwicklung)" as Workbench
+  component "blocpress-proof\n(Prüfung & Freigabe)" as Proof
+  component "blocpress-admin\n(Administration)" as AdminSCS
+  component "blocpress-render\n(Dokumentengenerierung)" as Render
 }
 
 rectangle "OpenTelemetry Collector" as Monitor
 
-Designer --> System : Templates hochladen\nBausteine verwalten
-QM --> System : Templates prüfen\nFreigeben/Ablehnen
-CR --> System : Reviews durchführen
-TM --> System : Testdaten verwalten\nTests ausführen
-Admin --> System : Benutzer verwalten\nSystem konfigurieren
+Designer --> Workbench : Templates hochladen\nBausteine verwalten
+Pruefer --> Proof : Templates prüfen\nFreigeben/Ablehnen\nCompliance-Reviews
+Admin --> AdminSCS : Benutzer verwalten\nSystem konfigurieren
 
-App --> System : Dokumente generieren\n(REST-API)
+Designer --> Studio : Login / Navigation
+Pruefer --> Studio : Login / Navigation
+Admin --> Studio : Login / Navigation
+
+App --> Render : Dokumente generieren\n(REST-API)
 
 System --> Monitor : Traces, Metriken & Logs\n(OTLP)
 @enduml
@@ -239,19 +235,11 @@ System --> Monitor : Traces, Metriken & Logs\n(OTLP)
 
 | Template-Designer
 | ODT-Templates, Bausteine, Metadaten
-| Validierungsergebnisse, Template-Status, Freigabe-Historie
+| Validierungsergebnisse, Template-Status, Vorschau-Dokumente
 
-| Qualitätsmanager
-| Prüfkommentare, Freigabe-/Ablehnungsentscheidung
-| Template zur Prüfung, Testdokumente, Freigabestatus
-
-| Compliance-Reviewer
-| Review-Ergebnis, Kommentare
-| Fällige Reviews, Template-Inhalte, Review-Historie
-
-| Test-Manager
-| JSON-Testdaten, Baseline-Updates
-| Test-Ergebnisse, PDF-Vergleiche, Abweichungen
+| Prüfer (QM / Freigeber / Compliance)
+| Prüfkommentare, Freigabe-/Ablehnungsentscheidung, Review-Ergebnisse, JSON-Testdaten, Baseline-Updates
+| Templates zur Prüfung, Testdokumente, fällige Reviews, Test-Ergebnisse, PDF-Vergleiche
 
 | Administrator
 | Benutzerdaten, Rollen, System-Konfiguration
@@ -279,9 +267,14 @@ node "Client-Browser" as Browser
 node "Externe Anwendung" as ExtApp
 
 node "Docker Host / Kubernetes" as Docker {
-  component "blocpress-server\n(Quarkus)" as Core
-  component "Web-Oberfläche\n(React SPA)" as WebUI
-  database "PostgreSQL ≥ 18" as DB
+  component "blocpress-studio\n(Portal/Shell)" as Studio
+  component "Scs-Modules" as ScsModules  {
+    component "blocpress-workbench\n(Quarkus)" as Workbench
+    component "blocpress-proof\n(Quarkus)" as Proof
+    component "blocpress-admin\n(Quarkus)" as Admin
+    component "blocpress-render\n(Quarkus)" as Render
+  }
+  database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproof, production, admin)" as DB
   queue "RabbitMQ/Kafka" as MQ
   component "Elasticsearch ≥ 7.x" as ES
 }
@@ -290,15 +283,19 @@ node "Externe Services (optional)" {
   component "OpenTelemetry\nCollector" as Monitor
 }
 
-Browser -down-> WebUI : HTTPS/TLS
-WebUI -down-> Core : REST-API\nJSON over HTTPS
-ExtApp -down-> Core : REST-API\nJSON over HTTPS
+Browser -down-> Studio : HTTPS/TLS
+Studio -down-> Workbench : REST (intern)
+Studio -down-> Proof : REST (intern)
+Studio -down-> Admin : REST (intern)
+ExtApp -down-> Render : REST-API\nJSON over HTTPS
 
-Core -down-> DB : JDBC\nPostgreSQL Protocol
-Core -right-> MQ : AMQP / Kafka Protocol
-Core -down-> ES : REST-API\nHTTP/JSON
-Core -right-> Monitor : OTLP (gRPC/HTTP)
-
+Workbench -down-> DB : JDBC (Schema: workbench)
+Proof -down-> DB : JDBC (Schema: proof)
+Render -down-> DB : JDBC (Schema: production)
+Admin -down-> DB : JDBC (Schema: admin)
+Workbench -down-> ES : REST-API\nHTTP/JSON
+Render -down-> MQ : AMQP / Kafka Protocol
+ScsModules --> Monitor
 @enduml
 ----
 
@@ -308,27 +305,31 @@ Core -right-> Monitor : OTLP (gRPC/HTTP)
 |===
 | Schnittstelle | Protokoll/Technologie | Mapping fachlicher Daten
 
-| Web-Oberfläche → blocpress-server
-| HTTPS, REST-API, JSON
-| Alle UI-Aktionen (Template-Upload, Freigabe, Reviews, Tests, Suche)
+| Browser → blocpress-studio
+| HTTPS, Web Components (Import Maps)
+| Portal-Shell lädt Micro-Frontends der SCS-Module als Web Components
 
-| Externe Anwendung → blocpress-server
-| HTTPS, REST-API, JSON
-| Dokumentengenerierung: `POST /api/documents/generate`
+| blocpress-studio → SCS-Module (intern)
+| REST-API, JSON (intern, nicht öffentlich)
+| UI-Aktionen werden an das jeweilige SCS-Modul delegiert
 
-| blocpress-server → PostgreSQL
+| Externe Anwendung → blocpress-render
+| HTTPS, REST-API, JSON
+| Dokumentengenerierung: `POST /api/documents/generate` (einzige öffentliche API)
+
+| SCS-Module → PostgreSQL
 | JDBC, PostgreSQL Wire Protocol
-| Alle Entities (E-1 bis E-10), inkl. Binärdaten (bytea)
+| Jedes Modul nutzt eigenes Schema (workbench, proof, production, admin)
 
-| blocpress-server → RabbitMQ/Kafka
+| Render → RabbitMQ/Kafka
 | AMQP (RabbitMQ) / Kafka Protocol
 | Asynchrone Dokumentengenerierung, Regressionstests
 
-| blocpress-server → Elasticsearch
+| blocpress-workbench → Elasticsearch
 | REST-API, HTTP/JSON
-| Template-Indexierung, Volltextsuche
+| Template-Indexierung, Volltextsuche (Content Search)
 
-| blocpress-server → OpenTelemetry Collector
+| SCS-Module → OpenTelemetry Collector
 | OTLP (gRPC Port 4317 / HTTP Port 4318)
 | Traces (Request-Verarbeitung), Metriken (Latenz, Fehlerraten), Logs
 |===
@@ -343,16 +344,24 @@ Core -right-> Monitor : OTLP (gRPC/HTTP)
 |===
 | Entscheidung | Begründung | Qualitätsziel
 
+| *Self-Contained Systems (SCS)*
+| Fachliche Zerlegung in unabhängig deploybare Module mit eigener UI, eigenem Backend und eigenem Datenbank-Schema. Erleichtert Wartung und Team-Ownership.
+| Wartbarkeit, Skalierbarkeit
+
 | *Quarkus Framework*
-| Schnelle Startup-Zeit, geringer Memory-Footprint, Cloud-native, native Kompilierung möglich
+| Schnelle Startup-Zeit, geringer Memory-Footprint, Cloud-native, native Kompilierung möglich. Jedes SCS-Modul ist eine eigenständige Quarkus-Anwendung.
 | Performance, Skalierbarkeit
+
+| *Micro-Frontends (Web Components)*
+| Jedes SCS-Modul liefert eigene UI als Web Components (Custom Elements mit Shadow DOM). Portal-Shell (blocpress-studio) lädt diese via Import Maps.
+| Wartbarkeit, Unabhängigkeit
 
 | *LibreOffice headless ≥ 24*
 | Ausgereiftes ODT-Template-Processing, Export in ODT/PDF/RTF, kostenlos, Open Source
 | Funktionale Eignung, Kosteneffizienz
 
-| *PostgreSQL ≥ 18 mit bytea*
-| Reife relationale DB, JSONB für strukturierte Daten, bytea für Binärdaten (< 5.000 Dokumente), bewährte Technologie
+| *PostgreSQL ≥ 18 — Multi-Schema*
+| Reife relationale DB. Jedes SCS-Modul nutzt ein eigenes Schema (workbench, proof, production, admin) in derselben Datenbank. Identische Tabellenstrukturen für Templates in workbench/proof/production ermöglichen kopie-basierte Stufenübergabe.
 | Zuverlässigkeit, Wartbarkeit
 
 | *Storage Abstraction Layer*
@@ -367,36 +376,70 @@ Core -right-> Monitor : OTLP (gRPC/HTTP)
 | Asynchrone Verarbeitung zeitaufwändiger Operationen, Entkopplung, Skalierbarkeit
 | Performance, Skalierbarkeit
 
-| *React SPA für Web-Oberfläche*
-| Moderne UI, komponentenbasiert, gute Developer Experience
-| Benutzbarkeit, Wartbarkeit
-
 | *Docker-Container*
-| Standardisierte Deployment-Einheit, Portabilität, einfache Skalierung
+| Jedes SCS-Modul als eigener Container, unabhängig skalierbar
 | Übertragbarkeit, Betriebseffizienz
 |===
 
 === Top-Level-Zerlegung
 
-*Architekturmuster:* Layered Architecture mit Hexagonal Architecture Elementen
+*Architekturmuster:* Self-Contained Systems (SCS) mit Micro-Frontend-Integration
 
-* *Presentation Layer:* React-SPA (Web-Oberfläche)
-* *API Layer:* REST-API (TI-1) mit API Gateway
-* *Business Logic Layer:* Use Cases (UC-1 bis UC-22), Technical Functions (TF-1 bis TF-7)
-* *Domain Layer:* Entities (E-1 bis E-10)
-* *Infrastructure Layer:* Technical Interfaces (TI-2 bis TI-7)
+Die Anwendung ist in fünf fachlich geschnittene Module zerlegt:
 
-*Ports & Adapters:*
+[cols="1,2,2" options="header"]
+|===
+| SCS-Modul | Verantwortung | Datenstufe
 
-* Primary Ports: REST-API, Web-UI
-* Secondary Ports: DatabasePort, StoragePort, SearchPort, QueuePort
-* Adapters: PostgresAdapter, ElasticsearchAdapter, RabbitMQAdapter
+| *blocpress-studio*
+| Portal-Shell: Navigation, Authentifizierung (JWT), Integration der Micro-Frontends via Import Maps. Kein eigenes Backend.
+| —
+
+| *blocpress-workbench*
+| Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Arbeitsumgebung für Template-Designer.
+| Schema `workbench`
+
+| *blocpress-proof*
+| Prüfung und Freigabe: Workflow (Vier-Augen-Prinzip), Testdaten, Regressionstests, Compliance-Reviews. Arbeitsumgebung für Prüfer.
+| Schema `proof`
+
+| *blocpress-render*
+| Dokumentengenerierung: Einzige öffentliche REST-API. Liest freigegebene Templates aus dem Production-Schema. Stateless.
+| Schema `production` (read-only)
+
+| *blocpress-admin*
+| Administration: Benutzerverwaltung, Rollenzuweisung, Systemkonfiguration, Audit-Logs.
+| Schema `admin`
+|===
+
+*Datenstufen und Stufenübergabe:*
+
+Templates durchlaufen drei Stufen mit kopie-basierter Übergabe:
+
+. *workbench* → Designer entwickelt und testet Templates
+. *proof* → Prüfer führt Qualitätssicherung, Freigabe und Compliance-Reviews durch
+. *production* → Freigegebene Templates stehen für die Dokumentengenerierung bereit
+
+Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das proof-Schema kopiert (Übergabe in den Review-Prozess), nach Freigabe vom proof-Schema in das production-Schema. Für turnusmäßige Erneuerungen kann die aktuelle Baseline aus production in das proof-Schema gezogen werden.
+
+*Micro-Frontend-Architektur:*
+
+* blocpress-studio ist die Portal-Shell (HTML-Seite mit Navigation und Auth-Handling)
+* Jedes SCS-Modul liefert seine UI als Web Component (Custom Element mit Shadow DOM)
+* Studio lädt die Web Components über Import Maps (z.B. `blocpress-workbench-ui.js`)
+* JWT wird als Property an jedes Web Component weitergereicht: `<bp-workbench jwt="${token}"></bp-workbench>`
+* Shadow DOM kapselt CSS und DOM — Module beeinflussen sich nicht gegenseitig
+
+*Interne Kommunikation:*
+
+* SCS-Module kommunizieren untereinander über interne REST-APIs (nicht öffentlich exponiert)
+* blocpress-render kann Templates sowohl aus dem production-Schema lesen als auch direkt per REST von workbench/proof empfangen (für Vorschau/Test-Generierung)
 
 === Erreichung wichtigster Qualitätsziele
 
 *Q1: Performance*
 
-* LibreOffice headless läuft im gleichen JVM-Prozess (keine IPC-Overhead)
+* LibreOffice headless läuft in blocpress-render (keine IPC-Overhead)
 * Asynchrone Dokumentengenerierung über Message Queue (nicht blockierend)
 * Elasticsearch für schnelle Volltextsuche
 * PostgreSQL-Indizes auf häufig abgefragte Spalten (template_id, status, user_id)
@@ -410,30 +453,32 @@ Core -right-> Monitor : OTLP (gRPC/HTTP)
 
 *Q3: Wartbarkeit*
 
+* SCS-Architektur: Module unabhängig entwickelbar, testbar und deploybar
+* Eigene Datenbank-Schemata: Keine Datenkopplung zwischen Modulen
 * Storage Abstraction Layer (`StorageService` Interface) entkoppelt Business-Logik von Storage-Implementierung
-* Template-Versionierung: Jede Änderung = neue Version
-* Code-Versionierung: Git mit Semantic Versioning
 * OpenTelemetry für Traces, Metriken und Logs (optional, vendor-neutral)
 
 *Q4: Sicherheit*
 
 * TF-2 (Workflow-Status ändern) prüft technisch: `userId != template.erstellerId`
-* RBAC: Rollen in E-9 (Benutzer), Prüfung bei jedem API-Call
-* API-Rate-Limiting im API Gateway: 1.000 Requests/h pro API-Key
+* RBAC: Rollen im admin-Schema, Prüfung bei jedem API-Call
+* API-Rate-Limiting für blocpress-render: 1.000 Requests/h pro API-Key
 * HTTPS/TLS für alle externen Verbindungen
+* JWT-Weitergabe an Web Components über Properties (kein LocalStorage)
 
 *Q5: Skalierbarkeit*
 
-* Horizontal skalierbar: Mehrere blocpress-server-Instanzen hinter Load Balancer
+* SCS-Module unabhängig skalierbar: blocpress-render kann separat horizontal skaliert werden
 * Message Queue entkoppelt Request-Handling von Dokumentengenerierung
-* PostgreSQL Connection Pooling (HikariCP)
-* Caching von Templates (Caffeine Cache) reduziert DB-Last
+* PostgreSQL Connection Pooling (HikariCP) pro Modul
+* Caching von Templates (Caffeine Cache) in blocpress-render
 
 === Organisatorische Entscheidungen
 
 * *Entwicklungsprozess:* Agil Kanban
-* *CI/CD:* Automatische Tests bei jedem Commit
+* *CI/CD:* Automatische Tests bei jedem Commit, je SCS-Modul
 * *Dokumentation:* arc42 für Architektur, Javadoc für Code, OpenAPI für REST-API
+* *Team-Ownership:* Jedes SCS-Modul kann von einem eigenen Team verantwortet werden
 
 <<<<
 [[section-building-block-view]]
@@ -451,40 +496,60 @@ _Detaillierte Beschreibung der Bausteine: xref:Element_Design_Concept.adoc#edc-f
 skinparam componentStyle rectangle
 
 package "blocpress Gesamtsystem" {
-  component "Web-Oberfläche\n(React SPA)" as WebUI
-  component "API Gateway\n(Kong)" as Gateway
-  component "blocpress-server\n(Quarkus)" as Core
-  database "PostgreSQL\nDatenbank" as DB
+  component "blocpress-studio\n(Portal-Shell)" as Studio
+
+  component "blocpress-workbench\n(Quarkus)" as Workbench
+  component "blocpress-proof\n(Quarkus)" as Proof
+  component "blocpress-render\n(Quarkus)" as Render
+  component "blocpress-admin\n(Quarkus)" as Admin
+
+  database "PostgreSQL\n(workbench | proof |\nproduction | admin)" as DB
   queue "Message Queue\n(RabbitMQ)" as MQ
   component "Content Search\n(Elasticsearch)" as Search
 }
 
-WebUI -down-> Gateway : HTTPS
-Gateway -down-> Core : HTTP
-Core -down-> DB : JDBC
-Core -right-> MQ : AMQP
-Core -down-> Search : HTTP
+Studio -down-> Workbench : Web Component\n+ REST (intern)
+Studio -down-> Proof : Web Component\n+ REST (intern)
+Studio -down-> Admin : Web Component\n+ REST (intern)
 
-note right of Core
-  Enthält:
-  - REST-API (TI-1)
-  - Business Logic
-  - LibreOffice headless
-  - Technical Interfaces
+Workbench -down-> DB : JDBC\n(Schema: workbench)
+Proof -down-> DB : JDBC\n(Schema: proof)
+Render -down-> DB : JDBC\n(Schema: production)
+Render -right-> MQ : AMQP
+Admin -down-> DB : JDBC\n(Schema: admin)
+
+Workbench -down-> Search : HTTP
+Workbench ..> Render : REST (intern)\n(Vorschau)
+Proof ..> Render : REST (intern)\n(Test-Generierung)
+
+note right of Studio
+  Portal-Shell:
+  - Navigation
+  - JWT-Authentifizierung
+  - Import Maps für
+    Web Components
+end note
+
+note right of Render
+  Einzige öffentliche API:
+  POST /api/documents/generate
+  Liest aus Schema: production
 end note
 @enduml
 ----
 
 *Begründung:*
 
-Die Zerlegung folgt dem Prinzip der Separation of Concerns:
+Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 
-* *Web-Oberfläche* ist vollständig entkoppelt vom Backend (SPA)
-* *API Gateway* übernimmt Querschnittsbelange (Authentifizierung, Rate Limiting, Logging)
-* *blocpress-server* enthält gesamte Business-Logik
-* *PostgreSQL* persistiert alle Daten (Metadaten + Binärdaten)
+* *blocpress-studio* ist die Portal-Shell — lädt Micro-Frontends der fachlichen Module als Web Components
+* *blocpress-workbench* enthält die Logik für Template-Entwicklung (Dev-Stufe)
+* *blocpress-proof* enthält die Logik für Prüfung, Freigabe und Compliance (Test/QA-Stufe)
+* *blocpress-render* ist die einzige öffentliche API für Dokumentengenerierung (Production-Stufe)
+* *blocpress-admin* verwaltet Benutzer, Rollen und Systemkonfiguration
+* *PostgreSQL* nutzt getrennte Schemata pro Modul — identische Tabellenstrukturen für Templates ermöglichen kopie-basierte Stufenübergabe
 * *Message Queue* ermöglicht asynchrone Verarbeitung
-* *Elasticsearch* ist spezialisiert auf Volltextsuche
+* *Elasticsearch* ist spezialisiert auf Volltextsuche (genutzt von blocpress-workbench)
 
 *Enthaltene Bausteine:*
 
@@ -492,70 +557,144 @@ Die Zerlegung folgt dem Prinzip der Separation of Concerns:
 |===
 | Name | Verantwortung
 
-| Web-Oberfläche
-| Präsentationsschicht für Template-Designer, Qualitätsmanager, Compliance-Reviewer, Test-Manager, Administratoren. Single-Page-Application (React).
+| blocpress-studio
+| Portal-Shell: Authentifizierung (JWT-Handling), Navigation, Laden der Micro-Frontends via Import Maps. Kein eigenes Backend — rein statische HTML/JS-Anwendung.
 
-| API Gateway
-| JWT-Validierung, Rate Limiting, Request-Logging, Routing zu blocpress-server.
+| blocpress-workbench
+| Template-Entwicklung: Upload, Validierung (TF-1), Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Use Cases: UC-1 bis UC-5, UC-19 bis UC-21.
 
-| blocpress-server
-| Gesamte Business-Logik: Use Cases, Technical Functions, REST-API, Integration mit LibreOffice, Workflow-Engine, Compliance-Manager, Test-Framework.
+| blocpress-proof
+| Prüfung und Freigabe: Workflow (TF-2, Vier-Augen-Prinzip), Testdaten (UC-14 bis UC-18), Regressionstests (TF-6), Compliance-Reviews (TF-7, UC-11 bis UC-13), Freigabe (UC-6 bis UC-9). Stufenübergabe proof → production.
+
+| blocpress-render
+| Dokumentengenerierung: Einzige öffentliche REST-API (TI-1). Liest freigegebene Templates aus Schema `production`. LibreOffice-Integration (TF-5). Stateless, horizontal skalierbar.
+
+| blocpress-admin
+| Administration: Benutzerverwaltung (UC-22 bis UC-24), Rollenzuweisung, Systemkonfiguration, Audit-Logs.
 
 | PostgreSQL Datenbank
-| Persistente Speicherung aller Entities (E-1 bis E-10), inkl. Binärdaten (Templates, generierte Dokumente, Test-PDFs).
+| Persistente Speicherung mit getrennten Schemata: `workbench`, `proof`, `production`, `admin`. Identische Template-Tabellenstrukturen in workbench/proof/production.
 
 | Message Queue
 | Asynchrone Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests). Entkopplung.
 
 | Content Search (Elasticsearch)
-| Indexierung von Template-Inhalten, Volltextsuche nach fachlichen Konstrukten, Highlighting.
+| Indexierung von Template-Inhalten, Volltextsuche nach fachlichen Konstrukten, Highlighting. Genutzt von blocpress-workbench.
 |===
 
 *Wichtige Schnittstellen:*
 
-* *TI-1 (REST-API):* Primäre Schnittstelle zwischen Web-Oberfläche/externen Anwendungen und blocpress-server
-* *TI-2 (Datenbank-Interface):* JDBC-Zugriff auf PostgreSQL
+* *TI-1 (REST-API):* Öffentliche API von blocpress-render für externe Anwendungen
+* *Interne REST-APIs:* Kommunikation zwischen SCS-Modulen (nicht öffentlich exponiert)
+* *TI-2 (Datenbank-Interface):* JDBC-Zugriff pro Modul auf eigenes PostgreSQL-Schema
 * *TI-5 (Message Queue Interface):* AMQP-Zugriff auf RabbitMQ
 * *TI-7 (Elasticsearch API):* HTTP-REST-Zugriff auf Elasticsearch
 
 === Ebene 2
 
-==== Whitebox blocpress-server
+==== Whitebox blocpress-workbench
 
-[plantuml, bausteinsicht-ebene2-core, svg]
+[plantuml, bausteinsicht-ebene2-workbench, svg]
 ----
 @startuml
 !define RECTANGLE class
 
 skinparam componentStyle rectangle
 
-package "blocpress-server (Quarkus)" {
+package "blocpress-workbench (Quarkus)" {
   component "REST-API\nController" as API
-  component "Use Case\nServices" as UC
-  component "Technical\nFunctions" as TF
+  component "Template\nService" as TS
+  component "Baustein\nService" as BS
+  component "Search\nService" as SS
+  component "LibreOffice\nProcessor\n(Validierung)" as LO
+  component "Storage\nService" as Storage
+  component "Repository\nLayer" as Repo
+  component "Web Component\n(bp-workbench)" as WC
+}
+
+WC ..> API : REST
+API -down-> TS : aufrufen
+API -down-> BS : aufrufen
+API -down-> SS : aufrufen
+TS -down-> LO : TF-1
+TS -down-> Storage : save/load
+TS -down-> Repo : CRUD
+BS -down-> Repo : CRUD
+SS -down-> "Elasticsearch" : HTTP
+
+note right of WC
+  Custom Element:
+  <bp-workbench jwt="...">
+  Shadow DOM gekapselt
+end note
+@enduml
+----
+
+==== Whitebox blocpress-proof
+
+[plantuml, bausteinsicht-ebene2-proof, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+package "blocpress-proof (Quarkus)" {
+  component "REST-API\nController" as API
   component "Workflow\nEngine" as WF
   component "Compliance\nManager" as CM
   component "Test\nFramework" as TestFW
+  component "Staging\nService" as Stage
+  component "Repository\nLayer" as Repo
+  component "Web Component\n(bp-proof)" as WC
+}
+
+WC ..> API : REST
+API -down-> WF : aufrufen
+API -down-> CM : aufrufen
+API -down-> TestFW : aufrufen
+API -down-> Stage : aufrufen
+WF -down-> Repo : CRUD
+CM -down-> Repo : CRUD
+TestFW -down-> Repo : CRUD
+Stage -down-> Repo : CRUD
+Stage --> "blocpress-render" : REST (intern)
+
+note right of Stage
+  Stufenübergabe:
+  proof → production (Kopie)
+  production → proof (Baseline)
+end note
+@enduml
+----
+
+==== Whitebox blocpress-render
+
+[plantuml, bausteinsicht-ebene2-render, svg]
+----
+@startuml
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+
+package "blocpress-render (Quarkus)" {
+  component "REST-API\nController\n(öffentlich)" as API
+  component "Document\nService" as DS
   component "LibreOffice\nProcessor" as LO
   component "Storage\nService" as Storage
   component "Repository\nLayer" as Repo
 }
 
-API -down-> UC : aufrufen
-UC -down-> TF : nutzen
-UC -down-> WF : nutzen
-UC -down-> CM : nutzen
-UC -down-> TestFW : nutzen
-TF -down-> LO : nutzen
-TF -down-> Storage : nutzen
-TF -down-> Repo : nutzen
-Repo -down-> "PostgreSQL" : JDBC
-Storage -down-> "PostgreSQL" : JDBC (bytea)
+API -down-> DS : aufrufen
+DS -down-> LO : TF-5
+DS -down-> Storage : save/load
+DS -down-> Repo : read
+Repo -down-> "PostgreSQL\n(Schema: production)" : JDBC
 
 note right of LO
   LibreOffice ≥ 24
   headless integriert
-  UNO-API
+  Deterministische Generierung
 end note
 
 note right of Storage
@@ -567,59 +706,25 @@ end note
 @enduml
 ----
 
-*Begründung:*
+*Begründung der internen Zerlegung:*
 
-Klare Schichtenarchitektur mit Dependency Inversion:
+Jedes SCS-Modul folgt intern einer Schichtenarchitektur mit Dependency Inversion:
 
-* REST-API Controller delegieren an Use Case Services
-* Use Cases orchestrieren Technical Functions
+* REST-API Controller delegieren an fachliche Services
+* Fachliche Services orchestrieren Technical Functions
 * Technical Functions nutzen Infrastructure Services (LibreOffice, Storage, Repository)
 * Storage Abstraction Layer ermöglicht Austausch der Storage-Implementierung
-
-*Enthaltene Bausteine:*
-
-[cols="1,2" options="header"]
-|===
-| Name | Verantwortung
-
-| REST-API Controller
-| HTTP-Endpunkte (TI-1), Request-Validierung, Response-Serialisierung, Exception-Handling
-
-| Use Case Services
-| Implementierung der Use Cases (UC-1 bis UC-22), Orchestrierung von Technical Functions
-
-| Technical Functions
-| Implementierung wiederverwendbarer technischer Funktionen (TF-1 bis TF-7)
-
-| Workflow Engine
-| Steuerung von Freigabeprozessen (E-4), Statusübergänge, Vier-Augen-Prüfung
-
-| Compliance Manager
-| Überwachung von Review-Zyklen (E-5), Erstellung fälliger Review-Einträge, geplanter Job
-
-| Test Framework
-| Verwaltung von Test Cases (E-6, E-7), PDF-Vergleich (TF-6), Regressionstests
-
-| LibreOffice Processor
-| Integration mit LibreOffice headless, Template-Validierung (TF-1), Dokumentengenerierung (TF-5)
-
-| Storage Service
-| Abstraktionsschicht für Binärdaten-Speicherung, Interface mit Implementierungen (Postgres, zukünftig S3)
-
-| Repository Layer
-| Datenzugriff auf Entities (E-1 bis E-10), JPA/Hibernate, CRUD-Operationen
-|===
 
 ==== Blackbox LibreOffice Processor
 
 *Zweck/Verantwortung:*
 
-Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates.
+Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates. Wird in blocpress-workbench (Validierung) und blocpress-render (Generierung) eingesetzt.
 
 *Schnittstellen:*
 
-* `validateTemplate(byte[] odtBinary): ValidationResult` - TF-1
-* `generateDocument(Template template, String jsonData, OutputFormat format): byte[]` - TF-5
+* `validateTemplate(byte[] odtBinary): ValidationResult` - TF-1 (in blocpress-workbench)
+* `generateDocument(Template template, String jsonData, OutputFormat format): byte[]` - TF-5 (in blocpress-render)
 
 *Qualitäts-/Leistungsmerkmale:*
 
@@ -632,16 +737,11 @@ Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates.
 * Package: `io.github.flaechsig.blocpress.renderer`
 * Hauptklasse: `LibreOfficeProcessor`
 
-*Offene Punkte:*
-
-* Thread-Pool-Größe für LibreOffice-Instanzen (aktuell: 10)
-* Memory-Limitierung pro LibreOffice-Instanz
-
 ==== Blackbox Storage Service
 
 *Zweck/Verantwortung:*
 
-Abstraktionsschicht für Speicherung von Binärdaten (Templates, generierte Dokumente, Test-PDFs).
+Abstraktionsschicht für Speicherung von Binärdaten (Templates, generierte Dokumente, Test-PDFs). Wird in jedem SCS-Modul mit eigenem Schema eingesetzt.
 
 *Schnittstellen:*
 
@@ -655,12 +755,6 @@ Abstraktionsschicht für Speicherung von Binärdaten (Templates, generierte Doku
 * Performance: Optimiert für < 5.000 Dokumente in PostgreSQL
 * Transaktional: Speicherung in PostgreSQL erfolgt transaktional mit Metadaten
 
-*Ablageort/Datei:*
-
-* Interface: `io.github.flaechsig.blocpress.server.storage.StorageService` (geplant)
-* Implementierung: `io.github.flaechsig.blocpress.server.storage.PostgresStorageService` (geplant)
-* Zukünftig: `io.github.flaechsig.blocpress.server.storage.S3StorageService` (geplant)
-
 <<<<
 [[section-runtime-view]]
 == Laufzeitsicht
@@ -669,85 +763,71 @@ _Systemszenarien: xref:System_Design_Concept.adoc#sydc-scenarios[System Scenario
 
 === Template hochladen und validieren
 
-*Szenario:* Template-Designer lädt neues ODT-Template hoch (UC-1)
+*Szenario:* Template-Designer lädt neues ODT-Template in blocpress-workbench hoch (UC-1)
 
 [plantuml, laufzeit-template-upload, svg]
 ----
 @startuml
 actor "Template-Designer" as User
-participant "Web-UI" as UI
-participant "API Gateway" as Gateway
-participant "REST-API" as API
+participant "blocpress-studio\n(Portal-Shell)" as Studio
+participant "bp-workbench\n(Web Component)" as WC
+participant "blocpress-workbench\nREST-API" as API
 participant "TemplateService\n(UC-1)" as UC
 participant "LibreOfficeProcessor\n(TF-1)" as LO
 participant "StorageService" as Storage
-participant "TemplateRepository" as Repo
+participant "Repository\n(Schema: workbench)" as Repo
 participant "Elasticsearch" as ES
 
-User -> UI : Upload ODT-Datei
-UI -> Gateway : POST /api/templates\n(multipart/form-data)
-Gateway -> Gateway : Authentifizierung\nRate Limiting
-Gateway -> API : forward request
+User -> Studio : Login (JWT)
+Studio -> WC : <bp-workbench jwt="...">
+User -> WC : Upload ODT-Datei
+WC -> API : POST /api/templates\n(multipart/form-data + JWT)
 API -> UC : uploadTemplate(file, name, desc)
 UC -> LO : validateTemplate(odtBinary)
 LO -> LO : LibreOffice UNO-API:\nDokument öffnen,\nUser-Fields extrahieren,\nWiederholungsgruppen identifizieren
 LO --> UC : ValidationResult\n(isValid, userFields, ...)
 UC -> Storage : save(odtBinary, key)
-Storage -> Storage : INSERT INTO templates\n(template_binary = bytea)
 Storage --> UC : StorageId
 UC -> Repo : save(Template entity)
-Repo -> Repo : INSERT INTO templates\n(metadata)
 Repo --> UC : Template (id, ...)
 UC -> ES : indexTemplate(templateId, content)
-ES -> ES : PUT /templates/_doc/{id}
 ES --> UC : OK
 UC --> API : TemplateDTO
-API --> Gateway : 201 Created + JSON
-Gateway --> UI : JSON Response
-UI --> User : Template-Details anzeigen
+API --> WC : 201 Created + JSON
+WC --> User : Template-Details anzeigen
 
 note right of LO
   TF-1: Template validieren
-  - ODT-Struktur prüfen
-  - User-Fields extrahieren
-  - Wiederholungsgruppen finden
-end note
-
-note right of Storage
-  Storage Abstraction Layer
-  PostgreSQL bytea
-  (zukünftig: S3)
+  Läuft in blocpress-workbench
+  Schema: workbench
 end note
 @enduml
 ----
 
 === Dokument über API generieren (asynchron)
 
-*Szenario:* Externe Anwendung generiert Dokument über REST-API (UC-10, TF-5)
+*Szenario:* Externe Anwendung generiert Dokument über blocpress-render (UC-10, TF-5)
 
 [plantuml, laufzeit-doc-generation, svg]
 ----
 @startuml
 participant "Externe\nAnwendung" as App
-participant "API Gateway" as Gateway
-participant "REST-API" as API
+participant "blocpress-render\nREST-API\n(öffentlich)" as API
 participant "DocumentService\n(UC-10)" as UC
 participant "Message Queue" as MQ
 participant "DocumentWorker" as Worker
 participant "LibreOfficeProcessor\n(TF-5)" as LO
 participant "StorageService" as Storage
-participant "DocumentRepository" as Repo
+participant "Repository\n(Schema: production)" as Repo
 
-App -> Gateway : POST /api/documents/generate\n{templateId, jsonData, format}
-Gateway -> API : forward
+App -> API : POST /api/documents/generate\n{templateId, jsonData, format}
 API -> UC : generateDocument(...)
 UC -> Repo : createGenerationRecord()\nStatus: "In Bearbeitung"
 Repo --> UC : GenerationId
 UC -> MQ : sendMessage(generationId, templateId,\njsonData, format)
 MQ --> UC : MessageId
 UC --> API : GenerationId
-API --> Gateway : 202 Accepted\n{generationId}
-Gateway --> App : GenerationId
+API --> App : 202 Accepted\n{generationId}
 
 ... Asynchrone Verarbeitung ...
 
@@ -764,47 +844,40 @@ Repo --> Worker : OK
 
 ... Polling durch Anwendung ...
 
-App -> Gateway : GET /api/documents/{id}/status
-Gateway -> API : forward
+App -> API : GET /api/documents/{id}/status
 API -> Repo : findById(generationId)
 Repo --> API : Document (status, storageId)
-API --> Gateway : {status: "Erfolgreich",\ndownloadUrl: "/api/documents/{id}/download"}
-Gateway --> App : JSON Response
+API --> App : {status: "Erfolgreich",\ndownloadUrl: "/api/documents/{id}/download"}
 
-App -> Gateway : GET /api/documents/{id}/download
-Gateway -> API : forward
+App -> API : GET /api/documents/{id}/download
 API -> Storage : load(storageId)
 Storage --> API : documentBinary
-API --> Gateway : 200 OK\nContent-Type: application/pdf\nbinary stream
-Gateway --> App : PDF-Datei
+API --> App : 200 OK\nContent-Type: application/pdf\nbinary stream
 
-note right of LO
-  TF-5: Dokument generieren
-  - Template mit JSON befüllen
-  - Punkt-Notation auflösen
-  - Arrays iterieren
-  - IF-Bedingungen auswerten
-  - Export in ODT/PDF/RTF
+note right of API
+  blocpress-render:
+  Einzige öffentliche API
+  Liest aus Schema: production
 end note
 @enduml
 ----
 
 === Automatischer Regressionstest
 
-*Szenario:* Nach Template-Änderung werden automatisch Regressionstests ausgeführt (UC-16, TF-6)
+*Szenario:* Nach Übergabe eines Templates in blocpress-proof werden Regressionstests ausgeführt (UC-16, TF-6)
 
 [plantuml, laufzeit-regression-test, svg]
 ----
 @startuml
-participant "TemplateService" as Template
-participant "TestFramework" as TF
+participant "blocpress-proof\nTemplateService" as Template
+participant "blocpress-proof\nTestFramework" as TF
 participant "Message Queue" as MQ
-participant "TestWorker" as Worker
-participant "LibreOfficeProcessor\n(TF-5)" as LO
+participant "TestWorker\n(blocpress-proof)" as Worker
+participant "blocpress-render\n(intern)" as Render
 participant "PDFComparator\n(TF-6)" as Compare
-participant "TestRepository" as Repo
+participant "Repository\n(Schema: proof)" as Repo
 
-Template -> TF : templateUpdated(templateId)
+Template -> TF : templateReceived(templateId)
 TF -> Repo : findTestCasesByTemplate(templateId)
 Repo --> TF : List<TestCase>
 
@@ -815,8 +888,8 @@ end
 MQ -> Worker : consumeMessage(testCaseId)
 Worker -> Repo : loadTestCase(testCaseId)
 Repo --> Worker : TestCase\n(jsonData, baselinePdf)
-Worker -> LO : generateDocument(template, jsonData, PDF)
-LO --> Worker : currentPdf
+Worker -> Render : POST /internal/render\n(template + jsonData)
+Render --> Worker : currentPdf
 Worker -> Compare : comparePdfs(baselinePdf, currentPdf)
 Compare -> Compare : - Seitenanzahl prüfen\n- Text extrahieren\n- Zeile für Zeile vergleichen
 Compare --> Worker : ComparisonResult\n(isIdentical, differences)
@@ -828,51 +901,112 @@ else PDFs unterschiedlich
 end
 
 Repo --> Worker : OK
+
+note right of Render
+  blocpress-render wird intern
+  von proof aufgerufen
+  (kein Zugriff auf production-Schema)
+end note
+@enduml
+----
+
+=== Stufenübergabe (workbench → proof → production)
+
+*Szenario:* Template durchläuft den kompletten Lebenszyklus von Entwicklung über Prüfung bis zur Produktionsfreigabe
+
+[plantuml, laufzeit-stufenuebergabe, svg]
+----
+@startuml
+actor "Template-Designer" as Designer
+actor "Prüfer" as Pruefer
+participant "blocpress-workbench\n(Schema: workbench)" as WB
+participant "blocpress-proof\n(Schema: proof)" as PR
+participant "blocpress-render\n(Schema: production)" as RD
+
+== 1. Entwicklung (workbench) ==
+
+Designer -> WB : Template erstellen\nund bearbeiten
+WB -> WB : TF-1: Validierung\nEinträge in Schema: workbench
+Designer -> WB : "Zur Prüfung einreichen"
+
+== 2. Übergabe workbench → proof (Kopie) ==
+
+WB -> PR : POST /internal/staging/submit\n(Template-Daten als Kopie)
+PR -> PR : INSERT INTO proof.templates\n(Kopie der Daten)
+PR --> WB : 201 Created
+
+== 3. Prüfung und Freigabe (proof) ==
+
+Pruefer -> PR : Template prüfen\n(Tests, Review, Freigabe)
+PR -> PR : TF-2: Workflow-Prüfung\nVier-Augen-Prinzip
+PR -> PR : TF-6: Regressionstests
+Pruefer -> PR : "Template freigeben"
+
+== 4. Übergabe proof → production (Kopie) ==
+
+PR -> RD : POST /internal/staging/release\n(Template-Daten als Kopie)
+RD -> RD : INSERT INTO production.templates\n(Kopie der Daten, Status: Freigegeben)
+RD --> PR : 201 Created
+
+== 5. Produktion ==
+
+note over RD
+  Template steht über die
+  öffentliche API zur
+  Dokumentengenerierung bereit
+end note
+
+== Optional: Baseline aus production holen ==
+
+Pruefer -> PR : "Baseline aktualisieren"
+PR -> RD : GET /internal/staging/baseline/{id}
+RD --> PR : Template-Daten aus production
+PR -> PR : UPDATE proof.templates\n(aktuelle Baseline)
+
 @enduml
 ----
 
 === Compliance Review-Überwachung
 
-*Szenario:* Geplanter Job prüft täglich fällige Reviews (TF-7, UC-12)
+*Szenario:* Geplanter Job in blocpress-proof prüft täglich fällige Reviews (TF-7, UC-12)
 
 [plantuml, laufzeit-compliance-check, svg]
 ----
 @startuml
 participant "Scheduler\n(Quartz)" as Scheduler
-participant "ComplianceManager\n(TF-7)" as CM
-participant "TemplateRepository" as TRepo
-participant "ReviewRepository" as RRepo
+participant "blocpress-proof\nComplianceManager\n(TF-7)" as CM
+participant "Repository\n(Schema: proof)" as Repo
 
 Scheduler -> CM : checkReviews()\n(täglich 06:00 Uhr)
-CM -> TRepo : findAllApprovedTemplates()
-TRepo --> CM : List<Template>
+CM -> Repo : findAllApprovedTemplates()
+Repo --> CM : List<Template>
 
 loop für jedes Template
-  CM -> RRepo : findLatestReview(templateId)
-  RRepo --> CM : ComplianceReview (oder null)
+  CM -> Repo : findLatestReview(templateId)
+  Repo --> CM : ComplianceReview (oder null)
 
   alt kein Review existiert ODER letztes Review abgeschlossen
-    CM -> CM : calculateNextReviewDate()\nbaseierend auf Review-Zyklus\n(1, 3 oder 5 Jahre)
+    CM -> CM : calculateNextReviewDate()\nbasierend auf Review-Zyklus\n(1, 3 oder 5 Jahre)
 
     alt nextReviewDate <= heute + 30 Tage
-      CM -> RRepo : createReview(templateId,\ntype, dueDate, status: "Anstehend")
-      RRepo --> CM : ReviewId
+      CM -> Repo : createReview(templateId,\ntype, dueDate, status: "Anstehend")
+      Repo --> CM : ReviewId
     end
   end
 end
 
-CM -> RRepo : findOverdueReviews()
-RRepo --> CM : List<ComplianceReview>
+CM -> Repo : findOverdueReviews()
+Repo --> CM : List<ComplianceReview>
 
 loop für jedes überfällige Review
-  CM -> RRepo : updateStatus(reviewId, "Überfällig")
+  CM -> Repo : updateStatus(reviewId, "Überfällig")
 end
 
 note right of CM
   TF-7: Compliance-Reviews überprüfen
-  Läuft als geplanter Job
-  Erstellt Reviews 30 Tage im Voraus
-  Fällige Reviews sind auf UI-3 sichtbar
+  Läuft in blocpress-proof
+  Schema: proof
+  Fällige Reviews auf bp-proof UI sichtbar
 end note
 @enduml
 ----
@@ -893,13 +1027,30 @@ _Systemarchitektur und Hardware-Elemente: xref:System_Design_Concept.adoc#sydc-a
 skinparam componentStyle rectangle
 
 node "Docker Host" {
-  node "blocpress-core Container" {
-    component "Quarkus App" as App
-    component "LibreOffice\nheadless ≥ 24" as LO
+  node "blocpress-studio Container" {
+    component "nginx\n+ statische Assets\n(HTML/JS/Import Maps)" as Studio
+  }
+
+  node "blocpress-workbench Container" {
+    component "Quarkus App\n(workbench)" as WB
+    component "LibreOffice\nheadless ≥ 24" as LOWB
+  }
+
+  node "blocpress-proof Container" {
+    component "Quarkus App\n(proof)" as PR
+  }
+
+  node "blocpress-render Container" {
+    component "Quarkus App\n(render)" as RD
+    component "LibreOffice\nheadless ≥ 24" as LORD
+  }
+
+  node "blocpress-admin Container" {
+    component "Quarkus App\n(admin)" as AD
   }
 
   node "postgresql Container" {
-    database "PostgreSQL ≥ 18" as DB
+    database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproof, production, admin)" as DB
   }
 
   node "rabbitmq Container" {
@@ -909,33 +1060,28 @@ node "Docker Host" {
   node "elasticsearch Container" {
     component "Elasticsearch ≥ 7.x" as ES
   }
-
-  node "nginx Container" {
-    component "Web-Oberfläche\n(React SPA)" as WebUI
-  }
 }
 
-WebUI -down-> App : HTTPS
-App -down-> DB : JDBC (5432)
-App -right-> MQ : AMQP (5672)
-App -down-> ES : HTTP (9200)
+Studio -down-> WB : REST (intern)
+Studio -down-> PR : REST (intern)
+Studio -down-> AD : REST (intern)
+
+WB -down-> DB : JDBC (workbench)
+PR -down-> DB : JDBC (proof)
+RD -down-> DB : JDBC (production)
+AD -down-> DB : JDBC (admin)
+
+WB -right-> MQ : AMQP
+WB -down-> ES : HTTP
+WB ..> RD : REST (intern, Vorschau)
+PR ..> RD : REST (intern, Test)
 
 note right of DB
   Volumes:
   - /var/lib/postgresql/data
-  Speichert:
-  - Metadaten
-  - Binärdaten (bytea)
-end note
-
-note right of App
-  Environment:
-  - QUARKUS_DATASOURCE_JDBC_URL
-  - RABBITMQ_HOST
-  - ELASTICSEARCH_URL
-  - LIBREOFFICE_HOME
-  - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
-    (optional)
+  4 Schemata:
+  - workbench, proof,
+    production, admin
 end note
 @enduml
 ----
@@ -971,33 +1117,68 @@ services:
     ports:
       - "9200:9200"
 
-  blocpress-core:
-    build: ./blocpress-core
+  blocpress-studio:
+    image: nginx:alpine
+    volumes:
+      - ./studio/dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "443:443"
+    depends_on:
+      - blocpress-workbench
+      - blocpress-proof
+      - blocpress-admin
+
+  blocpress-workbench:
+    build: ./blocpress-workbench
     depends_on:
       - postgresql
       - rabbitmq
       - elasticsearch
     environment:
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress?currentSchema=workbench
       RABBITMQ_HOST: rabbitmq
       ELASTICSEARCH_URL: http://elasticsearch:9200
       LIBREOFFICE_HOME: /usr/lib/libreoffice
-      # OpenTelemetry (optional — nur setzen, wenn Collector vorhanden)
+      BLOCPRESS_RENDER_URL: http://blocpress-render:8083
+      # OpenTelemetry (optional)
       # QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     ports:
-      - "8080:8080"
+      - "8081:8081"
+
+  blocpress-proof:
+    build: ./blocpress-proof
+    depends_on:
+      - postgresql
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress?currentSchema=proof
+      BLOCPRESS_RENDER_URL: http://blocpress-render:8083
+      # QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8082:8082"
+
+  blocpress-render:
+    build: ./blocpress-render
+    depends_on:
+      - postgresql
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress?currentSchema=production
+      LIBREOFFICE_HOME: /usr/lib/libreoffice
+      # QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8083:8083"
     volumes:
       - libreoffice_cache:/tmp/libreoffice
 
-  web-ui:
-    image: nginx:alpine
-    volumes:
-      - ./web-ui/build:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - "443:443"
+  blocpress-admin:
+    build: ./blocpress-admin
     depends_on:
-      - blocpress-core
+      - postgresql
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress?currentSchema=admin
+      # QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8084:8084"
 
 volumes:
   postgres_data:
@@ -1015,13 +1196,29 @@ skinparam componentStyle rectangle
 
 cloud "Kubernetes Cluster" {
   node "Namespace: blocpress-prod" {
-    rectangle "Deployment: blocpress-core" {
-      component "Pod 1\nblocpress-core" as Pod1
-      component "Pod 2\nblocpress-core" as Pod2
-      component "Pod 3\nblocpress-core" as Pod3
+    rectangle "Deployment: blocpress-studio" {
+      component "Pod\nstudio (nginx)" as StudioPod
     }
 
-    component "Service:\nblocpress-core-svc" as CoreSvc
+    rectangle "Deployment: blocpress-workbench" {
+      component "Pod\nworkbench" as WBPod
+    }
+
+    rectangle "Deployment: blocpress-proof" {
+      component "Pod\nproof" as PRPod
+    }
+
+    rectangle "Deployment: blocpress-render" {
+      component "Pod 1\nrender" as RDPod1
+      component "Pod 2\nrender" as RDPod2
+      component "Pod 3\nrender" as RDPod3
+    }
+
+    rectangle "Deployment: blocpress-admin" {
+      component "Pod\nadmin" as ADPod
+    }
+
+    component "Service:\nrender-svc" as RenderSvc
 
     rectangle "StatefulSet: postgresql" {
       database "PostgreSQL\nPrimary" as DBPrimary
@@ -1045,73 +1242,68 @@ cloud "Kubernetes Cluster" {
   }
 }
 
-Pod1 -down-> DBSvc : JDBC
-Pod2 -down-> DBSvc : JDBC
-Pod3 -down-> DBSvc : JDBC
+WBPod -down-> DBSvc : JDBC (workbench)
+PRPod -down-> DBSvc : JDBC (proof)
+RDPod1 -down-> DBSvc : JDBC (production)
+RDPod2 -down-> DBSvc : JDBC (production)
+RDPod3 -down-> DBSvc : JDBC (production)
+ADPod -down-> DBSvc : JDBC (admin)
 DBSvc -down-> DBPrimary
 DBSvc -down-> DBReplica
 DBPrimary -down-> PVC
 
-Pod1 -right-> MQ : AMQP
-Pod2 -right-> MQ : AMQP
-Pod3 -right-> MQ : AMQP
+WBPod -right-> MQ : AMQP
+WBPod -down-> ES1 : HTTP
 
-Pod1 -down-> ES1 : HTTP
-Pod2 -down-> ES2 : HTTP
-Pod3 -down-> ES1 : HTTP
-
-Ingress -down-> CoreSvc : HTTP
-CoreSvc -down-> Pod1
-CoreSvc -down-> Pod2
-CoreSvc -down-> Pod3
+Ingress -down-> StudioPod : HTTP (UI)
+Ingress -down-> RenderSvc : HTTP (API)
+RenderSvc -down-> RDPod1
+RenderSvc -down-> RDPod2
+RenderSvc -down-> RDPod3
 
 note right of Ingress
   TLS-Terminierung
-  Load Balancing
-  Rate Limiting
+  / → studio (UI)
+  /api → render-svc (API)
 end note
 
 note right of PVC
   Storage Class: SSD
   Size: 100Gi
-  Speichert:
-  - PostgreSQL Daten
-  - Binärdaten (bytea)
+  4 Schemata in einer DB
 end note
 @enduml
 ----
 
-*Kubernetes-Konfiguration (deployment.yaml):*
+*Kubernetes-Konfiguration (deployment.yaml — Beispiel blocpress-render):*
 
 [source,yaml]
 ----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: blocpress-core
+  name: blocpress-render
   namespace: blocpress-prod
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: blocpress-core
+      app: blocpress-render
   template:
     metadata:
       labels:
-        app: blocpress-core
+        app: blocpress-render
     spec:
       containers:
-      - name: blocpress-core
-        image: blocpress/core:1.0.0
+      - name: blocpress-render
+        image: blocpress/render:1.0.0
         ports:
-        - containerPort: 8080
+        - containerPort: 8083
         env:
         - name: QUARKUS_DATASOURCE_JDBC_URL
-          value: jdbc:postgresql://postgresql-svc:5432/blocpress
-        - name: RABBITMQ_HOST
-          value: rabbitmq-svc
-        - name: ELASTICSEARCH_URL
-          value: http://elasticsearch-svc:9200
+          value: jdbc:postgresql://postgresql-svc:5432/blocpress?currentSchema=production
+        - name: LIBREOFFICE_HOME
+          value: /usr/lib/libreoffice
         # OpenTelemetry (optional)
         # - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
         #   value: http://otel-collector-svc:4317
@@ -1125,23 +1317,26 @@ spec:
         livenessProbe:
           httpGet:
             path: /q/health/live
-            port: 8080
+            port: 8083
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /q/health/ready
-            port: 8080
+            port: 8083
           initialDelaySeconds: 10
           periodSeconds: 5
 ----
 
+NOTE: Die übrigen SCS-Module (workbench, proof, admin) werden analog konfiguriert, jeweils mit eigenem Schema und Port. blocpress-render ist das einzige Modul mit mehreren Replicas, da es die lastintensive Dokumentengenerierung übernimmt.
+
 *Qualitätsmerkmale der Verteilungssicht:*
 
-* *Skalierbarkeit:* Kubernetes-Deployment mit 3 Replicas, horizontal skalierbar
+* *Skalierbarkeit:* blocpress-render separat skalierbar (3+ Replicas), übrige Module mit 1 Replica
 * *Verfügbarkeit:* PostgreSQL mit Primary-Replica-Setup, Elasticsearch mit 2 Nodes
-* *Performance:* SSD-Storage für PostgreSQL, Connection Pooling, Load Balancing
-* *Überwachbarkeit:* Liveness-/Readiness-Probes für Health-Checks, OpenTelemetry für Traces/Metriken/Logs (optional)
+* *Performance:* SSD-Storage für PostgreSQL, Connection Pooling pro Modul, Load Balancing für render
+* *Überwachbarkeit:* Liveness-/Readiness-Probes je Modul, OpenTelemetry für Traces/Metriken/Logs (optional)
+* *Unabhängigkeit:* Jedes SCS-Modul kann unabhängig deployed und aktualisiert werden
 
 <<<<
 [[section-concepts]]
@@ -1156,129 +1351,176 @@ _Detaillierte Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities i
 @startuml
 !define ENTITY class
 
-ENTITY Template {
-  + id: Long
-  + name: String
-  + version: Integer
-  + status: String
-  + template_binary: bytea
-  + user_fields: JSONB
-  + review_zyklus: Integer
+package "Schema: workbench" #LightBlue {
+  ENTITY "Template\n(Entwurf)" as TWB {
+    + id: Long
+    + name: String
+    + version: Integer
+    + status: String
+    + template_binary: bytea
+    + user_fields: JSONB
+  }
+
+  ENTITY Baustein {
+    + id: Long
+    + name: String
+    + typ: String
+    + inhalt: bytea
+  }
 }
 
-ENTITY Baustein {
-  + id: Long
-  + name: String
-  + typ: String
-  + inhalt: bytea
+package "Schema: proof" #LightGreen {
+  ENTITY "Template\n(Prüfung)" as TPR {
+    + id: Long
+    + name: String
+    + version: Integer
+    + status: String
+    + template_binary: bytea
+    + review_zyklus: Integer
+  }
+
+  ENTITY Freigabeprozess {
+    + id: Long
+    + workflow_status: String
+    + pruefer_id: Long
+  }
+
+  ENTITY ComplianceReview {
+    + id: Long
+    + review_typ: String
+    + faelligkeitsdatum: Date
+    + review_status: String
+  }
+
+  ENTITY TestCase {
+    + id: Long
+    + test_name: String
+    + json_testdaten: JSONB
+    + erwartetes_pdf: bytea
+  }
 }
 
-ENTITY Freigabeprozess {
-  + id: Long
-  + workflow_status: String
-  + pruefer_id: Long
-  + freigeber_id: Long
+package "Schema: production" #LightYellow {
+  ENTITY "Template\n(Freigegeben)" as TPROD {
+    + id: Long
+    + name: String
+    + version: Integer
+    + status: String = "Freigegeben"
+    + template_binary: bytea
+  }
+
+  ENTITY Dokumentengenerierung {
+    + id: Long
+    + json_daten: JSONB
+    + output_format: String
+    + generiertes_dokument: bytea
+    + status: String
+  }
 }
 
-ENTITY ComplianceReview {
-  + id: Long
-  + review_typ: String
-  + faelligkeitsdatum: Date
-  + review_status: String
-  + review_ergebnis: String
+package "Schema: admin" #LightCoral {
+  ENTITY Benutzer {
+    + id: Long
+    + name: String
+    + email: String
+    + rollen: JSONB
+  }
+
+  ENTITY AuditLog {
+    + id: Long
+    + user_id: Long
+    + aktion: String
+    + zeitstempel: Timestamp
+  }
 }
 
-ENTITY TestCase {
-  + id: Long
-  + test_name: String
-  + json_testdaten: JSONB
-  + erwartetes_pdf: bytea
-  + test_status: String
-}
+TWB "0..*" -- "0..*" Baustein : verwendet >
+TPR "1" -- "0..*" Freigabeprozess : hat >
+TPR "1" -- "0..*" ComplianceReview : unterliegt >
+TPR "1" -- "0..*" TestCase : wird getestet durch >
+TPROD "1" -- "0..*" Dokumentengenerierung : erzeugt >
 
-ENTITY Dokumentengenerierung {
-  + id: Long
-  + json_daten: JSONB
-  + output_format: String
-  + generiertes_dokument: bytea
-  + status: String
-}
-
-ENTITY Benutzer {
-  + id: Long
-  + name: String
-  + email: String
-  + rollen: JSONB
-}
-
-Template "1" -- "0..*" Freigabeprozess : hat >
-Template "1" -- "0..*" ComplianceReview : unterliegt >
-Template "1" -- "0..*" TestCase : wird getestet durch >
-Template "1" -- "0..*" Dokumentengenerierung : erzeugt >
-Template "0..*" -- "0..*" Baustein : verwendet >
-
-Benutzer "1" -- "0..*" Template : erstellt >
-Benutzer "1" -- "0..*" Freigabeprozess : prüft/gibt frei >
-Benutzer "1" -- "0..*" ComplianceReview : führt durch >
+TWB -right[dashed]-> TPR : Kopie\n(Übergabe)
+TPR -right[dashed]-> TPROD : Kopie\n(Freigabe)
 @enduml
 ----
+
+NOTE: Die Template-Tabelle existiert mit identischer Struktur in allen drei fachlichen Schemata (workbench, proof, production). Die Stufenübergabe erfolgt als Datenkopie zwischen den Schemata.
 
 === Benutzerverwaltung und Sicherheit
 
 *Authentifizierung (JWT-basiert):*
 
-* blocpress-server validiert JWTs direkt — kein externer Identity Provider zur Laufzeit erforderlich
-* Issuer und Public Key werden in `application.properties` konfiguriert (`mp.jwt.verify.issuer`, `mp.jwt.verify.publickey.location`)
-* Quarkus SmallRye JWT Extension prüft bei jedem Request: Signatur, Issuer, Ablaufdatum
-* Für Tests: langlebiges Demo-JWT mit dem Private Key erzeugen (z.B. 1 Jahr Laufzeit)
+* blocpress-studio (Portal-Shell) übernimmt die Authentifizierung und hält das JWT
+* Jedes SCS-Modul validiert JWTs eigenständig via Quarkus SmallRye JWT Extension
+* JWT wird von der Studio-Shell als Property an die Web Components weitergereicht: `<bp-workbench jwt="${token}"></bp-workbench>`
+* Web Components senden das JWT als `Authorization: Bearer` Header bei REST-Aufrufen an ihr Backend
+* Issuer und Public Key werden in jeder `application.properties` konfiguriert (`mp.jwt.verify.issuer`, `mp.jwt.verify.publickey.location`)
 * Kompatibel mit jedem IdP, der JWTs ausstellt — nur Public Key und Issuer müssen konfiguriert werden
 
 *Autorisierung:*
 
-Rollenbasierte Zugriffskontrolle (RBAC):
+Rollenbasierte Zugriffskontrolle (RBAC) — konsolidierte Rollen:
 
 [cols="2,3,3" options="header"]
 |===
-| Rolle | Berechtigungen | Use Cases
+| Rolle | Berechtigungen | SCS-Modul / Use Cases
 
 | Template-Designer
-| Template erstellen, Template bearbeiten, Template einreichen
-| UC-1, UC-2, UC-3, UC-5
+| Template erstellen, bearbeiten, einreichen, Bausteine verwalten, Suche
+| blocpress-workbench: UC-1 bis UC-5, UC-19 bis UC-21
 
-| Qualitätsmanager
-| Template prüfen, Testdokumente generieren
-| UC-6, UC-7, UC-10
-
-| Freigeber
-| Template freigeben, Template ablehnen
-| UC-8, UC-9
-
-| Compliance-Reviewer
-| Reviews durchführen, Review-Ergebnisse speichern
-| UC-11, UC-12, UC-13
-
-| Test-Manager
-| Test Cases erstellen, Tests ausführen, Baselines aktualisieren
-| UC-14, UC-15, UC-16, UC-17, UC-18
+| Prüfer (QM / Freigeber / Compliance)
+| Templates prüfen, freigeben/ablehnen, Compliance-Reviews durchführen, Tests verwalten und ausführen
+| blocpress-proof: UC-6 bis UC-9, UC-11 bis UC-18
 
 | Administrator
 | Benutzer verwalten, Rollen zuweisen, System konfigurieren
-| UC-22, UC-23, UC-24
+| blocpress-admin: UC-22 bis UC-24
 
 | API-Konsument
-| Dokumente generieren (nur via API)
-| TI-1: POST /api/documents/generate
+| Dokumente generieren (nur via öffentliche API)
+| blocpress-render: POST /api/documents/generate
 |===
 
 *Sicherheitskonzepte:*
 
-* *Vier-Augen-Prinzip:* Technisch erzwungen in TF-2 (Workflow-Status ändern): `userId != template.erstellerId`
-* *API-Rate-Limiting:* 1.000 Requests/h pro API-Key (im API Gateway)
+* *Vier-Augen-Prinzip:* Technisch erzwungen in TF-2 (blocpress-proof): `userId != template.erstellerId`
+* *API-Rate-Limiting:* 1.000 Requests/h pro API-Key (für blocpress-render)
 * *HTTPS/TLS:* Alle externen Verbindungen verschlüsselt
+* *JWT-Weitergabe:* Über Web Component Properties — kein LocalStorage, kein Cookie
+* *Schema-Isolation:* Jedes SCS-Modul hat nur Zugriff auf sein eigenes Datenbank-Schema
 * *SQL-Injection-Schutz:* Prepared Statements, JPA/Hibernate
 * *DSGVO-Compliance:* Löschfunktion für personenbezogene Daten in E-3, E-6
 
 === Persistenz und Storage
+
+*Multi-Schema-Architektur:*
+
+Alle SCS-Module teilen sich eine PostgreSQL-Instanz, nutzen aber jeweils ein eigenes Schema:
+
+[cols="1,2,2" options="header"]
+|===
+| Schema | SCS-Modul | Enthaltene Entities
+
+| `workbench`
+| blocpress-workbench
+| Template (Entwurf), Baustein, Template-Baustein-Zuordnung
+
+| `proof`
+| blocpress-proof
+| Template (Prüfung), Freigabeprozess, ComplianceReview, TestCase, Testpool
+
+| `production`
+| blocpress-render
+| Template (Freigegeben), Dokumentengenerierung
+
+| `admin`
+| blocpress-admin
+| Benutzer, AuditLog
+|===
+
+Die Template-Tabelle hat in allen drei fachlichen Schemata eine identische Struktur. Dies ermöglicht die kopie-basierte Stufenübergabe: `INSERT INTO proof.templates SELECT ... FROM workbench.templates WHERE id = ?`.
 
 *Storage Abstraction Layer:*
 
@@ -1289,58 +1531,115 @@ public interface StorageService {
     byte[] load(StorageId id);
     void delete(StorageId id);
 }
-
-public class PostgresStorageService implements StorageService {
-    @Override
-    public StorageId save(byte[] data, String key) {
-        // INSERT INTO ... (template_binary) VALUES (?)
-        // bytea-Spalte in PostgreSQL
-    }
-}
-
-// Zukünftig:
-public class S3StorageService implements StorageService {
-    @Override
-    public StorageId save(byte[] data, String key) {
-        // PUT object to S3
-    }
-}
 ----
 
-*Datenbank-Schema (Auszug):*
+Jedes SCS-Modul nutzt eine eigene `StorageService`-Instanz, die auf das jeweilige Schema zugreift.
+
+*Datenbank-Schema (Auszug — Schema: workbench):*
 
 [source,sql]
 ----
-CREATE TABLE templates (
+CREATE SCHEMA workbench;
+
+CREATE TABLE workbench.templates (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     version INTEGER NOT NULL,
     status VARCHAR(50) NOT NULL,
-    ersteller_id BIGINT REFERENCES benutzer(id),
-    template_binary BYTEA,  -- Binärdaten
-    user_fields JSONB,      -- Strukturierte Daten
+    ersteller_id BIGINT,         -- Referenz auf admin.benutzer (JWT sub)
+    template_binary BYTEA,
+    user_fields JSONB,
     review_zyklus INTEGER,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_templates_status ON templates(status);
-CREATE INDEX idx_templates_ersteller ON templates(ersteller_id);
+-- Identische Struktur in proof und production:
+-- CREATE SCHEMA proof;
+-- CREATE TABLE proof.templates (...);
+-- CREATE SCHEMA production;
+-- CREATE TABLE production.templates (...);
+----
 
-CREATE TABLE dokumentengenerierung (
-    id BIGSERIAL PRIMARY KEY,
-    template_id BIGINT REFERENCES templates(id),
-    json_daten JSONB,
-    generiertes_dokument BYTEA,  -- Binärdaten
-    status VARCHAR(50),
-    created_at TIMESTAMP DEFAULT NOW()
-);
+*Schema-Konfiguration pro Modul:*
+
+[source,properties]
+----
+# blocpress-workbench
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/blocpress?currentSchema=workbench
+
+# blocpress-proof
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/blocpress?currentSchema=proof
+
+# blocpress-render
+quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/blocpress?currentSchema=production
 ----
 
 *Transaktionsmanagement:*
 
-* JTA-Transaktionen für atomare Operationen (z.B. TF-2: Status ändern + Freigabeprozess erstellen)
+* JTA-Transaktionen für atomare Operationen innerhalb eines Schemas
+* Stufenübergabe (Cross-Schema-Kopie) erfolgt über interne REST-APIs, nicht über Cross-Schema-SQL
 * Isolation Level: READ_COMMITTED
 * Rollback bei Fehlern in Use Cases
+
+=== Micro-Frontend-Architektur (Web Components)
+
+blocpress-studio ist die Portal-Shell, die Micro-Frontends der SCS-Module als Web Components integriert.
+
+*Prinzip:*
+
+* Jedes SCS-Modul liefert ein JavaScript-Bundle mit Custom Elements (z.B. `<bp-workbench>`, `<bp-proof>`, `<bp-admin>`)
+* Die Web Components nutzen Shadow DOM für vollständige CSS- und DOM-Kapselung
+* Studio lädt die Bundles dynamisch via Import Maps
+
+*Import Map (Beispiel):*
+
+[source,html]
+----
+<script type="importmap">
+{
+  "imports": {
+    "bp-workbench": "/modules/workbench/bp-workbench.js",
+    "bp-proof": "/modules/proof/bp-proof.js",
+    "bp-admin": "/modules/admin/bp-admin.js"
+  }
+}
+</script>
+----
+
+*JWT-Weitergabe:*
+
+[source,html]
+----
+<!-- Studio-Shell: JWT als Property an Web Component -->
+<bp-workbench jwt="${currentUser.token}"></bp-workbench>
+----
+
+[source,javascript]
+----
+// Web Component: JWT empfangen und für REST-Aufrufe verwenden
+class BpWorkbench extends HTMLElement {
+  static get observedAttributes() { return ['jwt']; }
+
+  attributeChangedCallback(name, oldVal, newVal) {
+    if (name === 'jwt') this._jwt = newVal;
+  }
+
+  async fetchTemplates() {
+    const res = await fetch('/api/workbench/templates', {
+      headers: { 'Authorization': `Bearer ${this._jwt}` }
+    });
+    // ...
+  }
+}
+customElements.define('bp-workbench', BpWorkbench);
+----
+
+*Vorteile:*
+
+* Vollständige UI-Isolation: CSS und DOM eines Moduls beeinflussen andere Module nicht
+* Unabhängiges Deployment: Web Component-Bundles können einzeln aktualisiert werden
+* Framework-Freiheit: Jedes Modul kann intern ein beliebiges UI-Framework verwenden
+* JWT-Sicherheit: Token wird als Property übergeben, nicht im LocalStorage
 
 === Template-Verarbeitung mit LibreOffice
 
@@ -1465,7 +1764,7 @@ public class DocumentWorker {
 
 === Observability (OpenTelemetry)
 
-blocpress-server nutzt *Quarkus OpenTelemetry* (`quarkus-opentelemetry`) für die Erfassung von Traces, Metriken und Logs. Die Integration ist vendor-neutral und erfordert vom Betreiber lediglich die Konfiguration eines OTLP-Endpunkts.
+Alle SCS-Module nutzen *Quarkus OpenTelemetry* (`quarkus-opentelemetry`) für die Erfassung von Traces, Metriken und Logs. Die Integration ist vendor-neutral und erfordert vom Betreiber lediglich die Konfiguration eines OTLP-Endpunkts.
 
 *Auto-Instrumentation:*
 
@@ -1485,7 +1784,7 @@ Für diese Standardmetriken und Traces ist kein eigener Code erforderlich.
 quarkus.otel.exporter.otlp.endpoint=http://otel-collector:4317
 
 # Service-Name für Traces und Metriken
-quarkus.otel.resource.attributes=service.name=blocpress-server
+quarkus.otel.resource.attributes=service.name=blocpress-workbench  # bzw. -proof, -render, -admin
 
 # Logging: Standard Quarkus JSON-Logging, wird durch OTel-Kontext (Trace-ID, Span-ID) angereichert
 quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss} %-5p traceId=%X{traceId} [%c] %s%e%n
@@ -1493,7 +1792,7 @@ quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss} %-5p traceId=%X{traceId} [%c]
 
 *Optionalität:*
 
-Wird kein `quarkus.otel.exporter.otlp.endpoint` konfiguriert, ist OpenTelemetry deaktiviert — blocpress läuft ohne externe Monitoring-Abhängigkeit. Der Betreiber kann jeden OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent).
+Wird kein `quarkus.otel.exporter.otlp.endpoint` konfiguriert, ist OpenTelemetry deaktiviert — die SCS-Module laufen ohne externe Monitoring-Abhängigkeit. Der Betreiber kann jeden OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent).
 
 *Audit-Logging:*
 
@@ -1541,7 +1840,7 @@ Speicherung in PostgreSQL bytea-Spalten. Erwartetes Datenvolumen: < 5.000 Dokume
 
 *Kontext:*
 
-Wahl des Java-Frameworks für blocpress-server. Optionen: Spring Boot, Quarkus, Micronaut.
+Wahl des Java-Frameworks für die SCS-Module. Optionen: Spring Boot, Quarkus, Micronaut.
 
 *Entscheidung:*
 
@@ -1621,7 +1920,7 @@ Template-Verarbeitung und Dokumentengenerierung. Optionen: LibreOffice headless 
 
 *Entscheidung:*
 
-LibreOffice ≥ 24 headless, integriert in blocpress-server
+LibreOffice ≥ 24 headless, integriert in blocpress-render und blocpress-workbench
 
 *Begründung:*
 
@@ -1636,6 +1935,40 @@ LibreOffice ≥ 24 headless, integriert in blocpress-server
 * Positiv: Keine externe Abhängigkeit, DSGVO-konform, kosteneffizient
 * Negativ: LibreOffice-Deployment komplex, Memory-Verbrauch höher
 * Risiko: LibreOffice-Bugs, Performance-Tuning notwendig
+
+=== ADR-006: Self-Contained Systems (SCS) statt Monolith
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+blocpress wurde initial als monolithische Quarkus-Anwendung (blocpress-server) konzipiert. Mit wachsender fachlicher Komplexität (Template-Entwicklung, Prüfung/Freigabe, Compliance, Administration, Dokumentengenerierung) entstehen enge Kopplung und erschwerte Wartbarkeit. Es soll eine Zerlegung in unabhängig wartbare Module erfolgen.
+
+*Entscheidung:*
+
+Zerlegung in fünf Self-Contained Systems (SCS) mit eigener UI, eigenem Backend und eigenem Datenbank-Schema:
+
+* *blocpress-studio* — Portal-Shell (Navigation, Auth, Micro-Frontend-Integration)
+* *blocpress-workbench* — Template-Entwicklung (Dev-Stufe)
+* *blocpress-proof* — Prüfung, Freigabe, Compliance, Tests (QA-Stufe)
+* *blocpress-render* — Dokumentengenerierung (Einzige öffentliche API, Production-Stufe)
+* *blocpress-admin* — Benutzerverwaltung, Systemkonfiguration
+
+Drei Datenstufen mit kopie-basierter Übergabe: workbench → proof → production.
+
+*Begründung:*
+
+* *Wartbarkeit:* Jedes Modul kann unabhängig entwickelt, getestet und deployed werden
+* *Team-Ownership:* Module können von verschiedenen Teams verantwortet werden
+* *Skalierbarkeit:* blocpress-render (lastintensiv) kann separat skaliert werden
+* *Fachliche Kohäsion:* Jedes Modul kapselt einen klar abgegrenzten fachlichen Bereich
+* *UI-Isolation:* Web Components mit Shadow DOM verhindern CSS-/DOM-Konflikte
+
+*Konsequenzen:*
+
+* Positiv: Bessere Wartbarkeit, unabhängige Deployments, gezielte Skalierung, klare Ownership
+* Negativ: Höhere Deployment-Komplexität (5 Container statt 1), Datenredundanz durch Kopien, Cross-Schema-Kommunikation über REST statt direkte DB-Zugriffe
+* Mitigation: Gemeinsame PostgreSQL-Instanz reduziert Infrastruktur-Overhead, Docker-Compose/Kubernetes-Konfiguration automatisiert Deployment
 
 <<<<
 [[section-quality-requirements]]
@@ -1892,70 +2225,100 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Begriff | Definition
 
 | *Baustein*
-| Wiederverwendbares LibreOffice-Fragment (ODT), das in mehreren Templates eingebunden werden kann (z.B. Standardfußzeile, AGBs). Entity E-2.
+| Wiederverwendbares LibreOffice-Fragment (ODT), das in mehreren Templates eingebunden werden kann (z.B. Standardfußzeile, AGBs). Verwaltet in blocpress-workbench. Entity E-2.
 
 | *Baseline-PDF*
-| Erwartetes PDF-Ergebnis eines Test Cases, gegen das aktuelle Generierungen verglichen werden. Gespeichert in E-6.7.
+| Erwartetes PDF-Ergebnis eines Test Cases, gegen das aktuelle Generierungen verglichen werden. Verwaltet in blocpress-proof.
 
-| *blocpress-server*
-| Hauptkomponente des Systems: Quarkus-Anwendung mit Business-Logik, REST-API, LibreOffice-Integration.
+| *blocpress-admin*
+| SCS-Modul für Administration: Benutzerverwaltung, Rollenzuweisung, Systemkonfiguration, Audit-Logs. Schema: `admin`.
+
+| *blocpress-proof*
+| SCS-Modul für Prüfung und Freigabe: Workflow, Compliance-Reviews, Testdaten, Regressionstests. Arbeitsumgebung des Prüfers. Schema: `proof`.
+
+| *blocpress-render*
+| SCS-Modul für Dokumentengenerierung: Einzige öffentliche REST-API. Liest freigegebene Templates aus dem production-Schema. Stateless, horizontal skalierbar.
+
+| *blocpress-studio*
+| Portal-Shell: Keine eigene Business-Logik. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends (Web Components) via Import Maps.
+
+| *blocpress-workbench*
+| SCS-Modul für Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search. Arbeitsumgebung des Template-Designers. Schema: `workbench`.
 
 | *Compliance Review*
-| Turnusmäßige Prüfung eines Templates auf inhaltliche Aktualität. Review-Zyklen: 1, 3 oder 5 Jahre. Entity E-5.
+| Turnusmäßige Prüfung eines Templates auf inhaltliche Aktualität. Review-Zyklen: 1, 3 oder 5 Jahre. Verwaltet in blocpress-proof. Entity E-5.
 
 | *Content Search Engine*
-| Elasticsearch-basierte Komponente zur Indexierung und Volltextsuche über alle Templates und Bausteine.
+| Elasticsearch-basierte Komponente zur Indexierung und Volltextsuche über alle Templates und Bausteine. Genutzt von blocpress-workbench.
 
 | *Deterministische Generierung*
 | Eigenschaft, dass identische Eingaben (Template-Version + JSON-Daten) immer identische Ausgabedokumente erzeugen. Essentiell für Regressionstests.
 
 | *Dokumentengenerierung*
-| Prozess der automatisierten Befüllung eines Templates mit JSON-Daten und Export als ODT/PDF/RTF. Entity E-3, TF-5.
+| Prozess der automatisierten Befüllung eines Templates mit JSON-Daten und Export als ODT/PDF/RTF. Ausgeführt von blocpress-render. Entity E-3, TF-5.
 
 | *Freigabeprozess*
-| Workflow zur Qualitätssicherung von Templates: Eingereicht → In Prüfung → Freigegeben/Abgelehnt. Entity E-4, UC-8, UC-9.
+| Workflow zur Qualitätssicherung von Templates: Eingereicht → In Prüfung → Freigegeben/Abgelehnt. Gesteuert von blocpress-proof. Entity E-4, UC-8, UC-9.
 
 | *IF-Bedingung*
 | Bedingung in einem Template, die Inhalte basierend auf JSON-Daten dynamisch ein- oder ausblendet.
 
+| *Import Map*
+| Browser-Standard zur Auflösung von JavaScript-Modulnamen auf URLs. Verwendet von blocpress-studio zum dynamischen Laden der Web Component-Bundles der SCS-Module.
+
 | *LibreOffice headless*
-| LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich.
+| LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich. Eingesetzt in blocpress-render und blocpress-workbench.
 
 | *Message Queue*
 | RabbitMQ oder Kafka zur asynchronen Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests).
 
+| *Micro-Frontend*
+| Architekturmuster, bei dem die UI eines SCS-Moduls als eigenständige Einheit (Web Component) in eine gemeinsame Portal-Shell integriert wird.
+
 | *ODT*
 | OpenDocument Text Format - Standardformat für LibreOffice-Textdokumente. Template-Eingabeformat für blocpress.
+
+| *Prüfer*
+| Konsolidierte Rolle: Vereint Qualitätsmanager, Freigeber, Test-Manager und Compliance-Reviewer. Arbeitet in blocpress-proof.
 
 | *Punkt-Notation*
 | Notation zur Referenzierung von JSON-Pfaden in User-Fields, z.B. `kunde.name` oder `vertrag.positionen[0].preis`.
 
 | *Regressionstest*
-| Automatisierter Test, der prüft, ob Template-Änderungen ungewollte Auswirkungen auf generierte Dokumente haben. UC-16, TF-6.
+| Automatisierter Test, der prüft, ob Template-Änderungen ungewollte Auswirkungen auf generierte Dokumente haben. Ausgeführt in blocpress-proof. UC-16, TF-6.
+
+| *Self-Contained System (SCS)*
+| Architekturmuster: Unabhängig deploybare Einheit mit eigener UI, eigenem Backend und eigener Datenhaltung. blocpress besteht aus fünf SCS.
 
 | *Storage Abstraction Layer*
-| Interface (`StorageService`) zur Entkopplung von Binärdaten-Speicherung. Ermöglicht Wechsel von PostgreSQL bytea zu S3.
+| Interface (`StorageService`) zur Entkopplung von Binärdaten-Speicherung. Ermöglicht Wechsel von PostgreSQL bytea zu S3. Wird in jedem SCS-Modul eingesetzt.
+
+| *Stufenübergabe*
+| Kopie-basierte Überführung von Templates zwischen Datenstufen: workbench → proof (zur Prüfung) → production (nach Freigabe). Optional: Baseline-Pull von production → proof für turnusmäßige Erneuerung.
 
 | *Template*
-| LibreOffice-Dokument (ODT) mit Platzhaltern (User-Fields), Wiederholungsgruppen und Bedingungen. Entity E-1.
+| LibreOffice-Dokument (ODT) mit Platzhaltern (User-Fields), Wiederholungsgruppen und Bedingungen. Existiert in drei Stufen (workbench/proof/production). Entity E-1.
 
 | *Test Case*
-| Testfall für ein Template mit JSON-Testdaten und Baseline-PDF. Entity E-6.
+| Testfall für ein Template mit JSON-Testdaten und Baseline-PDF. Verwaltet in blocpress-proof. Entity E-6.
 
 | *Testpool*
-| Sammlung von Test Cases für gemeinsame Ausführung (z.B. alle Tests für ein Template). Entity E-7.
+| Sammlung von Test Cases für gemeinsame Ausführung (z.B. alle Tests für ein Template). Verwaltet in blocpress-proof. Entity E-7.
 
 | *User-Field*
 | Platzhalter in einem Template, der durch JSON-Daten befüllt wird. Name in Punkt-Notation (z.B. `kunde.name`).
 
 | *Vier-Augen-Prinzip*
-| Sicherheitskonzept: Template-Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen in TF-2.
+| Sicherheitskonzept: Template-Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen in TF-2 (blocpress-proof).
+
+| *Web Component*
+| Browser-Standard (Custom Elements + Shadow DOM) für wiederverwendbare UI-Komponenten. Jedes SCS-Modul liefert seine UI als Web Component (z.B. `<bp-workbench>`), die von blocpress-studio geladen wird.
 
 | *Wiederholungsgruppe*
 | Section oder Table in einem Template, die für jedes Element eines JSON-Arrays dupliziert und befüllt wird.
 
 | *Workflow-Engine*
-| Komponente in blocpress-server zur Steuerung von Freigabeprozessen und Statusübergängen. Prüft Berechtigungen und Vier-Augen-Prinzip.
+| Komponente in blocpress-proof zur Steuerung von Freigabeprozessen und Statusübergängen. Prüft Berechtigungen und Vier-Augen-Prinzip.
 |===
 
 <<<<

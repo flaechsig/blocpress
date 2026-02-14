@@ -1,4 +1,8 @@
-= Solution Design Concept: blocpress
+ifndef::imagesdir[:imagesdir: .]
+
+image:blocpress-logo-large.png[]
+
+= Solution Design Concept
 
 [[sdc-vision]]
 == Vision
