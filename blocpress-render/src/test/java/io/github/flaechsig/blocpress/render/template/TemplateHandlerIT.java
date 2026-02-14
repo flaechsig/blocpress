@@ -32,6 +32,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TemplateHandlerIT {
     private static final Logger LOG = LoggerFactory.getLogger(TemplateHandlerIT.class);
     private static String IMAGE = System.getProperty("it.image");
+    private static final String DEV_TOKEN;
+
+    static {
+        try (var is = TemplateHandlerIT.class.getResourceAsStream("/dev-token.txt")) {
+            DEV_TOKEN = new String(is.readAllBytes(), StandardCharsets.UTF_8).trim();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read /dev-token.txt from classpath", e);
+        }
+    }
 
     private static final int JACOCO_PORT = 6300;
 
@@ -171,7 +180,18 @@ class TemplateHandlerIT {
         assertTrue(response.statusCode() >= 400, "Expected error status but got " + response.statusCode());
     }
 
+    @Test
+    void unauthenticatedRequestReturns401() throws Exception {
+        HttpResponse<byte[]> response = sendMergeRequest("application/pdf", VALID_JSON, null);
+
+        assertEquals(401, response.statusCode());
+    }
+
     private HttpResponse<byte[]> sendMergeRequest(String accept, String jsonData) throws IOException, InterruptedException {
+        return sendMergeRequest(accept, jsonData, DEV_TOKEN);
+    }
+
+    private HttpResponse<byte[]> sendMergeRequest(String accept, String jsonData, String token) throws IOException, InterruptedException {
         URI baseUri = URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8080));
         byte[] templateContent = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
         String boundary = "WebKitFormBoundary-" + LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();
@@ -196,9 +216,13 @@ class TemplateHandlerIT {
         out.writeBytes("--" + boundary + "--\r\n");
         out.flush();
 
-        var request = HttpRequest.newBuilder(baseUri.resolve("/api/template/generate"))
+        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/template/generate"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .header("Accept", accept)
+                .header("Accept", accept);
+        if (token != null) {
+            builder.header("Authorization", "Bearer " + token);
+        }
+        var request = builder
                 .POST(HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))
                 .build();
 

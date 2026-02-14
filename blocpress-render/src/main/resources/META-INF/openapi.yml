@@ -10,6 +10,9 @@ info:
 servers:
   - url: http://localhost:8080/api
 
+security:
+  - BearerJWT: []
+
 tags:
   - name: Template
     description: Template handling and document generation
@@ -80,5 +83,14 @@ paths:
           description: Bad request (e.g. missing template, invalid JSON data, or invalid template structure)
         "406":
           description: Unsupported Media Type
+        "401":
+          description: Unauthorized — missing or invalid JWT
         "500":
           description: Internal server error
+
+components:
+  securitySchemes:
+    BearerJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

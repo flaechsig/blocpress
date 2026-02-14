@@ -1,10 +1,11 @@
-package io.github.flaechsig.blocpress.render.render.template;
+package io.github.flaechsig.blocpress.render.template;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.flaechsig.blocpress.core.LibreOfficeProcessor;
 import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
 import io.github.flaechsig.blocpress.render.api.TemplateApi;
+import io.quarkus.security.Authenticated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
  *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-uc-1">UC-1: Template hochladen</a></li>
  * </ul>
  */
+@Authenticated
 public class TemplateResource implements TemplateApi {
     private static Logger logger = LoggerFactory.getLogger(TemplateResource.class);
     private static ObjectMapper mapper = new ObjectMapper();

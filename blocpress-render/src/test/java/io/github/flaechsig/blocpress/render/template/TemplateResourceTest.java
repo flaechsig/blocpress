@@ -1,6 +1,5 @@
 package io.github.flaechsig.blocpress.render.template;
 
-import io.github.flaechsig.blocpress.render.render.template.TemplateResource;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
