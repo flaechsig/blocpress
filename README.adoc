@@ -1,3 +1,7 @@
+ifndef::imagesdir[:imagesdir: docs]
+
+image:blocpress-logo-large.png[]
+
 == Blocpress — printing made (mostly) simple
 
 Blocpress is a lightweight document template/rendering engine.

@@ -184,26 +184,26 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 *Actors:*
 
 - Template-Designer (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- `<bp-workbench>` Web Component (geladen in blocpress-studio)
+- blocpress-workbench (SCS-Modul)
 
 *Main Scenario:*
 
 1. Template-Designer wählt über UI-1 die Aktion "Template hochladen"
 2. Template-Designer wählt eine ODT-Datei vom lokalen Dateisystem
-3. Web-Oberfläche sendet die Datei über TI-1 (REST-API: POST /api/templates) an blocpress-server
-4. blocpress-server ruft TF-1 (Template validieren) auf
+3. `<bp-workbench>` sendet die Datei über REST-API (POST /api/workbench/templates) an blocpress-workbench
+4. blocpress-workbench ruft TF-1 (Template validieren) auf
 5. TF-1 analysiert User-Fields, Wiederholungsgruppen und IF-Bedingungen
-6. blocpress-server speichert Template-Binärdaten und Metadaten in E-1 (Template) mit Status "Entwurf"
-7. blocpress-server sendet Indexierungs-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
-8. blocpress-server gibt Template-ID und Validierungsergebnisse an Web-Oberfläche zurück
-9. Web-Oberfläche zeigt Template-Details und Validierungsergebnisse auf UI-1 an
+6. blocpress-workbench speichert Template-Binärdaten und Metadaten in E-1 (Template, Schema: workbench) mit Status "Entwurf"
+7. blocpress-workbench sendet Indexierungs-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
+8. blocpress-workbench gibt Template-ID und Validierungsergebnisse an `<bp-workbench>` zurück
+9. `<bp-workbench>` zeigt Template-Details und Validierungsergebnisse auf UI-1 an
 
 *Alternative Scenarios:*
 
 4a. Validierung schlägt fehl (ungültige ODT-Struktur)
-5a. blocpress-server gibt Fehlermeldung zurück
-6a. Web-Oberfläche zeigt Fehlermeldung auf UI-1 an
+5a. blocpress-workbench gibt Fehlermeldung zurück
+6a. `<bp-workbench>` zeigt Fehlermeldung auf UI-1 an
 7a. Use Case endet ohne Template-Speicherung
 
 [[edc-uc-2]]
@@ -220,28 +220,28 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 *Actors:*
 
 - Template-Designer (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- `<bp-workbench>` Web Component (geladen in blocpress-studio)
+- blocpress-workbench (SCS-Modul)
+- blocpress-proof (SCS-Modul, Ziel der Stufenübergabe)
 
 *Main Scenario:*
 
 1. Template-Designer wählt Template auf UI-1 aus
 2. Template-Designer wählt Aktion "Zur Freigabe einreichen"
-3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/submit) an blocpress-server
-4. blocpress-server ruft TF-2 (Workflow-Status ändern) auf
-5. TF-2 prüft, ob Benutzer berechtigt ist (Designer ≠ Freigeber)
-6. TF-2 ändert Status in E-1 (Template) von "Entwurf" zu "Eingereicht"
-7. TF-2 erstellt Eintrag in E-4 (Freigabeprozess) mit Status "Eingereicht"
-8. blocpress-server bestätigt erfolgreiche Einreichung an Web-Oberfläche
-9. Web-Oberfläche zeigt Bestätigung auf UI-1 an
-10. Eingereichte Templates sind für Qualitätsmanager auf UI-2 sichtbar
+3. `<bp-workbench>` sendet Anfrage über REST-API (POST /api/workbench/templates/{id}/submit) an blocpress-workbench
+4. blocpress-workbench kopiert Template-Daten via interner REST-API an blocpress-proof (Stufenübergabe workbench → proof)
+5. blocpress-proof erstellt Eintrag in E-4 (Freigabeprozess, Schema: proof) mit Status "Eingereicht"
+6. blocpress-proof prüft, ob Benutzer berechtigt ist (Designer ≠ Prüfer)
+7. blocpress-workbench bestätigt erfolgreiche Einreichung an `<bp-workbench>`
+8. `<bp-workbench>` zeigt Bestätigung auf UI-1 an
+9. Eingereichte Templates sind für Prüfer auf UI-2 sichtbar
 
 *Alternative Scenarios:*
 
-5a. Benutzer ist auch Freigeber (Vier-Augen-Prinzip verletzt)
-6a. TF-2 gibt Fehlermeldung zurück
-7a. Web-Oberfläche zeigt Fehlermeldung auf UI-1 an
-8a. Use Case endet ohne Statusänderung
+6a. Benutzer ist auch Prüfer (Vier-Augen-Prinzip verletzt)
+7a. blocpress-proof gibt Fehlermeldung zurück
+8a. `<bp-workbench>` zeigt Fehlermeldung auf UI-1 an
+9a. Use Case endet ohne Statusänderung
 
 [[edc-uc-3]]
 === UC-3: Template-Details anzeigen
@@ -257,17 +257,17 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 *Actors:*
 
 - Template-Designer (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- `<bp-workbench>` Web Component (geladen in blocpress-studio)
+- blocpress-workbench (SCS-Modul)
 
 *Main Scenario:*
 
 1. Template-Designer wählt Template aus Liste auf UI-1 aus
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/templates/{id}) an blocpress-server
-3. blocpress-server lädt Template-Metadaten aus E-1 (Template)
-4. blocpress-server lädt zugehörige Bausteine aus E-2 (Baustein)
-5. blocpress-server gibt vollständige Template-Informationen an Web-Oberfläche zurück
-6. Web-Oberfläche zeigt Template-Details auf UI-1 an (Name, Version, Status, User-Fields, Wiederholungsgruppen, Bausteine)
+2. `<bp-workbench>` sendet Anfrage über REST-API (GET /api/workbench/templates/{id}) an blocpress-workbench
+3. blocpress-workbench lädt Template-Metadaten aus E-1 (Template, Schema: workbench)
+4. blocpress-workbench lädt zugehörige Bausteine aus E-2 (Baustein, Schema: workbench)
+5. blocpress-workbench gibt vollständige Template-Informationen an `<bp-workbench>` zurück
+6. `<bp-workbench>` zeigt Template-Details auf UI-1 an (Name, Version, Status, User-Fields, Wiederholungsgruppen, Bausteine)
 
 [[edc-uc-8]]
 === UC-8: Template freigeben
@@ -277,36 +277,38 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Prerequisites:*
 
-- Template hat Status "Eingereicht" oder "In Prüfung"
-- Benutzer hat Rolle "Freigeber"
+- Template hat Status "Eingereicht" oder "In Prüfung" (in Schema: proof)
+- Benutzer hat Rolle "Prüfer"
 - UC-2 (Template zur Freigabe einreichen) erfolgreich abgeschlossen
 
 *Actors:*
 
-- Qualitätsmanager/Freigeber (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- Prüfer (User Type aus System Design)
+- `<bp-proof>` Web Component (geladen in blocpress-studio)
+- blocpress-proof (SCS-Modul)
+- blocpress-render (SCS-Modul, Ziel der Stufenübergabe)
 
 *Main Scenario:*
 
-1. Freigeber öffnet eingreichtes Template auf UI-2
-2. Freigeber prüft Template-Inhalt und Validierungsergebnisse
-3. Freigeber wählt Aktion "Freigeben"
-4. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/approve) an blocpress-server
-5. blocpress-server ruft TF-2 (Workflow-Status ändern) auf
+1. Prüfer öffnet eingreichtes Template auf UI-2
+2. Prüfer prüft Template-Inhalt und Validierungsergebnisse
+3. Prüfer wählt Aktion "Freigeben"
+4. `<bp-proof>` sendet Anfrage über REST-API (POST /api/proof/templates/{id}/approve) an blocpress-proof
+5. blocpress-proof ruft TF-2 (Workflow-Status ändern) auf
 6. TF-2 prüft, ob Benutzer berechtigt ist und nicht der ursprüngliche Designer ist
-7. TF-2 ändert Status in E-1 (Template) zu "Freigegeben"
-8. TF-2 aktualisiert E-4 (Freigabeprozess) mit Freigeber, Freigabedatum und Status "Freigegeben"
-9. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
-10. TF-4 erstellt Eintrag in E-5 (Compliance Review) mit berechnetem nächsten Review-Datum
-11. blocpress-server bestätigt erfolgreiche Freigabe an Web-Oberfläche
-12. Web-Oberfläche zeigt Bestätigung auf UI-2 an
+7. TF-2 ändert Status in E-1 (Template, Schema: proof) zu "Freigegeben"
+8. TF-2 aktualisiert E-4 (Freigabeprozess, Schema: proof) mit Prüfer, Freigabedatum und Status "Freigegeben"
+9. blocpress-proof kopiert freigegebenes Template via interner REST-API an blocpress-render (Stufenübergabe proof → production)
+10. blocpress-proof ruft TF-4 (Review-Datum berechnen) auf
+11. TF-4 erstellt Eintrag in E-5 (Compliance Review, Schema: proof) mit berechnetem nächsten Review-Datum
+12. blocpress-proof bestätigt erfolgreiche Freigabe an `<bp-proof>`
+13. `<bp-proof>` zeigt Bestätigung auf UI-2 an
 
 *Alternative Scenarios:*
 
-6a. Freigeber ist identisch mit Designer (Vier-Augen-Prinzip verletzt)
+6a. Prüfer ist identisch mit Designer (Vier-Augen-Prinzip verletzt)
 7a. TF-2 gibt Fehlermeldung zurück
-8a. Web-Oberfläche zeigt Fehlermeldung auf UI-2 an
+8a. `<bp-proof>` zeigt Fehlermeldung auf UI-2 an
 9a. Use Case endet ohne Freigabe
 
 [[edc-uc-10]]
@@ -317,48 +319,44 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Prerequisites:*
 
-- Template existiert
-- Benutzer hat Rolle "Qualitätsmanager" oder "Test-Manager"
+- Template existiert (in Schema: proof)
+- Benutzer hat Rolle "Prüfer"
 
 *Actors:*
 
-- Qualitätsmanager (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
-- Message Queue (Software Element aus System Design)
+- Prüfer (User Type aus System Design)
+- `<bp-proof>` Web Component (geladen in blocpress-studio)
+- blocpress-proof (SCS-Modul)
+- blocpress-render (SCS-Modul, Dokumentengenerierung)
 
 *Main Scenario:*
 
-1. Qualitätsmanager öffnet Template auf UI-2
-2. Qualitätsmanager wählt Aktion "Testdokument generieren"
-3. Qualitätsmanager gibt JSON-Testdaten ein oder wählt vorhandene Testdaten
-4. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/documents/generate) mit Template-ID, JSON-Daten und gewünschtem Format (ODT/PDF/RTF)
-5. blocpress-server validiert JSON-Daten gegen Template-Schema
-6. blocpress-server erstellt Eintrag in E-3 (Dokumentengenerierung) mit Status "In Bearbeitung"
-7. blocpress-server sendet Generierungsanfrage über TI-5 (Message Queue) asynchron
-8. blocpress-server gibt Generierungs-ID an Web-Oberfläche zurück
-9. Web-Oberfläche zeigt "Generierung läuft" auf UI-2 an
-10. blocpress-server ruft TF-5 (Dokument generieren) auf (asynchron via Message Queue)
-11. TF-5 lädt Template aus E-1 (Template)
-12. TF-5 befüllt Template mit JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen)
-13. TF-5 exportiert Dokument im gewünschten Format (ODT/PDF/RTF) via LibreOffice headless
-14. blocpress-server speichert generiertes Dokument in E-3 (Dokumentengenerierung)
-15. blocpress-server aktualisiert Status in E-3 auf "Erfolgreich"
-16. Web-Oberfläche pollt Status über TI-1 (REST-API: GET /api/documents/{id}/status)
-17. blocpress-server gibt Download-Link zurück
-18. Web-Oberfläche zeigt Download-Link auf UI-2 an
+1. Prüfer öffnet Template auf UI-2
+2. Prüfer wählt Aktion "Testdokument generieren"
+3. Prüfer gibt JSON-Testdaten ein oder wählt vorhandene Testdaten
+4. `<bp-proof>` sendet Anfrage über REST-API (POST /api/proof/templates/{id}/generate) an blocpress-proof
+5. blocpress-proof validiert JSON-Daten gegen Template-Schema
+6. blocpress-proof sendet Generierungsanfrage via interner REST-API an blocpress-render
+7. blocpress-render ruft TF-5 (Dokument generieren) auf
+8. TF-5 befüllt Template mit JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen)
+9. TF-5 exportiert Dokument im gewünschten Format (ODT/PDF/RTF) via LibreOffice headless
+10. blocpress-render gibt generiertes Dokument an blocpress-proof zurück
+11. blocpress-proof speichert Ergebnis in E-3 (Dokumentengenerierung, Schema: proof) mit Status "Erfolgreich"
+12. blocpress-proof gibt Download-Link an `<bp-proof>` zurück
+13. `<bp-proof>` zeigt Download-Link auf UI-2 an
 
 *Alternative Scenarios:*
 
 5a. JSON-Daten entsprechen nicht dem Template-Schema
-6a. blocpress-server gibt Validierungsfehler zurück
-7a. Web-Oberfläche zeigt Fehlermeldung auf UI-2 an
+6a. blocpress-proof gibt Validierungsfehler zurück
+7a. `<bp-proof>` zeigt Fehlermeldung auf UI-2 an
 8a. Use Case endet ohne Dokumentengenerierung
 
-13a. LibreOffice-Export schlägt fehl
-14a. blocpress-server aktualisiert Status in E-3 auf "Fehlgeschlagen" mit Fehlerprotokoll
-15a. Web-Oberfläche zeigt Fehlermeldung auf UI-2 an
-16a. Use Case endet mit Fehler
+9a. LibreOffice-Export schlägt fehl
+10a. blocpress-render gibt Fehler an blocpress-proof zurück
+11a. blocpress-proof aktualisiert Status in E-3 auf "Fehlgeschlagen" mit Fehlerprotokoll
+12a. `<bp-proof>` zeigt Fehlermeldung auf UI-2 an
+13a. Use Case endet mit Fehler
 
 [[edc-uc-12]]
 === UC-12: Review durchführen
@@ -368,36 +366,36 @@ G-4: Turnusmäßige Compliance-Reviews
 
 *Prerequisites:*
 
-- Compliance Review ist fällig (Status "Anstehend")
-- Benutzer hat Rolle "Compliance-Reviewer"
+- Compliance Review ist fällig (Status "Anstehend", in Schema: proof)
+- Benutzer hat Rolle "Prüfer"
 
 *Actors:*
 
-- Compliance-Reviewer (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- Prüfer (User Type aus System Design)
+- `<bp-proof>` Web Component (geladen in blocpress-studio)
+- blocpress-proof (SCS-Modul)
 
 *Main Scenario:*
 
-1. Compliance-Reviewer öffnet fälliges Review auf UI-3
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/reviews/{id}) an blocpress-server
-3. blocpress-server lädt Review-Details aus E-5 (Compliance Review)
-4. blocpress-server lädt zugehöriges Template aus E-1 (Template)
-5. Web-Oberfläche zeigt Template-Inhalte und Review-Informationen auf UI-3 an
-6. Compliance-Reviewer prüft inhaltliche Aktualität gegen rechtliche/fachliche Anforderungen
-7. Compliance-Reviewer gibt Review-Ergebnis ein ("Freigegeben" oder "Überarbeitung erforderlich")
-8. Compliance-Reviewer fügt Kommentare hinzu
-9. Web-Oberfläche sendet Review-Ergebnis über TI-1 (REST-API: POST /api/reviews/{id}/complete) an blocpress-server
-10. blocpress-server aktualisiert E-5 (Compliance Review) mit Reviewer, Review-Datum, Ergebnis und Kommentaren
-11. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
+1. Prüfer öffnet fälliges Review auf UI-3
+2. `<bp-proof>` sendet Anfrage über REST-API (GET /api/proof/reviews/{id}) an blocpress-proof
+3. blocpress-proof lädt Review-Details aus E-5 (Compliance Review, Schema: proof)
+4. blocpress-proof lädt zugehöriges Template aus E-1 (Template, Schema: proof)
+5. `<bp-proof>` zeigt Template-Inhalte und Review-Informationen auf UI-3 an
+6. Prüfer prüft inhaltliche Aktualität gegen rechtliche/fachliche Anforderungen
+7. Prüfer gibt Review-Ergebnis ein ("Freigegeben" oder "Überarbeitung erforderlich")
+8. Prüfer fügt Kommentare hinzu
+9. `<bp-proof>` sendet Review-Ergebnis über REST-API (POST /api/proof/reviews/{id}/complete) an blocpress-proof
+10. blocpress-proof aktualisiert E-5 (Compliance Review, Schema: proof) mit Reviewer, Review-Datum, Ergebnis und Kommentaren
+11. blocpress-proof ruft TF-4 (Review-Datum berechnen) auf
 12. TF-4 berechnet nächstes Review-Datum und speichert es in E-5
-13. blocpress-server bestätigt erfolgreiche Review-Speicherung an Web-Oberfläche
-14. Web-Oberfläche zeigt Bestätigung auf UI-3 an
+13. blocpress-proof bestätigt erfolgreiche Review-Speicherung an `<bp-proof>`
+14. `<bp-proof>` zeigt Bestätigung auf UI-3 an
 
 *Alternative Scenarios:*
 
 7a. Review-Ergebnis ist "Archivieren"
-8a. blocpress-server ändert Template-Status in E-1 zu "Archiviert"
+8a. blocpress-proof ändert Template-Status in E-1 (Schema: proof) zu "Archiviert"
 9a. Template wird nicht mehr für Produktiv-Generierung verwendet
 10a. Weiter mit Schritt 13
 
@@ -409,30 +407,31 @@ G-5: Automatisierte Regressionstests
 
 *Prerequisites:*
 
-- Template existiert und ist freigegeben
-- Benutzer hat Rolle "Test-Manager"
+- Template existiert und ist freigegeben (in Schema: proof)
+- Benutzer hat Rolle "Prüfer"
 
 *Actors:*
 
-- Test-Manager (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- Prüfer (User Type aus System Design)
+- `<bp-proof>` Web Component (geladen in blocpress-studio)
+- blocpress-proof (SCS-Modul)
+- blocpress-render (SCS-Modul, Dokumentengenerierung)
 
 *Main Scenario:*
 
-1. Test-Manager wählt Template auf UI-4 aus
-2. Test-Manager wählt Aktion "Test Case erstellen"
-3. Test-Manager gibt Test-Name und Beschreibung ein
-4. Test-Manager erstellt oder lädt JSON-Testdaten
-5. Test-Manager wählt "Test ausführen und als Baseline speichern"
-6. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/testcases) mit Template-ID, Name, Beschreibung und JSON-Testdaten
-7. blocpress-server erstellt Eintrag in E-6 (Test Case) mit Status "Baseline fehlt"
-8. blocpress-server ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten
-9. TF-5 generiert PDF-Dokument
-10. blocpress-server speichert generiertes PDF als Baseline in E-6 (Test Case)
-11. blocpress-server aktualisiert Status in E-6 auf "Bestanden"
-12. blocpress-server gibt Test-Case-ID an Web-Oberfläche zurück
-13. Web-Oberfläche zeigt Test Case Details und Baseline-PDF auf UI-4 an
+1. Prüfer wählt Template auf UI-4 aus
+2. Prüfer wählt Aktion "Test Case erstellen"
+3. Prüfer gibt Test-Name und Beschreibung ein
+4. Prüfer erstellt oder lädt JSON-Testdaten
+5. Prüfer wählt "Test ausführen und als Baseline speichern"
+6. `<bp-proof>` sendet Anfrage über REST-API (POST /api/proof/testcases) mit Template-ID, Name, Beschreibung und JSON-Testdaten
+7. blocpress-proof erstellt Eintrag in E-6 (Test Case, Schema: proof) mit Status "Baseline fehlt"
+8. blocpress-proof sendet Generierungsanfrage via interner REST-API an blocpress-render
+9. blocpress-render ruft TF-5 (Dokument generieren) auf und gibt PDF zurück
+10. blocpress-proof speichert generiertes PDF als Baseline in E-6 (Test Case, Schema: proof)
+11. blocpress-proof aktualisiert Status in E-6 auf "Bestanden"
+12. blocpress-proof gibt Test-Case-ID an `<bp-proof>` zurück
+13. `<bp-proof>` zeigt Test Case Details und Baseline-PDF auf UI-4 an
 
 [[edc-uc-16]]
 === UC-16: Test ausführen
@@ -442,31 +441,31 @@ G-5: Automatisierte Regressionstests
 
 *Prerequisites:*
 
-- Test Case existiert mit Baseline
-- Benutzer hat Rolle "Test-Manager" oder Test wird automatisch ausgeführt
+- Test Case existiert mit Baseline (in Schema: proof)
+- Benutzer hat Rolle "Prüfer" oder Test wird automatisch ausgeführt
 
 *Actors:*
 
-- Test-Manager (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
-- Message Queue (Software Element aus System Design)
+- Prüfer (User Type aus System Design)
+- `<bp-proof>` Web Component (geladen in blocpress-studio)
+- blocpress-proof (SCS-Modul)
+- blocpress-render (SCS-Modul, Dokumentengenerierung)
 
 *Main Scenario:*
 
-1. Test-Manager wählt Test Case auf UI-4 aus
-2. Test-Manager wählt Aktion "Test ausführen"
-3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/testcases/{id}/execute) an blocpress-server
-4. blocpress-server lädt Test Case aus E-6 (Test Case)
-5. blocpress-server ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten aus E-6
-6. TF-5 generiert aktuelles PDF-Dokument
-7. blocpress-server ruft TF-6 (PDF vergleichen) auf mit Baseline-PDF und aktuellem PDF
+1. Prüfer wählt Test Case auf UI-4 aus
+2. Prüfer wählt Aktion "Test ausführen"
+3. `<bp-proof>` sendet Anfrage über REST-API (POST /api/proof/testcases/{id}/execute) an blocpress-proof
+4. blocpress-proof lädt Test Case aus E-6 (Test Case, Schema: proof)
+5. blocpress-proof sendet Generierungsanfrage via interner REST-API an blocpress-render
+6. blocpress-render ruft TF-5 (Dokument generieren) auf und gibt aktuelles PDF zurück
+7. blocpress-proof ruft TF-6 (PDF vergleichen) auf mit Baseline-PDF und aktuellem PDF
 8. TF-6 vergleicht PDFs pixel- oder textbasiert
 9. TF-6 gibt Vergleichsergebnis zurück (Bestanden/Fehlgeschlagen, Abweichungen)
-10. blocpress-server speichert aktuelles PDF und Vergleichsergebnis in E-6 (Test Case)
-11. blocpress-server aktualisiert Status und letzte Ausführung in E-6
-12. blocpress-server gibt Test-Ergebnis an Web-Oberfläche zurück
-13. Web-Oberfläche zeigt Test-Ergebnis auf UI-4 an (bei Abweichungen: visueller Vergleich)
+10. blocpress-proof speichert aktuelles PDF und Vergleichsergebnis in E-6 (Test Case, Schema: proof)
+11. blocpress-proof aktualisiert Status und letzte Ausführung in E-6
+12. blocpress-proof gibt Test-Ergebnis an `<bp-proof>` zurück
+13. `<bp-proof>` zeigt Test-Ergebnis auf UI-4 an (bei Abweichungen: visueller Vergleich)
 
 *Alternative Scenarios:*
 
@@ -492,26 +491,26 @@ G-6: Performante Inhaltssuche
 *Actors:*
 
 - Template-Designer (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- `<bp-workbench>` Web Component (geladen in blocpress-studio)
+- blocpress-workbench (SCS-Modul)
 - Content Search Engine (Software Element aus System Design)
 
 *Main Scenario:*
 
 1. Template-Designer gibt Suchbegriff (z.B. "Beitragsanpassung") in Suchfeld auf UI-5 ein
-2. Web-Oberfläche sendet Such-Anfrage über TI-1 (REST-API: GET /api/search?query=...) an blocpress-server
-3. blocpress-server sendet Such-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
+2. `<bp-workbench>` sendet Such-Anfrage über REST-API (GET /api/workbench/search?query=...) an blocpress-workbench
+3. blocpress-workbench sendet Such-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
 4. Content Search Engine durchsucht Index und gibt Treffer zurück (Template-ID, Baustein-ID, Kontext, Position)
-5. blocpress-server reichert Treffer mit Metadaten aus E-1 (Template) und E-2 (Baustein) an
-6. blocpress-server gibt Suchergebnisse an Web-Oberfläche zurück
-7. Web-Oberfläche zeigt Suchergebnisse auf UI-5 an (gruppiert nach Templates und Bausteinen)
+5. blocpress-workbench reichert Treffer mit Metadaten aus E-1 (Template, Schema: workbench) und E-2 (Baustein, Schema: workbench) an
+6. blocpress-workbench gibt Suchergebnisse an `<bp-workbench>` zurück
+7. `<bp-workbench>` zeigt Suchergebnisse auf UI-5 an (gruppiert nach Templates und Bausteinen)
 
 *Alternative Scenarios:*
 
 4a. Keine Treffer gefunden
 5a. Content Search Engine gibt leere Liste zurück
-6a. blocpress-server gibt "Keine Ergebnisse" an Web-Oberfläche zurück
-7a. Web-Oberfläche zeigt "Keine Ergebnisse gefunden" auf UI-5 an
+6a. blocpress-workbench gibt "Keine Ergebnisse" an `<bp-workbench>` zurück
+7a. `<bp-workbench>` zeigt "Keine Ergebnisse gefunden" auf UI-5 an
 
 [[edc-uc-22]]
 === UC-22: Benutzer verwalten
@@ -526,26 +525,26 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 *Actors:*
 
 - Administrator (User Type aus System Design)
-- Web-Oberfläche (Software Element aus System Design)
-- blocpress-server (dieses Element)
+- `<bp-admin>` Web Component (geladen in blocpress-studio)
+- blocpress-admin (SCS-Modul)
 
 *Main Scenario:*
 
 1. Administrator öffnet Benutzerverwaltung auf UI-6
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/users) an blocpress-server
-3. blocpress-server lädt Benutzerliste aus E-9 (Benutzer)
-4. Web-Oberfläche zeigt Benutzerliste auf UI-6 an
+2. `<bp-admin>` sendet Anfrage über REST-API (GET /api/admin/users) an blocpress-admin
+3. blocpress-admin lädt Benutzerliste aus E-9 (Benutzer, Schema: admin)
+4. `<bp-admin>` zeigt Benutzerliste auf UI-6 an
 5. Administrator wählt Benutzer aus und ändert Rollen
-6. Web-Oberfläche sendet Update über TI-1 (REST-API: PUT /api/users/{id}/roles) an blocpress-server
-7. blocpress-server aktualisiert Rollen in E-9 (Benutzer) und speichert das JWT Subject (sub-Claim) als Referenz
-8. blocpress-server bestätigt erfolgreiche Aktualisierung an Web-Oberfläche
-9. Web-Oberfläche zeigt Bestätigung auf UI-6 an
+6. `<bp-admin>` sendet Update über REST-API (PUT /api/admin/users/{id}/roles) an blocpress-admin
+7. blocpress-admin aktualisiert Rollen in E-9 (Benutzer, Schema: admin) und speichert das JWT Subject (sub-Claim) als Referenz
+8. blocpress-admin bestätigt erfolgreiche Aktualisierung an `<bp-admin>`
+9. `<bp-admin>` zeigt Bestätigung auf UI-6 an
 
 [[edc-functions]]
 == Technical Functions
 
 [[edc-tf-1]]
-=== TF-1: Template validieren
+=== TF-1: Template validieren (blocpress-workbench)
 
 *Input:*
 
@@ -590,7 +589,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 10a. Setze isValid=false
 
 [[edc-tf-2]]
-=== TF-2: Workflow-Status ändern
+=== TF-2: Workflow-Status ändern (blocpress-proof)
 
 *Input:*
 
@@ -608,7 +607,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 
 1. Lade Template mit templateId aus E-1 (Template)
 2. Lade aktuellen Status des Templates
-3. Lade Benutzer mit userId aus E-9 (Benutzer)
+3. Lade Benutzer mit userId aus E-9 (Benutzer, Schema: admin) via blocpress-admin-API oder JWT-Claims
 4. Prüfe, ob Statusübergang erlaubt ist (z.B. "Entwurf" → "Eingereicht" erlaubt)
 5. Prüfe Vier-Augen-Prinzip: Wenn newStatus="Freigegeben", prüfe dass userId ≠ Template.erstellerId
 6. Aktualisiere Status in E-1 (Template) auf newStatus
@@ -633,7 +632,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 7a. Gebe success und errorMessage zurück
 
 [[edc-tf-4]]
-=== TF-4: Review-Datum berechnen
+=== TF-4: Review-Datum berechnen (blocpress-proof)
 
 *Input:*
 
@@ -652,7 +651,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 4. Gebe nextReviewDate zurück
 
 [[edc-tf-5]]
-=== TF-5: Dokument generieren
+=== TF-5: Dokument generieren (blocpress-render)
 
 *Input:*
 
@@ -703,7 +702,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 12a. Gebe success und errorMessage zurück
 
 [[edc-tf-6]]
-=== TF-6: PDF vergleichen
+=== TF-6: PDF vergleichen (blocpress-proof)
 
 *Input:*
 
@@ -741,11 +740,11 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 4a. Gebe ComparisonResult zurück
 
 [[edc-tf-7]]
-=== TF-7: Compliance-Reviews überprüfen
+=== TF-7: Compliance-Reviews überprüfen (blocpress-proof)
 
 *Input:*
 
-- keines (läuft als geplanter Job)
+- keines (läuft als geplanter Job in blocpress-proof)
 
 *Output:*
 
@@ -760,68 +759,78 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 5. Wenn nächstes Review-Datum <= heute + 30 Tage oder bereits überschritten:
 6. Erstelle neuen Review-Eintrag in E-5 mit Status "Anstehend"
 7. Füge Review zu fälligeReviews-Liste hinzu
-8. Fällige Reviews sind für Compliance-Reviewer auf UI-3 sichtbar
+8. Fällige Reviews sind für Prüfer auf UI-3 sichtbar
 9. Gebe fälligeReviews zurück
 
 [[edc-interfaces]]
 == Technical Interfaces
 
 [[edc-ti-1]]
-=== TI-1: REST-API
+=== TI-1: REST-APIs (pro SCS-Modul)
 
 *Description:*
-Haupt-REST-API für alle Client-Anfragen (Web-Oberfläche, externe Anwendungen). Wird von Web-Oberfläche (Software Element) und externen Anwendungssystemen genutzt.
+Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist öffentlich zugänglich; die anderen Module werden über Web Components in blocpress-studio konsumiert. Interne Kommunikation zwischen SCS-Modulen erfolgt über interne REST-APIs.
 
-*Input:*
+*Öffentliche API (blocpress-render):*
 
-Verschiedene Endpoints:
+- `POST /api/render/template/merge` - Template mit JSON-Daten zusammenführen und als ODT/PDF/RTF zurückgeben
+- Parameter: file (multipart/form-data), data (JSON), outputFormat (String)
 
-- `POST /api/templates` - Template hochladen
-- Parameter: file (multipart/form-data), name (String), description (String)
-- `POST /api/templates/{id}/submit` - Template zur Freigabe einreichen
-- Parameter: id (Long)
-- `GET /api/templates/{id}` - Template-Details abrufen
-- Parameter: id (Long)
-- `POST /api/templates/{id}/approve` - Template freigeben
-- Parameter: id (Long), comment (String, optional)
-- `POST /api/documents/generate` - Dokument generieren
-- Parameter: templateId (Long), jsonData (String), outputFormat (String)
-- `GET /api/documents/{id}/status` - Generierungsstatus abrufen
-- Parameter: id (Long)
-- `POST /api/testcases` - Test Case erstellen
-- Parameter: templateId (Long), name (String), jsonData (String)
-- `POST /api/testcases/{id}/execute` - Test ausführen
-- Parameter: id (Long)
-- `GET /api/search` - Nach Begriff suchen
-- Parameter: query (String), filter (String, optional)
+*Interne API (blocpress-workbench, Port 8081):*
+
+- `POST /api/workbench/templates` - Template hochladen
+- `GET /api/workbench/templates/{id}` - Template-Details abrufen
+- `POST /api/workbench/templates/{id}/submit` - Template zur Freigabe einreichen (löst Stufenübergabe an proof aus)
+- `GET /api/workbench/search` - Nach Begriff suchen
+
+*Interne API (blocpress-proof, Port 8082):*
+
+- `POST /api/proof/templates/{id}/approve` - Template freigeben (löst Stufenübergabe an production aus)
+- `GET /api/proof/reviews/{id}` - Review-Details abrufen
+- `POST /api/proof/reviews/{id}/complete` - Review abschließen
+- `POST /api/proof/testcases` - Test Case erstellen
+- `POST /api/proof/testcases/{id}/execute` - Test ausführen
+- `POST /api/proof/templates/{id}/generate` - Testdokument generieren (delegiert an blocpress-render)
+
+*Interne API (blocpress-admin, Port 8084):*
+
+- `GET /api/admin/users` - Benutzerliste abrufen
+- `PUT /api/admin/users/{id}/roles` - Rollen aktualisieren
+
+*Stufenübergabe-APIs (intern, nicht öffentlich):*
+
+- `POST /api/proof/stage/receive` - Template von workbench empfangen
+- `POST /api/render/stage/receive` - Template von proof empfangen
 
 *Output:*
 
-JSON-Response je nach Endpoint:
-
-- Template-Objekt mit Metadaten
-- Generierungs-ID
-- Test-Ergebnis
-- Suchergebnisse
+JSON-Response je nach Endpoint (Template-Objekte, Generierungs-Ergebnisse, Test-Ergebnisse, Suchergebnisse)
 
 *Action:*
 
-Ruft entsprechende Technical Functions auf:
+Jedes SCS-Modul ruft seine eigenen Technical Functions auf:
 
-- Template hochladen: TF-1 (Template validieren), Schreibt E-1 (Template)
-- Template freigeben: TF-2 (Workflow-Status ändern), Aktualisiert E-1, E-4
-- Dokument generieren: TF-5 (Dokument generieren), Schreibt E-3
-- Test ausführen: TF-5 (Dokument generieren), TF-6 (PDF vergleichen), Aktualisiert E-6
+- blocpress-workbench: TF-1 (Template validieren), Schreibt E-1 (Schema: workbench)
+- blocpress-proof: TF-2 (Workflow-Status ändern), TF-4 (Review-Datum), TF-6 (PDF vergleichen), TF-7 (Reviews prüfen)
+- blocpress-render: TF-5 (Dokument generieren)
+- blocpress-admin: CRUD auf E-9 (Benutzer), E-10 (Konfiguration)
 
 [[edc-ti-2]]
-=== TI-2: Datenbank-Interface (PostgreSQL)
+=== TI-2: Datenbank-Interface (PostgreSQL, Multi-Schema)
 
 *Description:*
-Zugriff auf PostgreSQL-Datenbank zum Lesen und Schreiben aller Entities. Wird intern von blocpress-server genutzt.
+Zugriff auf eine gemeinsame PostgreSQL-Instanz mit getrennten Schemata pro SCS-Modul. Jedes Modul greift ausschließlich auf sein eigenes Schema zu; Cross-Schema-Zugriff erfolgt über REST-APIs (Stufenübergabe), nicht über SQL.
+
+*Schema-Zuordnung:*
+
+- blocpress-workbench → Schema `workbench` (E-1, E-2, E-8)
+- blocpress-proof → Schema `proof` (E-1, E-3, E-4, E-5, E-6, E-7)
+- blocpress-render → Schema `production` (E-1, E-3)
+- blocpress-admin → Schema `admin` (E-9, E-10)
 
 *Input:*
 
-SQL-Queries über JPA/Hibernate
+SQL-Queries über JPA/Hibernate mit `?currentSchema=<schema>` in der JDBC-URL
 
 *Output:*
 
@@ -829,7 +838,7 @@ Entity-Objekte oder Anzahl betroffener Zeilen
 
 *Action:*
 
-CRUD-Operationen auf alle Entities (E-1 bis E-10)
+CRUD-Operationen auf Entities des jeweiligen Schemas
 
 [[edc-ti-3]]
 === TI-3: LibreOffice API
@@ -857,14 +866,14 @@ Ruft LibreOffice UNO-API auf:
 - Dokument exportieren: `XStorable.storeToURL()` mit Filter für PDF/RTF
 
 [[edc-ti-4]]
-=== TI-4: JWT-Authentifizierung
+=== TI-4: JWT-Authentifizierung (alle SCS-Module)
 
 *Description:*
-blocpress-server validiert eingehende JWTs direkt, ohne einen externen Identity Provider zu benötigen. Der öffentliche Schlüssel (Public Key) und der erwartete Issuer werden in `application.properties` konfiguriert. Die Umsetzung erfolgt über die Quarkus SmallRye JWT Extension (`smallrye-jwt`). Für Testzwecke kann ein langlebiger Demo-JWT mit dem konfigurierten Schlüssel erzeugt werden.
+blocpress-studio hält den JWT nach Login und übergibt ihn als Attribut an die Web Components (`<bp-workbench jwt="...">`, `<bp-proof jwt="...">`, `<bp-admin jwt="...">`). Jedes SCS-Modul validiert den JWT eigenständig über die Quarkus SmallRye JWT Extension (`smallrye-jwt`). Alle Module teilen denselben Public Key und Issuer (konfiguriert in `application.properties`).
 
 *Input:*
 
-- JWT Bearer Token (im `Authorization`-Header)
+- JWT Bearer Token (im `Authorization`-Header jeder REST-Anfrage)
 
 *Output:*
 
@@ -873,13 +882,13 @@ blocpress-server validiert eingehende JWTs direkt, ohne einen externen Identity 
 
 *Action:*
 
-Validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Expiration. Extrahiert das Subject (`sub`-Claim) und gleicht es mit E-9 (Benutzer) ab.
+Jedes SCS-Modul validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Expiration. Extrahiert das Subject (`sub`-Claim) und gleicht es mit E-9 (Benutzer, Schema: admin) ab — blocpress-admin stellt hierfür eine interne API bereit, oder die Rolleninformation wird direkt aus dem JWT-`groups`-Claim gelesen.
 
 [[edc-ti-5]]
-=== TI-5: Message Queue Interface
+=== TI-5: Message Queue Interface (blocpress-workbench, blocpress-proof)
 
 *Description:*
-Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung, Regressionstests). Wird intern von blocpress-server genutzt.
+Asynchrone Kommunikation für zeitaufwändige Operationen (Indexierung in blocpress-workbench, Regressionstests in blocpress-proof). Wird intern von den jeweiligen SCS-Modulen genutzt.
 
 *Input:*
 
@@ -892,13 +901,13 @@ Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung
 
 *Action:*
 
-Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress-server verarbeitet Message asynchron
+Sendet Message an RabbitMQ Queue, Consumer im jeweiligen SCS-Modul verarbeitet Message asynchron
 
 [[edc-ti-7]]
 === TI-7: Elasticsearch API
 
 *Description:*
-Zugriff auf Content Search Engine zur Indexierung und Suche. Wird von blocpress-server für UC-19 (Nach Begriff suchen) genutzt.
+Zugriff auf Content Search Engine zur Indexierung und Suche. Wird von blocpress-workbench für UC-19 (Nach Begriff suchen) genutzt.
 
 *Input:*
 
@@ -998,7 +1007,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-generierung[Dokume
 === E-4: Freigabeprozess
 
 *Description:*
-Speichert Workflow-Status und Historie von Template-Freigaben. +
+Speichert Workflow-Status und Historie von Template-Freigaben. Schema: `proof`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-freigabe[Freigabeprozess in der Information Architecture]_
 
 *Attributes:*
@@ -1020,7 +1029,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-freigabe[Freigabep
 === E-5: Compliance Review
 
 *Description:*
-Speichert turnusmäßige Reviews von Templates. +
+Speichert turnusmäßige Reviews von Templates. Schema: `proof`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-review[Compliance Review in der Information Architecture]_
 
 *Attributes:*
@@ -1044,7 +1053,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-review[Compliance 
 === E-6: Test Case
 
 *Description:*
-Speichert Test Cases mit Testdaten und Baseline-PDFs für Regressionstests. +
+Speichert Test Cases mit Testdaten und Baseline-PDFs für Regressionstests. Schema: `proof`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testcase[Test Case in der Information Architecture]_
 
 *Attributes:*
@@ -1072,7 +1081,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testcase[Test Case
 === E-7: Testpool
 
 *Description:*
-Gruppiert mehrere Test Cases für gemeinsame Ausführung. +
+Gruppiert mehrere Test Cases für gemeinsame Ausführung. Schema: `proof`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testpool[Testpool in der Information Architecture]_
 
 *Attributes:*
@@ -1112,7 +1121,7 @@ _Hinweis: E-8 wird physisch in Elasticsearch gespeichert, nicht in PostgreSQL._
 === E-9: Benutzer
 
 *Description:*
-Speichert Benutzerkonten und deren Rollen. +
+Speichert Benutzerkonten und deren Rollen. Schema: `admin`. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-benutzer[Benutzer & Rolle in der Information Architecture]_
 
 *Attributes:*
@@ -1134,7 +1143,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-benutzer[Benutzer 
 === E-10: Konfiguration
 
 *Description:*
-Speichert System-Konfiguration und API-Keys.
+Speichert System-Konfiguration und API-Keys. Schema: `admin`.
 
 *Attributes:*
 
@@ -1219,7 +1228,7 @@ PostgreSQL-Datenbank inklusive aller Binärdaten (E-1.10, E-3.6, E-6.7, E-6.8) m
 === C-1: Quarkus Framework
 
 *Description:*
-blocpress-server muss mit Quarkus Framework implementiert werden. Dies ermöglicht schnelle Startup-Zeiten, geringen Memory-Footprint und native Kompilierung.
+Alle SCS-Module (blocpress-workbench, blocpress-proof, blocpress-render, blocpress-admin) müssen mit Quarkus Framework implementiert werden. Dies ermöglicht schnelle Startup-Zeiten, geringen Memory-Footprint und einheitliche Konfiguration (SmallRye JWT, Hibernate ORM, RESTEasy).
 
 _Referenz: Quarkus.io Dokumentation_
 
@@ -1274,10 +1283,10 @@ Zugriff auf Binärdaten (E-1.10, E-3.6, E-6.7, E-6.8) muss über eine Storage Ab
 Das System ist dimensioniert für < 5.000 Dokumente + Templates als Binärdaten in PostgreSQL. Bei Überschreitung muss Migration zu S3 über C-7 (Storage Abstraction Layer) erfolgen.
 
 [[edc-c-9]]
-=== C-9: Docker-Container
+=== C-9: Docker-Container (SCS-Module)
 
 *Description:*
-blocpress-server muss als Docker-Container betrieben werden können. Dockerfile und docker-compose.yml müssen bereitgestellt werden.
+Jedes SCS-Modul (blocpress-studio, blocpress-workbench, blocpress-proof, blocpress-render, blocpress-admin) wird als eigener Docker-Container betrieben. Eine gemeinsame `docker-compose.yml` orchestriert alle Container inkl. PostgreSQL, RabbitMQ und Elasticsearch. blocpress-render kann unabhängig skaliert werden.
 
 _Referenz: Docker Best Practices_
 
