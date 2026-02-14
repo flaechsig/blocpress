@@ -95,7 +95,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 | Compliance-Reviewer
 | Compliance-Abteilung
-| Automatische Benachrichtigung bei fälligen Reviews. Nachvollziehbare Review-Historie.
+| Übersichtliche Darstellung fälliger Reviews in der Web-Oberfläche. Nachvollziehbare Review-Historie.
 
 | Test-Manager
 | QS-Abteilung
@@ -217,8 +217,6 @@ rectangle "Anwendungssystem" as App
 rectangle "blocpress" as System {
 }
 
-rectangle "SMTP-Server" as SMTP
-rectangle "Elasticsearch" as ES
 rectangle "OpenTelemetry Collector" as Monitor
 
 Designer --> System : Templates hochladen\nBausteine verwalten
@@ -229,15 +227,13 @@ Admin --> System : Benutzer verwalten\nSystem konfigurieren
 
 App --> System : Dokumente generieren\n(REST-API)
 
-System --> SMTP : Benachrichtigungen senden
-System --> ES : Templates indexieren\nSuche durchführen
 System --> Monitor : Traces, Metriken & Logs\n(OTLP)
 @enduml
 ----
 
 *Kommunikationsbeziehungen:*
 
-[cols="1,2,2" options="header"]
+[cols="1,2,1" options="header"]
 |===
 | Partner | Eingabe | Ausgabe
 
@@ -265,14 +261,6 @@ System --> Monitor : Traces, Metriken & Logs\n(OTLP)
 | Template-ID, JSON-Daten, gewünschtes Format
 | Generiertes Dokument (ODT/PDF/RTF), Generierungs-ID, Status
 
-| SMTP-Server
-| Empfänger, Betreff, Nachrichtentext
-| Versandbestätigung
-
-| Elasticsearch
-| Template-Inhalt zur Indexierung, Suchanfragen
-| Indexierungsbestätigung, Suchergebnisse mit Kontext
-
 | OpenTelemetry Collector (optional)
 | (keine Eingabe)
 | Traces, Metriken und Logs via OTLP-Protokoll
@@ -298,9 +286,8 @@ node "Docker Host / Kubernetes" as Docker {
   component "Elasticsearch ≥ 7.x" as ES
 }
 
-node "Externe Services" {
-  component "SMTP-Server" as SMTP
-  component "OpenTelemetry\nCollector (optional)" as Monitor
+node "Externe Services (optional)" {
+  component "OpenTelemetry\nCollector" as Monitor
 }
 
 Browser -down-> WebUI : HTTPS/TLS
@@ -310,13 +297,8 @@ ExtApp -down-> Core : REST-API\nJSON over HTTPS
 Core -down-> DB : JDBC\nPostgreSQL Protocol
 Core -right-> MQ : AMQP / Kafka Protocol
 Core -down-> ES : REST-API\nHTTP/JSON
-Core -left-> SMTP : SMTP/TLS
 Core -right-> Monitor : OTLP (gRPC/HTTP)
 
-note right of Core
-  LibreOffice ≥ 24
-  headless integriert
-end note
 @enduml
 ----
 
@@ -345,10 +327,6 @@ end note
 | blocpress-server → Elasticsearch
 | REST-API, HTTP/JSON
 | Template-Indexierung, Volltextsuche
-
-| blocpress-server → SMTP-Server
-| SMTP/TLS (Port 587)
-| E-Mail-Benachrichtigungen (Freigaben, Reviews, Tests)
 
 | blocpress-server → OpenTelemetry Collector
 | OTLP (gRPC Port 4317 / HTTP Port 4318)
@@ -411,8 +389,8 @@ end note
 *Ports & Adapters:*
 
 * Primary Ports: REST-API, Web-UI
-* Secondary Ports: DatabasePort, StoragePort, EmailPort, SearchPort, QueuePort
-* Adapters: PostgresAdapter, ElasticsearchAdapter, SMTPAdapter, RabbitMQAdapter
+* Secondary Ports: DatabasePort, StoragePort, SearchPort, QueuePort
+* Adapters: PostgresAdapter, ElasticsearchAdapter, RabbitMQAdapter
 
 === Erreichung wichtigster Qualitätsziele
 
@@ -617,7 +595,7 @@ Klare Schichtenarchitektur mit Dependency Inversion:
 | Steuerung von Freigabeprozessen (E-4), Statusübergänge, Vier-Augen-Prüfung
 
 | Compliance Manager
-| Überwachung von Review-Zyklen (E-5), Benachrichtigungen bei fälligen Reviews, geplanter Job
+| Überwachung von Review-Zyklen (E-5), Erstellung fälliger Review-Einträge, geplanter Job
 
 | Test Framework
 | Verwaltung von Test Cases (E-6, E-7), PDF-Vergleich (TF-6), Regressionstests
@@ -825,7 +803,6 @@ participant "TestWorker" as Worker
 participant "LibreOfficeProcessor\n(TF-5)" as LO
 participant "PDFComparator\n(TF-6)" as Compare
 participant "TestRepository" as Repo
-participant "SMTP" as Mail
 
 Template -> TF : templateUpdated(templateId)
 TF -> Repo : findTestCasesByTemplate(templateId)
@@ -848,7 +825,6 @@ alt PDFs identisch
   Worker -> Repo : updateTestCase()\nStatus: "Bestanden"
 else PDFs unterschiedlich
   Worker -> Repo : updateTestCase()\nStatus: "Fehlgeschlagen"\ndifferences: [...]
-  Worker -> Mail : sendNotification(testManager,\n"Test fehlgeschlagen")
 end
 
 Repo --> Worker : OK
@@ -866,7 +842,6 @@ participant "Scheduler\n(Quartz)" as Scheduler
 participant "ComplianceManager\n(TF-7)" as CM
 participant "TemplateRepository" as TRepo
 participant "ReviewRepository" as RRepo
-participant "SMTP" as Mail
 
 Scheduler -> CM : checkReviews()\n(täglich 06:00 Uhr)
 CM -> TRepo : findAllApprovedTemplates()
@@ -882,7 +857,6 @@ loop für jedes Template
     alt nextReviewDate <= heute + 30 Tage
       CM -> RRepo : createReview(templateId,\ntype, dueDate, status: "Anstehend")
       RRepo --> CM : ReviewId
-      CM -> Mail : sendNotification(complianceReviewer,\n"Review fällig für Template X")
     end
   end
 end
@@ -892,13 +866,13 @@ RRepo --> CM : List<ComplianceReview>
 
 loop für jedes überfällige Review
   CM -> RRepo : updateStatus(reviewId, "Überfällig")
-  CM -> Mail : sendEscalation(complianceReviewer,\nmanager)
 end
 
 note right of CM
   TF-7: Compliance-Reviews überprüfen
   Läuft als geplanter Job
   Erstellt Reviews 30 Tage im Voraus
+  Fällige Reviews sind auf UI-3 sichtbar
 end note
 @enduml
 ----
@@ -941,15 +915,10 @@ node "Docker Host" {
   }
 }
 
-cloud "Externe Services" {
-  component "SMTP-Server" as SMTP
-}
-
 WebUI -down-> App : HTTPS
 App -down-> DB : JDBC (5432)
 App -right-> MQ : AMQP (5672)
 App -down-> ES : HTTP (9200)
-App -left-> SMTP : SMTP (587)
 
 note right of DB
   Volumes:
@@ -1779,7 +1748,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *Compliance*
 | Turnusmäßiges Review
 | Template mit 3-Jahres-Zyklus ist seit 3 Jahren freigegeben
-| Compliance Manager erstellt automatisch Review-Aufgabe, Reviewer wird per E-Mail benachrichtigt
+| Compliance Manager erstellt automatisch Review-Aufgabe, fälliges Review ist auf UI-3 sichtbar
 
 | *Benutzbarkeit*
 | Template-Upload mit Validierung

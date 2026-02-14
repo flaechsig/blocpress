@@ -202,7 +202,6 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
-- SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
 
@@ -213,10 +212,9 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 5. TF-2 prüft, ob Benutzer berechtigt ist (Designer ≠ Freigeber)
 6. TF-2 ändert Status in E-1 (Template) von "Entwurf" zu "Eingereicht"
 7. TF-2 erstellt Eintrag in E-4 (Freigabeprozess) mit Status "Eingereicht"
-8. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
-9. TF-3 sendet E-Mail über TI-6 (SMTP) an alle Benutzer mit Rolle "Qualitätsmanager"
-10. blocpress-server bestätigt erfolgreiche Einreichung an Web-Oberfläche
-11. Web-Oberfläche zeigt Bestätigung auf UI-1 an
+8. blocpress-server bestätigt erfolgreiche Einreichung an Web-Oberfläche
+9. Web-Oberfläche zeigt Bestätigung auf UI-1 an
+10. Eingereichte Templates sind für Qualitätsmanager auf UI-2 sichtbar
 
 *Alternative Scenarios:*
 
@@ -264,7 +262,6 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 - Qualitätsmanager/Freigeber (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
-- SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
 
@@ -278,10 +275,8 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 8. TF-2 aktualisiert E-4 (Freigabeprozess) mit Freigeber, Freigabedatum und Status "Freigegeben"
 9. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
 10. TF-4 erstellt Eintrag in E-5 (Compliance Review) mit berechnetem nächsten Review-Datum
-11. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
-12. TF-3 sendet E-Mail über TI-6 (SMTP) an ursprünglichen Designer
-13. blocpress-server bestätigt erfolgreiche Freigabe an Web-Oberfläche
-14. Web-Oberfläche zeigt Bestätigung auf UI-2 an
+11. blocpress-server bestätigt erfolgreiche Freigabe an Web-Oberfläche
+12. Web-Oberfläche zeigt Bestätigung auf UI-2 an
 
 *Alternative Scenarios:*
 
@@ -353,7 +348,6 @@ G-4: Turnusmäßige Compliance-Reviews
 - Compliance-Reviewer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
 - blocpress-server (dieses Element)
-- SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
 
@@ -369,10 +363,8 @@ G-4: Turnusmäßige Compliance-Reviews
 10. blocpress-server aktualisiert E-5 (Compliance Review) mit Reviewer, Review-Datum, Ergebnis und Kommentaren
 11. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
 12. TF-4 berechnet nächstes Review-Datum und speichert es in E-5
-13. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
-14. TF-3 sendet E-Mail über TI-6 (SMTP) an Template-Designer (bei "Überarbeitung erforderlich")
-15. blocpress-server bestätigt erfolgreiche Review-Speicherung an Web-Oberfläche
-16. Web-Oberfläche zeigt Bestätigung auf UI-3 an
+13. blocpress-server bestätigt erfolgreiche Review-Speicherung an Web-Oberfläche
+14. Web-Oberfläche zeigt Bestätigung auf UI-3 an
 
 *Alternative Scenarios:*
 
@@ -602,38 +594,6 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 6a. Setze success=false, errorMessage="Designer darf nicht freigeben (Vier-Augen-Prinzip)"
 7a. Gebe success und errorMessage zurück
 
-[[edc-tf-3]]
-=== TF-3: Benachrichtigung senden
-
-*Input:*
-- recipientRole: String ("Template-Designer", "Qualitätsmanager", "Freigeber", "Compliance-Reviewer")
-- oder recipientUserId: Long
-- subject: String
-- body: String
-
-*Output:*
-- success: boolean
-
-*Main Functional Flow:*
-
-1. Wenn recipientRole angegeben: Lade alle Benutzer mit dieser Rolle aus E-9 (Benutzer)
-2. Wenn recipientUserId angegeben: Lade Benutzer mit userId aus E-9 (Benutzer)
-3. Für jeden Empfänger: Extrahiere E-Mail-Adresse
-4. Erstelle E-Mail-Nachricht mit subject und body
-5. Sende E-Mail über TI-6 (SMTP-Interface) an alle Empfänger-E-Mail-Adressen
-6. Setze success=true
-7. Gebe success zurück
-
-*Alternative Functional Flows:*
-
-1a. Keine Benutzer mit recipientRole gefunden
-2a. Setze success=false
-3a. Gebe success zurück (Fehler loggen, aber nicht abbrechen)
-
-5a. SMTP-Server nicht erreichbar
-6a. Setze success=false
-7a. Gebe success zurück (Fehler loggen, Retry-Mechanismus aktivieren)
-
 [[edc-tf-4]]
 === TF-4: Review-Datum berechnen
 
@@ -756,7 +716,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 5. Wenn nächstes Review-Datum <= heute + 30 Tage oder bereits überschritten:
 6. Erstelle neuen Review-Eintrag in E-5 mit Status "Anstehend"
 7. Füge Review zu fälligeReviews-Liste hinzu
-8. Für jeden fälligen Review: Rufe TF-3 (Benachrichtigung senden) auf an Compliance-Reviewer
+8. Fällige Reviews sind für Compliance-Reviewer auf UI-3 sichtbar
 9. Gebe fälligeReviews zurück
 
 [[edc-interfaces]]
@@ -875,23 +835,6 @@ Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung
 
 *Action:*
 Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress-server verarbeitet Message asynchron
-
-[[edc-ti-6]]
-=== TI-6: SMTP-Interface
-
-*Description:*
-Versand von E-Mail-Benachrichtigungen über bestehenden SMTP-Server. Wird von TF-3 (Benachrichtigung senden) genutzt.
-
-*Input:*
-- recipients: List<String> (E-Mail-Adressen)
-- subject: String
-- body: String
-
-*Output:*
-- success: boolean
-
-*Action:*
-Sendet E-Mail über SMTP-Protokoll an SMTP-Server (Partner Element)
 
 [[edc-ti-7]]
 === TI-7: Elasticsearch API
