@@ -46,7 +46,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung.odt");
         assertNotNull(template, "Template /kuendigung.odt not found on classpath");
 
-        File result = resource.mergeTemplate(
+        File result = resource.generateDocument(
                 "application/vnd.oasis.opendocument.text",
                 template,
                 VALID_JSON
@@ -70,7 +70,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
-        File result = resource.mergeTemplate(
+        File result = resource.generateDocument(
                 "application/pdf",
                 template,
                 VALID_JSON
@@ -94,7 +94,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
-        File result = resource.mergeTemplate(
+        File result = resource.generateDocument(
                 "application/rtf",
                 template,
                 VALID_JSON
@@ -119,7 +119,7 @@ class TemplateResourceTest {
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
         var ex = assertThrows(IllegalStateException.class, () ->
-                resource.mergeTemplate("application/json", template, VALID_JSON)
+                resource.generateDocument("application/json", template, VALID_JSON)
         );
         assertTrue(ex.getMessage().contains("application/json"),
                 "Exception should mention the invalid accept value, but was: " + ex.getMessage());

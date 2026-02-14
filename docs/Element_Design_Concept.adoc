@@ -1,4 +1,4 @@
-= Element Design Concept: blocpress Core
+= Element Design Concept: blocpress-server
 
 [[edc-goals]]
 == Goals
@@ -7,42 +7,42 @@
 === G-1: Automatisierte Template-basierte Dokumentengenerierung
 
 *Description:*
-blocpress Core soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen und Dokumente in den Formaten ODT, PDF und RTF generieren. Die Generierung muss deterministisch, performant und über REST-API zugänglich sein. +
+blocpress-server soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen und Dokumente in den Formaten ODT, PDF und RTF generieren. Die Generierung muss deterministisch, performant und über REST-API zugänglich sein. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Automatisierte Dokumentengenerierung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-generieren[Dokument automatisiert generieren]_
 
 [[edc-g-2]]
 === G-2: Zentrale Verwaltung von Templates und Bausteinen
 
 *Description:*
-blocpress Core soll alle Templates, Bausteine und deren Versionen zentral in PostgreSQL speichern und verwalten. Änderungen müssen nachvollziehbar sein und der Freigabestatus jederzeit erkennbar. +
+blocpress-server soll alle Templates, Bausteine und deren Versionen zentral in PostgreSQL speichern und verwalten. Änderungen müssen nachvollziehbar sein und der Freigabestatus jederzeit erkennbar. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Zentrale Template-Verwaltung]_ | _Entities: xref:Solution_Design_Concept.adoc#sdc-ia[Information Architecture]_
 
 [[edc-g-3]]
 === G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Description:*
-blocpress Core soll einen mehrstufigen Freigabeprozess mit definierten Rollen (Template-Designer, Qualitätsmanager, Freigeber) implementieren. Templates dürfen nur nach erfolgreicher Prüfung in Produktion verwendet werden. +
+blocpress-server soll einen mehrstufigen Freigabeprozess mit definierten Rollen (Template-Designer, Qualitätsmanager, Freigeber) implementieren. Templates dürfen nur nach erfolgreicher Prüfung in Produktion verwendet werden. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Workflow-gesteuerte Qualitätssicherung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template erstellen und freigeben]_
 
 [[edc-g-4]]
 === G-4: Turnusmäßige Compliance-Reviews
 
 *Description:*
-blocpress Core soll automatisch Review-Zyklen (1, 3 oder 5 Jahre) überwachen, fällige Reviews identifizieren und Compliance-Reviewer benachrichtigen. +
+blocpress-server soll automatisch Review-Zyklen (1, 3 oder 5 Jahre) überwachen, fällige Reviews identifizieren und Compliance-Reviewer benachrichtigen. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Compliance-Unterstützung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-review[Turnusmäßiges Compliance Review]_
 
 [[edc-g-5]]
 === G-5: Automatisierte Regressionstests
 
 *Description:*
-blocpress Core soll Testdaten verwalten, Test-PDFs generieren, mit Baselines vergleichen und Abweichungen erkennen. +
+blocpress-server soll Testdaten verwalten, Test-PDFs generieren, mit Baselines vergleichen und Abweichungen erkennen. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Umfassende Testunterstützung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-testen[Template testen und Regressionstests]_
 
 [[edc-g-6]]
 === G-6: Performante Inhaltssuche
 
 *Description:*
-blocpress Core soll eine Integration mit Elasticsearch bereitstellen, um fachliche Konstrukte über alle Templates und Bausteine hinweg innerhalb von 2 Sekunden zu finden. +
+blocpress-server soll eine Integration mit Elasticsearch bereitstellen, um fachliche Konstrukte über alle Templates und Bausteine hinweg innerhalb von 2 Sekunden zu finden. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Intelligente Inhaltssuche]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Konstrukte recherchieren]_
 
 [[edc-uis]]
@@ -167,25 +167,24 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 *Actors:*
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
-- Identity Provider (Partner Element aus System Design)
+- blocpress-server (dieses Element)
 
 *Main Scenario:*
 
 1. Template-Designer wählt über UI-1 die Aktion "Template hochladen"
 2. Template-Designer wählt eine ODT-Datei vom lokalen Dateisystem
-3. Web-Oberfläche sendet die Datei über TI-1 (REST-API: POST /api/templates) an blocpress Core
-4. blocpress Core ruft TF-1 (Template validieren) auf
+3. Web-Oberfläche sendet die Datei über TI-1 (REST-API: POST /api/templates) an blocpress-server
+4. blocpress-server ruft TF-1 (Template validieren) auf
 5. TF-1 analysiert User-Fields, Wiederholungsgruppen und IF-Bedingungen
-6. blocpress Core speichert Template-Binärdaten und Metadaten in E-1 (Template) mit Status "Entwurf"
-7. blocpress Core sendet Indexierungs-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
-8. blocpress Core gibt Template-ID und Validierungsergebnisse an Web-Oberfläche zurück
+6. blocpress-server speichert Template-Binärdaten und Metadaten in E-1 (Template) mit Status "Entwurf"
+7. blocpress-server sendet Indexierungs-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
+8. blocpress-server gibt Template-ID und Validierungsergebnisse an Web-Oberfläche zurück
 9. Web-Oberfläche zeigt Template-Details und Validierungsergebnisse auf UI-1 an
 
 *Alternative Scenarios:*
 
 4a. Validierung schlägt fehl (ungültige ODT-Struktur)
-5a. blocpress Core gibt Fehlermeldung zurück
+5a. blocpress-server gibt Fehlermeldung zurück
 6a. Web-Oberfläche zeigt Fehlermeldung auf UI-1 an
 7a. Use Case endet ohne Template-Speicherung
 
@@ -202,21 +201,21 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 *Actors:*
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
 
 1. Template-Designer wählt Template auf UI-1 aus
 2. Template-Designer wählt Aktion "Zur Freigabe einreichen"
-3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/submit) an blocpress Core
-4. blocpress Core ruft TF-2 (Workflow-Status ändern) auf
+3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/submit) an blocpress-server
+4. blocpress-server ruft TF-2 (Workflow-Status ändern) auf
 5. TF-2 prüft, ob Benutzer berechtigt ist (Designer ≠ Freigeber)
 6. TF-2 ändert Status in E-1 (Template) von "Entwurf" zu "Eingereicht"
 7. TF-2 erstellt Eintrag in E-4 (Freigabeprozess) mit Status "Eingereicht"
-8. blocpress Core ruft TF-3 (Benachrichtigung senden) auf
+8. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
 9. TF-3 sendet E-Mail über TI-6 (SMTP) an alle Benutzer mit Rolle "Qualitätsmanager"
-10. blocpress Core bestätigt erfolgreiche Einreichung an Web-Oberfläche
+10. blocpress-server bestätigt erfolgreiche Einreichung an Web-Oberfläche
 11. Web-Oberfläche zeigt Bestätigung auf UI-1 an
 
 *Alternative Scenarios:*
@@ -239,15 +238,15 @@ G-2: Zentrale Verwaltung von Templates und Bausteinen
 *Actors:*
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 
 *Main Scenario:*
 
 1. Template-Designer wählt Template aus Liste auf UI-1 aus
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/templates/{id}) an blocpress Core
-3. blocpress Core lädt Template-Metadaten aus E-1 (Template)
-4. blocpress Core lädt zugehörige Bausteine aus E-2 (Baustein)
-5. blocpress Core gibt vollständige Template-Informationen an Web-Oberfläche zurück
+2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/templates/{id}) an blocpress-server
+3. blocpress-server lädt Template-Metadaten aus E-1 (Template)
+4. blocpress-server lädt zugehörige Bausteine aus E-2 (Baustein)
+5. blocpress-server gibt vollständige Template-Informationen an Web-Oberfläche zurück
 6. Web-Oberfläche zeigt Template-Details auf UI-1 an (Name, Version, Status, User-Fields, Wiederholungsgruppen, Bausteine)
 
 [[edc-uc-8]]
@@ -264,7 +263,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 *Actors:*
 - Qualitätsmanager/Freigeber (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
@@ -272,16 +271,16 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 1. Freigeber öffnet eingreichtes Template auf UI-2
 2. Freigeber prüft Template-Inhalt und Validierungsergebnisse
 3. Freigeber wählt Aktion "Freigeben"
-4. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/approve) an blocpress Core
-5. blocpress Core ruft TF-2 (Workflow-Status ändern) auf
+4. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/templates/{id}/approve) an blocpress-server
+5. blocpress-server ruft TF-2 (Workflow-Status ändern) auf
 6. TF-2 prüft, ob Benutzer berechtigt ist und nicht der ursprüngliche Designer ist
 7. TF-2 ändert Status in E-1 (Template) zu "Freigegeben"
 8. TF-2 aktualisiert E-4 (Freigabeprozess) mit Freigeber, Freigabedatum und Status "Freigegeben"
-9. blocpress Core ruft TF-4 (Review-Datum berechnen) auf
+9. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
 10. TF-4 erstellt Eintrag in E-5 (Compliance Review) mit berechnetem nächsten Review-Datum
-11. blocpress Core ruft TF-3 (Benachrichtigung senden) auf
+11. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
 12. TF-3 sendet E-Mail über TI-6 (SMTP) an ursprünglichen Designer
-13. blocpress Core bestätigt erfolgreiche Freigabe an Web-Oberfläche
+13. blocpress-server bestätigt erfolgreiche Freigabe an Web-Oberfläche
 14. Web-Oberfläche zeigt Bestätigung auf UI-2 an
 
 *Alternative Scenarios:*
@@ -304,7 +303,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 *Actors:*
 - Qualitätsmanager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - Message Queue (Software Element aus System Design)
 
 *Main Scenario:*
@@ -313,30 +312,30 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 2. Qualitätsmanager wählt Aktion "Testdokument generieren"
 3. Qualitätsmanager gibt JSON-Testdaten ein oder wählt vorhandene Testdaten
 4. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/documents/generate) mit Template-ID, JSON-Daten und gewünschtem Format (ODT/PDF/RTF)
-5. blocpress Core validiert JSON-Daten gegen Template-Schema
-6. blocpress Core erstellt Eintrag in E-3 (Dokumentengenerierung) mit Status "In Bearbeitung"
-7. blocpress Core sendet Generierungsanfrage über TI-5 (Message Queue) asynchron
-8. blocpress Core gibt Generierungs-ID an Web-Oberfläche zurück
+5. blocpress-server validiert JSON-Daten gegen Template-Schema
+6. blocpress-server erstellt Eintrag in E-3 (Dokumentengenerierung) mit Status "In Bearbeitung"
+7. blocpress-server sendet Generierungsanfrage über TI-5 (Message Queue) asynchron
+8. blocpress-server gibt Generierungs-ID an Web-Oberfläche zurück
 9. Web-Oberfläche zeigt "Generierung läuft" auf UI-2 an
-10. blocpress Core ruft TF-5 (Dokument generieren) auf (asynchron via Message Queue)
+10. blocpress-server ruft TF-5 (Dokument generieren) auf (asynchron via Message Queue)
 11. TF-5 lädt Template aus E-1 (Template)
 12. TF-5 befüllt Template mit JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen)
 13. TF-5 exportiert Dokument im gewünschten Format (ODT/PDF/RTF) via LibreOffice headless
-14. blocpress Core speichert generiertes Dokument in E-3 (Dokumentengenerierung)
-15. blocpress Core aktualisiert Status in E-3 auf "Erfolgreich"
+14. blocpress-server speichert generiertes Dokument in E-3 (Dokumentengenerierung)
+15. blocpress-server aktualisiert Status in E-3 auf "Erfolgreich"
 16. Web-Oberfläche pollt Status über TI-1 (REST-API: GET /api/documents/{id}/status)
-17. blocpress Core gibt Download-Link zurück
+17. blocpress-server gibt Download-Link zurück
 18. Web-Oberfläche zeigt Download-Link auf UI-2 an
 
 *Alternative Scenarios:*
 
 5a. JSON-Daten entsprechen nicht dem Template-Schema
-6a. blocpress Core gibt Validierungsfehler zurück
+6a. blocpress-server gibt Validierungsfehler zurück
 7a. Web-Oberfläche zeigt Fehlermeldung auf UI-2 an
 8a. Use Case endet ohne Dokumentengenerierung
 
 13a. LibreOffice-Export schlägt fehl
-14a. blocpress Core aktualisiert Status in E-3 auf "Fehlgeschlagen" mit Fehlerprotokoll
+14a. blocpress-server aktualisiert Status in E-3 auf "Fehlgeschlagen" mit Fehlerprotokoll
 15a. Web-Oberfläche zeigt Fehlermeldung auf UI-2 an
 16a. Use Case endet mit Fehler
 
@@ -353,32 +352,32 @@ G-4: Turnusmäßige Compliance-Reviews
 *Actors:*
 - Compliance-Reviewer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - SMTP-Server (Partner Element aus System Design)
 
 *Main Scenario:*
 
 1. Compliance-Reviewer öffnet fälliges Review auf UI-3
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/reviews/{id}) an blocpress Core
-3. blocpress Core lädt Review-Details aus E-5 (Compliance Review)
-4. blocpress Core lädt zugehöriges Template aus E-1 (Template)
+2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/reviews/{id}) an blocpress-server
+3. blocpress-server lädt Review-Details aus E-5 (Compliance Review)
+4. blocpress-server lädt zugehöriges Template aus E-1 (Template)
 5. Web-Oberfläche zeigt Template-Inhalte und Review-Informationen auf UI-3 an
 6. Compliance-Reviewer prüft inhaltliche Aktualität gegen rechtliche/fachliche Anforderungen
 7. Compliance-Reviewer gibt Review-Ergebnis ein ("Freigegeben" oder "Überarbeitung erforderlich")
 8. Compliance-Reviewer fügt Kommentare hinzu
-9. Web-Oberfläche sendet Review-Ergebnis über TI-1 (REST-API: POST /api/reviews/{id}/complete) an blocpress Core
-10. blocpress Core aktualisiert E-5 (Compliance Review) mit Reviewer, Review-Datum, Ergebnis und Kommentaren
-11. blocpress Core ruft TF-4 (Review-Datum berechnen) auf
+9. Web-Oberfläche sendet Review-Ergebnis über TI-1 (REST-API: POST /api/reviews/{id}/complete) an blocpress-server
+10. blocpress-server aktualisiert E-5 (Compliance Review) mit Reviewer, Review-Datum, Ergebnis und Kommentaren
+11. blocpress-server ruft TF-4 (Review-Datum berechnen) auf
 12. TF-4 berechnet nächstes Review-Datum und speichert es in E-5
-13. blocpress Core ruft TF-3 (Benachrichtigung senden) auf
+13. blocpress-server ruft TF-3 (Benachrichtigung senden) auf
 14. TF-3 sendet E-Mail über TI-6 (SMTP) an Template-Designer (bei "Überarbeitung erforderlich")
-15. blocpress Core bestätigt erfolgreiche Review-Speicherung an Web-Oberfläche
+15. blocpress-server bestätigt erfolgreiche Review-Speicherung an Web-Oberfläche
 16. Web-Oberfläche zeigt Bestätigung auf UI-3 an
 
 *Alternative Scenarios:*
 
 7a. Review-Ergebnis ist "Archivieren"
-8a. blocpress Core ändert Template-Status in E-1 zu "Archiviert"
+8a. blocpress-server ändert Template-Status in E-1 zu "Archiviert"
 9a. Template wird nicht mehr für Produktiv-Generierung verwendet
 10a. Weiter mit Schritt 13
 
@@ -395,7 +394,7 @@ G-5: Automatisierte Regressionstests
 *Actors:*
 - Test-Manager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 
 *Main Scenario:*
 
@@ -405,12 +404,12 @@ G-5: Automatisierte Regressionstests
 4. Test-Manager erstellt oder lädt JSON-Testdaten
 5. Test-Manager wählt "Test ausführen und als Baseline speichern"
 6. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/testcases) mit Template-ID, Name, Beschreibung und JSON-Testdaten
-7. blocpress Core erstellt Eintrag in E-6 (Test Case) mit Status "Baseline fehlt"
-8. blocpress Core ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten
+7. blocpress-server erstellt Eintrag in E-6 (Test Case) mit Status "Baseline fehlt"
+8. blocpress-server ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten
 9. TF-5 generiert PDF-Dokument
-10. blocpress Core speichert generiertes PDF als Baseline in E-6 (Test Case)
-11. blocpress Core aktualisiert Status in E-6 auf "Bestanden"
-12. blocpress Core gibt Test-Case-ID an Web-Oberfläche zurück
+10. blocpress-server speichert generiertes PDF als Baseline in E-6 (Test Case)
+11. blocpress-server aktualisiert Status in E-6 auf "Bestanden"
+12. blocpress-server gibt Test-Case-ID an Web-Oberfläche zurück
 13. Web-Oberfläche zeigt Test Case Details und Baseline-PDF auf UI-4 an
 
 [[edc-uc-16]]
@@ -426,23 +425,23 @@ G-5: Automatisierte Regressionstests
 *Actors:*
 - Test-Manager (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - Message Queue (Software Element aus System Design)
 
 *Main Scenario:*
 
 1. Test-Manager wählt Test Case auf UI-4 aus
 2. Test-Manager wählt Aktion "Test ausführen"
-3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/testcases/{id}/execute) an blocpress Core
-4. blocpress Core lädt Test Case aus E-6 (Test Case)
-5. blocpress Core ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten aus E-6
+3. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: POST /api/testcases/{id}/execute) an blocpress-server
+4. blocpress-server lädt Test Case aus E-6 (Test Case)
+5. blocpress-server ruft TF-5 (Dokument generieren) auf mit JSON-Testdaten aus E-6
 6. TF-5 generiert aktuelles PDF-Dokument
-7. blocpress Core ruft TF-6 (PDF vergleichen) auf mit Baseline-PDF und aktuellem PDF
+7. blocpress-server ruft TF-6 (PDF vergleichen) auf mit Baseline-PDF und aktuellem PDF
 8. TF-6 vergleicht PDFs pixel- oder textbasiert
 9. TF-6 gibt Vergleichsergebnis zurück (Bestanden/Fehlgeschlagen, Abweichungen)
-10. blocpress Core speichert aktuelles PDF und Vergleichsergebnis in E-6 (Test Case)
-11. blocpress Core aktualisiert Status und letzte Ausführung in E-6
-12. blocpress Core gibt Test-Ergebnis an Web-Oberfläche zurück
+10. blocpress-server speichert aktuelles PDF und Vergleichsergebnis in E-6 (Test Case)
+11. blocpress-server aktualisiert Status und letzte Ausführung in E-6
+12. blocpress-server gibt Test-Ergebnis an Web-Oberfläche zurück
 13. Web-Oberfläche zeigt Test-Ergebnis auf UI-4 an (bei Abweichungen: visueller Vergleich)
 
 *Alternative Scenarios:*
@@ -468,24 +467,24 @@ G-6: Performante Inhaltssuche
 *Actors:*
 - Template-Designer (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
+- blocpress-server (dieses Element)
 - Content Search Engine (Software Element aus System Design)
 
 *Main Scenario:*
 
 1. Template-Designer gibt Suchbegriff (z.B. "Beitragsanpassung") in Suchfeld auf UI-5 ein
-2. Web-Oberfläche sendet Such-Anfrage über TI-1 (REST-API: GET /api/search?query=...) an blocpress Core
-3. blocpress Core sendet Such-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
+2. Web-Oberfläche sendet Such-Anfrage über TI-1 (REST-API: GET /api/search?query=...) an blocpress-server
+3. blocpress-server sendet Such-Anfrage über TI-7 (Elasticsearch API) an Content Search Engine
 4. Content Search Engine durchsucht Index und gibt Treffer zurück (Template-ID, Baustein-ID, Kontext, Position)
-5. blocpress Core reichert Treffer mit Metadaten aus E-1 (Template) und E-2 (Baustein) an
-6. blocpress Core gibt Suchergebnisse an Web-Oberfläche zurück
+5. blocpress-server reichert Treffer mit Metadaten aus E-1 (Template) und E-2 (Baustein) an
+6. blocpress-server gibt Suchergebnisse an Web-Oberfläche zurück
 7. Web-Oberfläche zeigt Suchergebnisse auf UI-5 an (gruppiert nach Templates und Bausteinen)
 
 *Alternative Scenarios:*
 
 4a. Keine Treffer gefunden
 5a. Content Search Engine gibt leere Liste zurück
-6a. blocpress Core gibt "Keine Ergebnisse" an Web-Oberfläche zurück
+6a. blocpress-server gibt "Keine Ergebnisse" an Web-Oberfläche zurück
 7a. Web-Oberfläche zeigt "Keine Ergebnisse gefunden" auf UI-5 an
 
 [[edc-uc-22]]
@@ -500,21 +499,19 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 *Actors:*
 - Administrator (User Type aus System Design)
 - Web-Oberfläche (Software Element aus System Design)
-- blocpress Core (dieses Element)
-- Identity Provider (Partner Element aus System Design)
+- blocpress-server (dieses Element)
 
 *Main Scenario:*
 
 1. Administrator öffnet Benutzerverwaltung auf UI-6
-2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/users) an blocpress Core
-3. blocpress Core lädt Benutzerliste aus E-9 (Benutzer)
+2. Web-Oberfläche sendet Anfrage über TI-1 (REST-API: GET /api/users) an blocpress-server
+3. blocpress-server lädt Benutzerliste aus E-9 (Benutzer)
 4. Web-Oberfläche zeigt Benutzerliste auf UI-6 an
 5. Administrator wählt Benutzer aus und ändert Rollen
-6. Web-Oberfläche sendet Update über TI-1 (REST-API: PUT /api/users/{id}/roles) an blocpress Core
-7. blocpress Core aktualisiert Rollen in E-9 (Benutzer)
-8. blocpress Core synchronisiert Änderung mit Identity Provider über TI-4 (SAML/OIDC)
-9. blocpress Core bestätigt erfolgreiche Aktualisierung an Web-Oberfläche
-10. Web-Oberfläche zeigt Bestätigung auf UI-6 an
+6. Web-Oberfläche sendet Update über TI-1 (REST-API: PUT /api/users/{id}/roles) an blocpress-server
+7. blocpress-server aktualisiert Rollen in E-9 (Benutzer) und speichert das JWT Subject (sub-Claim) als Referenz
+8. blocpress-server bestätigt erfolgreiche Aktualisierung an Web-Oberfläche
+9. Web-Oberfläche zeigt Bestätigung auf UI-6 an
 
 [[edc-functions]]
 == Technical Functions
@@ -523,9 +520,11 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-1: Template validieren
 
 *Input:*
+
 - templateBinary: byte[] (ODT-Datei)
 
 *Output:*
+
 - validationResult: ValidationResult
 - isValid: boolean
 - errors: List<ValidationError>
@@ -656,12 +655,14 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 === TF-5: Dokument generieren
 
 *Input:*
+
 - templateId: Long
 - templateVersion: Integer (optional, default: neueste freigegebene Version)
 - jsonData: String (JSON-Struktur)
 - outputFormat: String ("ODT", "PDF", "RTF")
 
 *Output:*
+
 - documentBinary: byte[]
 - success: boolean
 - errorMessage: String (optional)
@@ -810,7 +811,7 @@ Ruft entsprechende Technical Functions auf:
 === TI-2: Datenbank-Interface (PostgreSQL)
 
 *Description:*
-Zugriff auf PostgreSQL-Datenbank zum Lesen und Schreiben aller Entities. Wird intern von blocpress Core genutzt.
+Zugriff auf PostgreSQL-Datenbank zum Lesen und Schreiben aller Entities. Wird intern von blocpress-server genutzt.
 
 *Input:*
 SQL-Queries über JPA/Hibernate
@@ -844,27 +845,26 @@ Ruft LibreOffice UNO-API auf:
 - Dokument exportieren: `XStorable.storeToURL()` mit Filter für PDF/RTF
 
 [[edc-ti-4]]
-=== TI-4: Identity Provider Integration (SAML/OIDC)
+=== TI-4: JWT-Authentifizierung
 
 *Description:*
-Integration mit externem Identity Provider zur Authentifizierung und Benutzerverwaltung. Wird von blocpress Core zur Benutzer-Authentifizierung genutzt.
+blocpress-server validiert eingehende JWTs direkt, ohne einen externen Identity Provider zu benötigen. Der öffentliche Schlüssel (Public Key) und der erwartete Issuer werden in `application.properties` konfiguriert. Die Umsetzung erfolgt über die Quarkus SmallRye JWT Extension (`smallrye-jwt`). Für Testzwecke kann ein langlebiger Demo-JWT mit dem konfigurierten Schlüssel erzeugt werden.
 
 *Input:*
-- SAML-Token oder OIDC-Token
-- User-ID
+- JWT Bearer Token (im `Authorization`-Header)
 
 *Output:*
 - Authentifizierungsergebnis (success/failure)
-- Benutzerinformationen (Name, E-Mail, Rollen)
+- Benutzerinformationen aus JWT-Claims (sub, name, email, groups)
 
 *Action:*
-Validiert Token und synchronisiert Benutzerdaten mit E-9 (Benutzer)
+Validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Expiration. Extrahiert das Subject (`sub`-Claim) und gleicht es mit E-9 (Benutzer) ab.
 
 [[edc-ti-5]]
 === TI-5: Message Queue Interface
 
 *Description:*
-Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung, Regressionstests). Wird intern von blocpress Core genutzt.
+Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung, Regressionstests). Wird intern von blocpress-server genutzt.
 
 *Input:*
 - Queue-Name (String)
@@ -874,7 +874,7 @@ Asynchrone Kommunikation für zeitaufwändige Operationen (Dokumentengenerierung
 - Message-ID
 
 *Action:*
-Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress Core verarbeitet Message asynchron
+Sendet Message an RabbitMQ/Kafka Queue, Consumer in blocpress-server verarbeitet Message asynchron
 
 [[edc-ti-6]]
 === TI-6: SMTP-Interface
@@ -897,7 +897,7 @@ Sendet E-Mail über SMTP-Protokoll an SMTP-Server (Partner Element)
 === TI-7: Elasticsearch API
 
 *Description:*
-Zugriff auf Content Search Engine zur Indexierung und Suche. Wird von blocpress Core für UC-19 (Nach Begriff suchen) genutzt.
+Zugriff auf Content Search Engine zur Indexierung und Suche. Wird von blocpress-server für UC-19 (Nach Begriff suchen) genutzt.
 
 *Input:*
 - Indexierungs-Request: templateId (Long), content (String)
@@ -1121,7 +1121,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-benutzer[Benutzer 
 | 3 | email | String(255) | E-Mail-Adresse
 | 4 | rollen | JSONB | Array von Rollen: ["Template-Designer", "Qualitätsmanager", "Freigeber", "Administrator", "Compliance-Reviewer", "Test-Manager"]
 | 5 | berechtigungen | JSONB | Array von Berechtigungen: ["Template erstellen", "Template bearbeiten", "Template prüfen", "Template freigeben", "API nutzen", "Review durchführen", "Tests verwalten"]
-| 6 | external_id | String(255) | ID im Identity Provider (für SAML/OIDC-Sync)
+| 6 | external_id | String(255) | JWT Subject (sub-Claim)
 | 7 | aktiv | Boolean | Account aktiv/deaktiviert
 | 8 | erstellungsdatum | Timestamp | Account-Erstellungszeitpunkt
 |===
@@ -1215,7 +1215,7 @@ PostgreSQL-Datenbank inklusive aller Binärdaten (E-1.10, E-3.6, E-6.7, E-6.8) m
 === C-1: Quarkus Framework
 
 *Description:*
-blocpress Core muss mit Quarkus Framework implementiert werden. Dies ermöglicht schnelle Startup-Zeiten, geringen Memory-Footprint und native Kompilierung.
+blocpress-server muss mit Quarkus Framework implementiert werden. Dies ermöglicht schnelle Startup-Zeiten, geringen Memory-Footprint und native Kompilierung.
 
 _Referenz: Quarkus.io Dokumentation_
 
@@ -1273,7 +1273,7 @@ Das System ist dimensioniert für < 5.000 Dokumente + Templates als Binärdaten 
 === C-9: Docker-Container
 
 *Description:*
-blocpress Core muss als Docker-Container betrieben werden können. Dockerfile und docker-compose.yml müssen bereitgestellt werden.
+blocpress-server muss als Docker-Container betrieben werden können. Dockerfile und docker-compose.yml müssen bereitgestellt werden.
 
 _Referenz: Docker Best Practices_
 

@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.server.render.template;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.flaechsig.blocpress.renderer.LibreOfficeExporter;
+import io.github.flaechsig.blocpress.renderer.LibreOfficeProcessor;
 import io.github.flaechsig.blocpress.renderer.OutputFormat;
 import io.github.flaechsig.blocpress.renderer.RenderEngine;
 import io.github.flaechsig.blocpress.server.api.TemplateApi;
@@ -19,9 +19,8 @@ import static io.github.flaechsig.blocpress.renderer.OutputFormat.ODT;
 import static io.github.flaechsig.blocpress.renderer.OutputFormat.RTF;
 
 /**
- * REST-Endpoint zum Zusammenführen eines ODT-Templates mit JSON-Daten und
- * anschließender Konvertierung in das gewünschte Format.
- * Implementiert {@code POST /template/merge}.
+ * REST-Endpoint zur Dokumentgenerierung aus einem ODT-Template und JSON-Daten.
+ * Implementiert {@code POST /api/template/generate}.
  *
  * <p><b>Design-Referenzen:</b></p>
  * <ul>
@@ -35,8 +34,8 @@ public class TemplateResource implements TemplateApi {
     private static ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public File mergeTemplate(String accept, InputStream templateInputStream, String data) {
-        logger.info("Merging template");
+    public File generateDocument(String accept, InputStream templateInputStream, String data) {
+        logger.info("Generating document from template");
         OutputFormat format = switch (accept) {
             case "application/vnd.oasis.opendocument.text" -> ODT;
             case "application/pdf" -> OutputFormat.PDF;
@@ -53,7 +52,7 @@ public class TemplateResource implements TemplateApi {
             logger.info("Calling merge");
             var merge = RenderEngine.mergeTemplate(odt, json);
             logger.info("Calling transform");
-            var result = LibreOfficeExporter.refreshAndTransform(merge,format);
+            var result = LibreOfficeProcessor.refreshAndTransform(merge,format);
             logger.info("Build output");
             output = Files.createTempFile("output",format.getSuffix());
             Files.write(output, result);

@@ -17,7 +17,7 @@ public class TransformTest {
         String expected = extractPdfContent(loadDocumentAsBytes("/kuendigung_generated.pdf"));
 
 
-        String actual = extractPdfContent(LibreOfficeExporter.refreshAndTransform(odtBytes, OutputFormat.PDF));
+        String actual = extractPdfContent(LibreOfficeProcessor.refreshAndTransform(odtBytes, OutputFormat.PDF));
 
         assertEquals(expected, actual);
     }
@@ -26,7 +26,7 @@ public class TransformTest {
     public void transformToRtf() throws Exception {
         byte[] odtBytes = loadDocumentAsBytes("/kuendigung_generated.odt");
         String expected = extractRtfContent(loadDocumentAsBytes("/kuendigung_generated.rtf"));
-        String actual = extractRtfContent(LibreOfficeExporter.refreshAndTransform(odtBytes, OutputFormat.RTF));
+        String actual = extractRtfContent(LibreOfficeProcessor.refreshAndTransform(odtBytes, OutputFormat.RTF));
 
         assertEquals(expected, actual);
     }

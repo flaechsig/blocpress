@@ -192,7 +192,7 @@ class TemplateHandlerIT {
         out.writeBytes("--" + boundary + "--\r\n");
         out.flush();
 
-        var request = HttpRequest.newBuilder(baseUri.resolve("/template/merge"))
+        var request = HttpRequest.newBuilder(baseUri.resolve("/api/template/generate"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .header("Accept", accept)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))

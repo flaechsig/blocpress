@@ -45,7 +45,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 * xref:Solution_Design_Concept.adoc#sdc-vision[Solution Design Concept: blocpress] -- Vision, Value Creation Architecture, Information Architecture, Business Processes
 * xref:System_Design_Concept.adoc#sydc-goals[System Design Concept: blocpress] -- Systemziele, Systemarchitektur, Szenarien
-* xref:Element_Design_Concept.adoc#edc-goals[Element Design Concept: blocpress Core] -- Goals, Use Cases, Technical Functions, Entities
+* xref:Element_Design_Concept.adoc#edc-goals[Element Design Concept: blocpress-server] -- Goals, Use Cases, Technical Functions, Entities
 
 === Qualitätsziele
 
@@ -131,10 +131,10 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 | Randbedingung | Erläuterung
 
 | Quarkus Framework
-| blocpress Core muss mit Quarkus implementiert werden (schnelle Startup-Zeit, geringer Memory-Footprint, native Kompilierung möglich).
+| blocpress-server muss mit Quarkus implementiert werden (schnelle Startup-Zeit, geringer Memory-Footprint, native Kompilierung möglich).
 
 | LibreOffice ≥ 24
-| LibreOffice Version 24 oder höher muss headless in blocpress Core integriert sein. Ältere Versionen nicht unterstützt.
+| LibreOffice Version 24 oder höher muss headless in blocpress-server integriert sein. Ältere Versionen nicht unterstützt.
 
 | PostgreSQL ≥ 18
 | Datenbank muss PostgreSQL Version 18 oder höher sein. JSONB-Indizes erforderlich.
@@ -170,8 +170,8 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 | Freigabe-Pflicht
 | Templates ohne Status "Freigegeben" dürfen nicht für Produktiv-Generierung verwendet werden.
 
-| Identity Provider Integration
-| Benutzer-Authentifizierung muss über externen IdP erfolgen (SAML 2.0 oder OpenID Connect).
+| JWT-basierte Authentifizierung
+| Benutzer-Authentifizierung erfolgt über JWT-Validierung. blocpress-server prüft Signatur, Issuer und Ablaufdatum gegen einen konfigurierten Public Key. Kein externer Identity Provider zur Laufzeit erforderlich.
 |===
 
 === Konventionen
@@ -217,7 +217,6 @@ rectangle "Anwendungssystem" as App
 rectangle "blocpress" as System {
 }
 
-rectangle "Identity Provider" as IdP
 rectangle "SMTP-Server" as SMTP
 rectangle "Elasticsearch" as ES
 rectangle "Monitoring" as Monitor
@@ -230,7 +229,6 @@ Admin --> System : Benutzer verwalten\nSystem konfigurieren
 
 App --> System : Dokumente generieren\n(REST-API)
 
-System --> IdP : Benutzer authentifizieren
 System --> SMTP : Benachrichtigungen senden
 System --> ES : Templates indexieren\nSuche durchführen
 System --> Monitor : Metriken & Logs senden
@@ -267,10 +265,6 @@ System --> Monitor : Metriken & Logs senden
 | Template-ID, JSON-Daten, gewünschtes Format
 | Generiertes Dokument (ODT/PDF/RTF), Generierungs-ID, Status
 
-| Identity Provider
-| SAML/OIDC Token
-| Authentifizierungsergebnis, Benutzerattribute
-
 | SMTP-Server
 | Empfänger, Betreff, Nachrichtentext
 | Versandbestätigung
@@ -297,7 +291,7 @@ node "Client-Browser" as Browser
 node "Externe Anwendung" as ExtApp
 
 node "Docker Host / Kubernetes" as Docker {
-  component "blocpress Core\n(Quarkus)" as Core
+  component "blocpress-server\n(Quarkus)" as Core
   component "Web-Oberfläche\n(React SPA)" as WebUI
   database "PostgreSQL ≥ 18" as DB
   queue "RabbitMQ/Kafka" as MQ
@@ -305,7 +299,6 @@ node "Docker Host / Kubernetes" as Docker {
 
 node "Externe Services" {
   component "Elasticsearch ≥ 7.x" as ES
-  component "Identity Provider\n(SAML/OIDC)" as IdP
   component "SMTP-Server" as SMTP
   component "Monitoring\n(Prometheus/ELK)" as Monitor
 }
@@ -317,7 +310,6 @@ ExtApp -down-> Core : REST-API\nJSON over HTTPS
 Core -down-> DB : JDBC\nPostgreSQL Protocol
 Core -right-> MQ : AMQP / Kafka Protocol
 Core -down-> ES : REST-API\nHTTP/JSON
-Core -left-> IdP : SAML 2.0 / OIDC
 Core -left-> SMTP : SMTP/TLS
 Core -right-> Monitor : HTTP (Prometheus)\nTCP (Logs)
 
@@ -334,35 +326,31 @@ end note
 |===
 | Schnittstelle | Protokoll/Technologie | Mapping fachlicher Daten
 
-| Web-Oberfläche → blocpress Core
+| Web-Oberfläche → blocpress-server
 | HTTPS, REST-API, JSON
 | Alle UI-Aktionen (Template-Upload, Freigabe, Reviews, Tests, Suche)
 
-| Externe Anwendung → blocpress Core
+| Externe Anwendung → blocpress-server
 | HTTPS, REST-API, JSON
 | Dokumentengenerierung: `POST /api/documents/generate`
 
-| blocpress Core → PostgreSQL
+| blocpress-server → PostgreSQL
 | JDBC, PostgreSQL Wire Protocol
 | Alle Entities (E-1 bis E-10), inkl. Binärdaten (bytea)
 
-| blocpress Core → RabbitMQ/Kafka
+| blocpress-server → RabbitMQ/Kafka
 | AMQP (RabbitMQ) / Kafka Protocol
 | Asynchrone Dokumentengenerierung, Regressionstests
 
-| blocpress Core → Elasticsearch
+| blocpress-server → Elasticsearch
 | REST-API, HTTP/JSON
 | Template-Indexierung, Volltextsuche
 
-| blocpress Core → Identity Provider
-| SAML 2.0 oder OpenID Connect
-| Benutzer-Authentifizierung, Token-Validierung
-
-| blocpress Core → SMTP-Server
+| blocpress-server → SMTP-Server
 | SMTP/TLS (Port 587)
 | E-Mail-Benachrichtigungen (Freigaben, Reviews, Tests)
 
-| blocpress Core → Monitoring
+| blocpress-server → Monitoring
 | Prometheus (HTTP Pull), Logs (TCP/JSON)
 | Metriken (Request-Latenz, Fehlerraten), Audit-Logs
 |===
@@ -458,16 +446,15 @@ end note
 
 *Q5: Skalierbarkeit*
 
-* Horizontal skalierbar: Mehrere blocpress Core-Instanzen hinter Load Balancer
+* Horizontal skalierbar: Mehrere blocpress-server-Instanzen hinter Load Balancer
 * Message Queue entkoppelt Request-Handling von Dokumentengenerierung
 * PostgreSQL Connection Pooling (HikariCP)
 * Caching von Templates (Caffeine Cache) reduziert DB-Last
 
 === Organisatorische Entscheidungen
 
-* *Entwicklungsprozess:* Agil (Scrum), 2-Wochen-Sprints
-* *CI/CD:* Automatische Tests bei jedem Commit, automatisches Deployment zu Test-Umgebung
-* *Code-Reviews:* Vier-Augen-Prinzip auch bei Code (mindestens 1 Reviewer)
+* *Entwicklungsprozess:* Agil Kanban
+* *CI/CD:* Automatische Tests bei jedem Commit
 * *Dokumentation:* arc42 für Architektur, Javadoc für Code, OpenAPI für REST-API
 
 <<<<
@@ -488,7 +475,7 @@ skinparam componentStyle rectangle
 package "blocpress Gesamtsystem" {
   component "Web-Oberfläche\n(React SPA)" as WebUI
   component "API Gateway\n(Kong)" as Gateway
-  component "blocpress Core\n(Quarkus)" as Core
+  component "blocpress-server\n(Quarkus)" as Core
   database "PostgreSQL\nDatenbank" as DB
   queue "Message Queue\n(RabbitMQ)" as MQ
   component "Content Search\n(Elasticsearch)" as Search
@@ -516,7 +503,7 @@ Die Zerlegung folgt dem Prinzip der Separation of Concerns:
 
 * *Web-Oberfläche* ist vollständig entkoppelt vom Backend (SPA)
 * *API Gateway* übernimmt Querschnittsbelange (Authentifizierung, Rate Limiting, Logging)
-* *blocpress Core* enthält gesamte Business-Logik
+* *blocpress-server* enthält gesamte Business-Logik
 * *PostgreSQL* persistiert alle Daten (Metadaten + Binärdaten)
 * *Message Queue* ermöglicht asynchrone Verarbeitung
 * *Elasticsearch* ist spezialisiert auf Volltextsuche
@@ -531,9 +518,9 @@ Die Zerlegung folgt dem Prinzip der Separation of Concerns:
 | Präsentationsschicht für Template-Designer, Qualitätsmanager, Compliance-Reviewer, Test-Manager, Administratoren. Single-Page-Application (React).
 
 | API Gateway
-| Authentifizierung (Integration mit Identity Provider), Rate Limiting, Request-Logging, Routing zu blocpress Core.
+| JWT-Validierung, Rate Limiting, Request-Logging, Routing zu blocpress-server.
 
-| blocpress Core
+| blocpress-server
 | Gesamte Business-Logik: Use Cases, Technical Functions, REST-API, Integration mit LibreOffice, Workflow-Engine, Compliance-Manager, Test-Framework.
 
 | PostgreSQL Datenbank
@@ -548,14 +535,14 @@ Die Zerlegung folgt dem Prinzip der Separation of Concerns:
 
 *Wichtige Schnittstellen:*
 
-* *TI-1 (REST-API):* Primäre Schnittstelle zwischen Web-Oberfläche/externen Anwendungen und blocpress Core
+* *TI-1 (REST-API):* Primäre Schnittstelle zwischen Web-Oberfläche/externen Anwendungen und blocpress-server
 * *TI-2 (Datenbank-Interface):* JDBC-Zugriff auf PostgreSQL
 * *TI-5 (Message Queue Interface):* AMQP-Zugriff auf RabbitMQ
 * *TI-7 (Elasticsearch API):* HTTP-REST-Zugriff auf Elasticsearch
 
 === Ebene 2
 
-==== Whitebox blocpress Core
+==== Whitebox blocpress-server
 
 [plantuml, bausteinsicht-ebene2-core, svg]
 ----
@@ -564,7 +551,7 @@ Die Zerlegung folgt dem Prinzip der Separation of Concerns:
 
 skinparam componentStyle rectangle
 
-package "blocpress Core (Quarkus)" {
+package "blocpress-server (Quarkus)" {
   component "REST-API\nController" as API
   component "Use Case\nServices" as UC
   component "Technical\nFunctions" as TF
@@ -664,7 +651,7 @@ Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates.
 
 *Ablageort/Datei:*
 
-* Package: `de.blocpress.core.libreoffice`
+* Package: `io.github.flaechsig.blocpress.renderer`
 * Hauptklasse: `LibreOfficeProcessor`
 
 *Offene Punkte:*
@@ -692,9 +679,9 @@ Abstraktionsschicht für Speicherung von Binärdaten (Templates, generierte Doku
 
 *Ablageort/Datei:*
 
-* Interface: `de.blocpress.core.storage.StorageService`
-* Implementierung: `de.blocpress.core.storage.PostgresStorageService`
-* Zukünftig: `de.blocpress.core.storage.S3StorageService`
+* Interface: `io.github.flaechsig.blocpress.server.storage.StorageService` (geplant)
+* Implementierung: `io.github.flaechsig.blocpress.server.storage.PostgresStorageService` (geplant)
+* Zukünftig: `io.github.flaechsig.blocpress.server.storage.S3StorageService` (geplant)
 
 <<<<
 [[section-runtime-view]]
@@ -955,7 +942,6 @@ node "Docker Host" {
 }
 
 cloud "Externe Services" {
-  component "Identity Provider" as IdP
   component "SMTP-Server" as SMTP
 }
 
@@ -963,7 +949,6 @@ WebUI -down-> App : HTTPS
 App -down-> DB : JDBC (5432)
 App -right-> MQ : AMQP (5672)
 App -down-> ES : HTTP (9200)
-App -left-> IdP : SAML/OIDC (443)
 App -left-> SMTP : SMTP (587)
 
 note right of DB
@@ -1264,12 +1249,13 @@ Benutzer "1" -- "0..*" ComplianceReview : führt durch >
 
 === Benutzerverwaltung und Sicherheit
 
-*Authentifizierung:*
+*Authentifizierung (JWT-basiert):*
 
-* Integration mit externem Identity Provider via SAML 2.0 oder OpenID Connect
-* Single Sign-On (SSO) für Web-Oberfläche
-* API-Keys für externe Anwendungen (generiert durch Administrator)
-* Token-Validierung bei jedem Request im API Gateway
+* blocpress-server validiert JWTs direkt — kein externer Identity Provider zur Laufzeit erforderlich
+* Issuer und Public Key werden in `application.properties` konfiguriert (`mp.jwt.verify.issuer`, `mp.jwt.verify.publickey.location`)
+* Quarkus SmallRye JWT Extension prüft bei jedem Request: Signatur, Issuer, Ablaufdatum
+* Für Tests: langlebiges Demo-JWT mit dem Private Key erzeugen (z.B. 1 Jahr Laufzeit)
+* Kompatibel mit jedem IdP, der JWTs ausstellt — nur Public Key und Issuer müssen konfiguriert werden
 
 *Autorisierung:*
 
@@ -1617,7 +1603,7 @@ Speicherung in PostgreSQL bytea-Spalten. Erwartetes Datenvolumen: < 5.000 Dokume
 
 *Kontext:*
 
-Wahl des Java-Frameworks für blocpress Core. Optionen: Spring Boot, Quarkus, Micronaut.
+Wahl des Java-Frameworks für blocpress-server. Optionen: Spring Boot, Quarkus, Micronaut.
 
 *Entscheidung:*
 
@@ -1635,7 +1621,6 @@ Quarkus Framework
 
 * Positiv: Bessere Container-Performance, niedrigere Infrastruktur-Kosten
 * Negativ: Kleineres Ökosystem als Spring Boot, weniger Extensions
-* Risiko: Team muss Quarkus lernen (Schulung einplanen)
 
 === ADR-003: Asynchrone Dokumentengenerierung
 
@@ -1698,7 +1683,7 @@ Template-Verarbeitung und Dokumentengenerierung. Optionen: LibreOffice headless 
 
 *Entscheidung:*
 
-LibreOffice ≥ 24 headless, integriert in blocpress Core
+LibreOffice ≥ 24 headless, integriert in blocpress-server
 
 *Begründung:*
 
@@ -1974,7 +1959,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *Baseline-PDF*
 | Erwartetes PDF-Ergebnis eines Test Cases, gegen das aktuelle Generierungen verglichen werden. Gespeichert in E-6.7.
 
-| *blocpress Core*
+| *blocpress-server*
 | Hauptkomponente des Systems: Quarkus-Anwendung mit Business-Logik, REST-API, LibreOffice-Integration.
 
 | *Compliance Review*
@@ -2032,7 +2017,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Section oder Table in einem Template, die für jedes Element eines JSON-Arrays dupliziert und befüllt wird.
 
 | *Workflow-Engine*
-| Komponente in blocpress Core zur Steuerung von Freigabeprozessen und Statusübergängen. Prüft Berechtigungen und Vier-Augen-Prinzip.
+| Komponente in blocpress-server zur Steuerung von Freigabeprozessen und Statusübergängen. Prüft Berechtigungen und Vier-Augen-Prinzip.
 |===
 
 <<<<

@@ -19,7 +19,7 @@ import java.util.List;
  *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-c-5">C-5: Export-Formate</a></li>
  * </ul>
  */
-public class LibreOfficeExporter {
+public class LibreOfficeProcessor {
 
     private static final Path WORK_BASE = Path.of(System.getProperty("user.home"), ".blocpress");
 
