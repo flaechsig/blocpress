@@ -100,7 +100,7 @@ _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-4[TI-4: JWT-Validi
 *SMTP-Server:* Bestehender Mail-Server der Organisation zur Versendung von Benachrichtigungen für Freigaben, Reviews und Test-Ergebnisse. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-6[TI-6: SMTP-Interface]_
 
-*Monitoring System:* Bestehendes Monitoring-System (z.B. Prometheus, Grafana, ELK Stack) zur Überwachung von System-Metriken, Logs und Verfügbarkeit.
+*Observability (optional):* blocpress-server exportiert Traces, Metriken und Logs über OpenTelemetry (OTLP-Protokoll). Der Betreiber kann einen beliebigen OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent). Ohne konfiguriertem Endpoint läuft das System ohne externe Monitoring-Abhängigkeit.
 
 *Backup-System:* Bestehendes Backup-System der Organisation zur regelmäßigen Sicherung der PostgreSQL-Datenbank (inkl. Binärdaten).
 
@@ -253,7 +253,7 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 
 *Backup & Recovery:* Tägliche Backups der PostgreSQL-Datenbank (inkl. aller Binärdaten) müssen erfolgen. Das System muss innerhalb von 4 Stunden aus einem Backup wiederhergestellt werden können (Recovery Time Objective: 4h). Datenverlust darf maximal 24 Stunden betragen (Recovery Point Objective: 24h).
 
-*Monitoring & Logging:* Das System muss Metriken (CPU, RAM, Request-Latenz, Fehlerraten) an ein Monitoring-System exportieren. Strukturierte Logs im JSON-Format müssen an ein zentrales Logging-System gesendet werden.
+*Observability:* blocpress-server unterstützt OpenTelemetry (OTLP) für den Export von Traces, Metriken und Logs. Die Konfiguration eines OTLP-Endpoints ist optional — ohne Endpoint läuft das System ohne externe Monitoring-Abhängigkeit. Quarkus Health-Checks (`/q/health/live`, `/q/health/ready`) stehen unabhängig davon zur Verfügung.
 
 _Fachliche Quality Requirements: xref:Solution_Design_Concept.adoc#sdc-qr[Quality Requirements im Solution Design Concept]_ +
 _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-qr[Quality Requirements im Element Design Concept]_
@@ -295,7 +295,8 @@ _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-
 - Das System muss in der bestehenden Container-Infrastruktur (Docker/Kubernetes) der Organisation betrieben werden können
 - JWT-Validierung mittels konfiguriertem Issuer und Public Key ist erforderlich (kein externer Identity Provider zur Laufzeit)
 - Nutzung des bestehenden SMTP-Servers für E-Mail-Benachrichtigungen
-- Integration in bestehendes Backup- und Monitoring-System muss möglich sein
+- OpenTelemetry (OTLP) für Observability; Konfiguration eines Collectors ist optional
+- Integration in bestehendes Backup-System muss möglich sein
 
 *Compliance-Constraints:*
 
