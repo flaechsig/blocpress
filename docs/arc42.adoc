@@ -219,7 +219,7 @@ rectangle "blocpress" as System {
 
 rectangle "SMTP-Server" as SMTP
 rectangle "Elasticsearch" as ES
-rectangle "Monitoring" as Monitor
+rectangle "OpenTelemetry Collector" as Monitor
 
 Designer --> System : Templates hochladen\nBausteine verwalten
 QM --> System : Templates prüfen\nFreigeben/Ablehnen
@@ -231,7 +231,7 @@ App --> System : Dokumente generieren\n(REST-API)
 
 System --> SMTP : Benachrichtigungen senden
 System --> ES : Templates indexieren\nSuche durchführen
-System --> Monitor : Metriken & Logs senden
+System --> Monitor : Traces, Metriken & Logs\n(OTLP)
 @enduml
 ----
 
@@ -273,9 +273,9 @@ System --> Monitor : Metriken & Logs senden
 | Template-Inhalt zur Indexierung, Suchanfragen
 | Indexierungsbestätigung, Suchergebnisse mit Kontext
 
-| Monitoring
+| OpenTelemetry Collector (optional)
 | (keine Eingabe)
-| Metriken (CPU, RAM, Latenz), strukturierte Logs (JSON)
+| Traces, Metriken und Logs via OTLP-Protokoll
 |===
 
 === Technischer Kontext
@@ -300,7 +300,7 @@ node "Docker Host / Kubernetes" as Docker {
 node "Externe Services" {
   component "Elasticsearch ≥ 7.x" as ES
   component "SMTP-Server" as SMTP
-  component "Monitoring\n(Prometheus/ELK)" as Monitor
+  component "OpenTelemetry\nCollector (optional)" as Monitor
 }
 
 Browser -down-> WebUI : HTTPS/TLS
@@ -311,7 +311,7 @@ Core -down-> DB : JDBC\nPostgreSQL Protocol
 Core -right-> MQ : AMQP / Kafka Protocol
 Core -down-> ES : REST-API\nHTTP/JSON
 Core -left-> SMTP : SMTP/TLS
-Core -right-> Monitor : HTTP (Prometheus)\nTCP (Logs)
+Core -right-> Monitor : OTLP (gRPC/HTTP)
 
 note right of Core
   LibreOffice ≥ 24
@@ -350,9 +350,9 @@ end note
 | SMTP/TLS (Port 587)
 | E-Mail-Benachrichtigungen (Freigaben, Reviews, Tests)
 
-| blocpress-server → Monitoring
-| Prometheus (HTTP Pull), Logs (TCP/JSON)
-| Metriken (Request-Latenz, Fehlerraten), Audit-Logs
+| blocpress-server → OpenTelemetry Collector
+| OTLP (gRPC Port 4317 / HTTP Port 4318)
+| Traces (Request-Verarbeitung), Metriken (Latenz, Fehlerraten), Logs
 |===
 
 <<<<
@@ -435,7 +435,7 @@ end note
 * Storage Abstraction Layer (`StorageService` Interface) entkoppelt Business-Logik von Storage-Implementierung
 * Template-Versionierung: Jede Änderung = neue Version
 * Code-Versionierung: Git mit Semantic Versioning
-* Strukturierte Logs (JSON) für einfaches Debugging
+* OpenTelemetry für Traces, Metriken und Logs (optional, vendor-neutral)
 
 *Q4: Sicherheit*
 
@@ -965,6 +965,8 @@ note right of App
   - RABBITMQ_HOST
   - ELASTICSEARCH_URL
   - LIBREOFFICE_HOME
+  - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+    (optional)
 end note
 @enduml
 ----
@@ -1011,6 +1013,8 @@ services:
       RABBITMQ_HOST: rabbitmq
       ELASTICSEARCH_URL: http://elasticsearch:9200
       LIBREOFFICE_HOME: /usr/lib/libreoffice
+      # OpenTelemetry (optional — nur setzen, wenn Collector vorhanden)
+      # QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     ports:
       - "8080:8080"
     volumes:
@@ -1139,6 +1143,9 @@ spec:
           value: rabbitmq-svc
         - name: ELASTICSEARCH_URL
           value: http://elasticsearch-svc:9200
+        # OpenTelemetry (optional)
+        # - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+        #   value: http://otel-collector-svc:4317
         resources:
           requests:
             memory: "2Gi"
@@ -1165,7 +1172,7 @@ spec:
 * *Skalierbarkeit:* Kubernetes-Deployment mit 3 Replicas, horizontal skalierbar
 * *Verfügbarkeit:* PostgreSQL mit Primary-Replica-Setup, Elasticsearch mit 2 Nodes
 * *Performance:* SSD-Storage für PostgreSQL, Connection Pooling, Load Balancing
-* *Überwachbarkeit:* Liveness- und Readiness-Probes für Health-Checks
+* *Überwachbarkeit:* Liveness-/Readiness-Probes für Health-Checks, OpenTelemetry für Traces/Metriken/Logs (optional)
 
 <<<<
 [[section-concepts]]
@@ -1487,83 +1494,45 @@ public class DocumentWorker {
 * Fehlertoleranz: Retry-Mechanismus bei Fehlern
 * Entkopplung: Producer und Consumer unabhängig deploybar
 
-=== Logging und Monitoring
+=== Observability (OpenTelemetry)
 
-*Structured Logging:*
+blocpress-server nutzt *Quarkus OpenTelemetry* (`quarkus-opentelemetry`) für die Erfassung von Traces, Metriken und Logs. Die Integration ist vendor-neutral und erfordert vom Betreiber lediglich die Konfiguration eines OTLP-Endpunkts.
 
-[source,java]
+*Auto-Instrumentation:*
+
+Quarkus instrumentiert automatisch:
+
+* REST-API-Aufrufe (Eingangs-Requests und ausgehende HTTP-Calls)
+* JDBC-Datenbankzugriffe (PostgreSQL)
+* Message-Queue-Operationen (RabbitMQ/Kafka)
+
+Für diese Standardmetriken und Traces ist kein eigener Code erforderlich.
+
+*Konfiguration:*
+
+[source,properties]
 ----
-@Slf4j
-public class TemplateService {
-    public Template uploadTemplate(byte[] file, String name) {
-        log.info("Template upload started",
-            kv("templateName", name),
-            kv("fileSize", file.length),
-            kv("userId", SecurityContext.getUserId()));
+# OpenTelemetry aktivieren (optional — ohne Endpoint werden keine Daten exportiert)
+quarkus.otel.exporter.otlp.endpoint=http://otel-collector:4317
 
-        try {
-            // ... Business Logic ...
-            log.info("Template uploaded successfully",
-                kv("templateId", template.getId()),
-                kv("templateName", name));
-        } catch (ValidationException e) {
-            log.warn("Template validation failed",
-                kv("templateName", name),
-                kv("errors", e.getErrors()),
-                e);
-            throw e;
-        }
-    }
-}
+# Service-Name für Traces und Metriken
+quarkus.otel.resource.attributes=service.name=blocpress-server
+
+# Logging: Standard Quarkus JSON-Logging, wird durch OTel-Kontext (Trace-ID, Span-ID) angereichert
+quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss} %-5p traceId=%X{traceId} [%c] %s%e%n
 ----
 
-Output (JSON):
-[source,json]
-----
-{
-  "timestamp": "2024-02-13T10:15:30.123Z",
-  "level": "INFO",
-  "message": "Template uploaded successfully",
-  "templateId": 42,
-  "templateName": "Vertragsvorlage_2024",
-  "userId": 17,
-  "traceId": "abc-123-def"
-}
-----
+*Optionalität:*
 
-*Metriken (Prometheus):*
+Wird kein `quarkus.otel.exporter.otlp.endpoint` konfiguriert, ist OpenTelemetry deaktiviert — blocpress läuft ohne externe Monitoring-Abhängigkeit. Der Betreiber kann jeden OTLP-kompatiblen Collector einsetzen (z.B. Grafana Alloy, Jaeger, Datadog Agent).
 
-* `blocpress_document_generation_duration_seconds` - Histogram der Generierungszeiten
-* `blocpress_template_upload_total` - Counter: Anzahl hochgeladener Templates
-* `blocpress_api_requests_total{endpoint, status}` - Counter: API-Requests
-* `blocpress_test_failures_total` - Counter: Fehlgeschlagene Regressionstests
-* `blocpress_compliance_reviews_overdue` - Gauge: Anzahl überfälliger Reviews
+*Audit-Logging:*
+
+Audit-Logging für Compliance-relevante Aktionen (Freigaben, Reviews, Statusänderungen) ist ein eigenständiges Konzept und unabhängig von OpenTelemetry. Audit-Einträge werden in einer separaten, nicht modifizierbaren Datenbanktabelle gespeichert (User-ID, Zeitstempel, Aktion, alte/neue Werte).
 
 *Health-Checks:*
 
-[source,java]
-----
-@Liveness
-public class LivenessCheck implements HealthCheck {
-    public HealthCheckResponse call() {
-        return HealthCheckResponse.up("blocpress-core");
-    }
-}
-
-@Readiness
-public class ReadinessCheck implements HealthCheck {
-    @Inject
-    DataSource dataSource;
-
-    public HealthCheckResponse call() {
-        try (Connection conn = dataSource.getConnection()) {
-            return HealthCheckResponse.up("database");
-        } catch (SQLException e) {
-            return HealthCheckResponse.down("database");
-        }
-    }
-}
-----
+Quarkus stellt Liveness- und Readiness-Probes automatisch bereit (`/q/health/live`, `/q/health/ready`). Diese sind unabhängig von OpenTelemetry und erfordern keine zusätzliche Konfiguration.
 
 <<<<
 [[section-design-decisions]]
@@ -1725,7 +1694,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 ** Wartbarkeit
 *** Storage Abstraction Layer\n(Austauschbarkeit)
 *** Versionierung\n(Templates & Code)
-*** Strukturierte Logs\n(JSON)
+*** OpenTelemetry\n(Traces, Metriken, Logs)
 
 ** Sicherheit
 *** Vier-Augen-Prinzip\n(technisch erzwungen)
