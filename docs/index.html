@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blocpress – ODT to PDF Document Rendering Engine</title>
+    <meta name="description" content="Blocpress is an open-source Java document template engine that renders LibreOffice ODT templates to PDF and RTF via REST API. Designed for enterprise and insurance document workflows.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 80px 20px;
+            border-radius: 16px;
+        }
+
+        .feature-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .accent {
+            color: #2a5298;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+<div class="container py-5">
+
+    <!-- HERO -->
+    <div class="hero text-center d-flex flex-column align-items-center justify-content-center mb-5"
+         style="min-height: 420px;">
+
+        <!-- Großes zentriertes Logo -->
+        <img src="blocpress-logo-large.svg"
+             alt="Blocpress – ODT to PDF Document Rendering Engine"
+             style="max-width:600px; width:100%;"
+             class="mb-4">
+
+        <!-- SEO H1 (für Google, visuell dezent) -->
+        <h1 class="fw-bold fs-6 mt-2 opacity-75">
+            ODT to PDF Document Rendering Engine (Java + LibreOffice)
+        </h1>
+
+        <p class="lead mt-3 px-3">
+            Open-source Java template engine for rendering LibreOffice ODT templates
+            into PDF and RTF via REST API.
+        </p>
+
+        <a href="https://github.com/flaechsig/blocpress"
+           class="btn btn-light btn-lg mt-3">
+            View on GitHub
+        </a>
+
+    </div>
+
+    <!-- FEATURES -->
+    <div class="row text-center mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h4 class="accent">ODT → PDF</h4>
+                <p>Render LibreOffice templates into production-ready PDF documents.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h4 class="accent">REST API</h4>
+                <p>Trigger document generation via HTTP for automated workflows.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h4 class="accent">Enterprise Ready</h4>
+                <p>Designed for enterprise-grade document rendering.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <h2 class="mb-3 accent">How It Works</h2>
+    <p>
+        Send JSON data to the Blocpress server. The engine merges data into
+        LibreOffice ODT templates and returns a generated PDF.
+    </p>
+
+    <pre class="bg-white p-3 rounded shadow-sm">
+curl -X POST http://localhost:8080/render \
+  -H "Content-Type: application/json" \
+  -d '{"template":"contract.odt","data":{"name":"John Doe"}}'
+  </pre>
+
+    <!-- TECH -->
+    <h2 class="mt-5 mb-3 accent">Technology Stack</h2>
+    <ul>
+        <li>Java 21</li>
+        <li>Quarkus</li>
+        <li>LibreOffice headless</li>
+        <li>OpenAPI / REST API</li>
+        <li>ODT template engine</li>
+    </ul>
+
+    <footer class="text-center mt-5 pt-4 border-top">
+        <p>© 2026 Blocpress – Open Source ODT to PDF Rendering Engine</p>
+    </footer>
+
+</div>
+
+</body>
+</html>
