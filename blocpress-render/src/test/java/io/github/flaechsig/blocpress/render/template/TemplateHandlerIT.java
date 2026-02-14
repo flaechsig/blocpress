@@ -60,7 +60,11 @@ class TemplateHandlerIT {
             new GenericContainer<>(DockerImageName.parse(IMAGE))
                     .withExposedPorts(8080, JACOCO_PORT)
                     .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("app"))
-                    .withFileSystemBind(JACOCO_DIR.toString(), "/jacoco")
+                    .withCreateContainerCmdModifier(cmd ->
+                            cmd.getHostConfig().withBinds(
+                                    new com.github.dockerjava.api.model.Bind(
+                                            JACOCO_DIR.toString(),
+                                            new com.github.dockerjava.api.model.Volume("/jacoco"))))
                     .withCopyFileToContainer(
                             org.testcontainers.utility.MountableFile.forHostPath(JACOCO_AGENT_JAR),
                             "/jacoco/jacocoagent.jar"
@@ -198,7 +202,9 @@ class TemplateHandlerIT {
                 .POST(HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))
                 .build();
 
-        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofByteArray());
+        try (var client = HttpClient.newBuilder().build()) {
+            return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        }
     }
 
 }
