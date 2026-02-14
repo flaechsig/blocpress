@@ -28,6 +28,12 @@ import java.util.List;
  * if you use a template server (for mode=server) the resource name ist constructed by the following rule/example
  * <p>
  * Section Name: TextBuildingBlock(customer=customer,address=customer.address)
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-e-2">E-2: Baustein</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a> (Textblock-Expansion)</li>
+ * </ul>
  * URL: <blocpress.url>/TextBuildingBlock
  * <p>
  * The parameter in parentheses are the initialisation for the template. So template name is needed in file and

@@ -24,7 +24,7 @@ public class ShowVariableTest {
         JsonNode node = mapper.readTree(json);
 
         var expected = extractOdtContent(loadDocumentAsBytes("/kuendigung_generated.odt"));
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("kuendigung.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("kuendigung.odt").normalize().toURL(), node));
 
         assertNotNull(actual);
         assertEquals(expected, actual);
@@ -38,7 +38,7 @@ public class ShowVariableTest {
                 }
                 """;
         JsonNode node = mapper.readTree(json);
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("numberformats.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("numberformats.odt").normalize().toURL(), node));
 
         var expected = """
                 -98765

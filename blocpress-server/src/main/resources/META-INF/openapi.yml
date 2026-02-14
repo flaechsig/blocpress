@@ -8,46 +8,61 @@ info:
     may be added over time without breaking existing integrations.
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080/api
 
 tags:
-  - name: Render
-    description: Rendering documents
+  - name: Template
+    description: Template handling and document generation
 
 paths:
-  /render:
+  /template/generate:
     post:
-      tags: [Render]
-      operationId: renderDocument
-      summary: render ODT to different output formats (ODT/PDF/RTF)
+      tags: [ Template ]
+      operationId: generateDocument
+      summary: Generate document from ODT template and JSON data
       description: >
-        Render an ODT template to ODT/PDF/RTF. The rendering of ODT to ODT is usefull to update
-        calculated fields like date or page numbers.
+        Upload an ODT template together with JSON data to generate a document in the
+        desired output format. This is a stateless endpoint — no template storage required.
       parameters:
         - name: Accept
           in: header
-          required: false
+          required: true
           schema:
             type: string
-            example: application/pdf, application/rtf, application/vnd.oasis.opendocument.text
+            enum:
+              - application/pdf
+              - application/rtf
+              - application/vnd.oasis.opendocument.text
+            example: application/pdf
           description: >
-            Desired response media type. If omitted, the server may choose a default.
+            Desired response media type. Must be one of: application/pdf, application/rtf, 
+            application/vnd.oasis.opendocument.text.
       requestBody:
         required: true
         content:
-          application/vnd.oasis.opendocument.text:
+          multipart/form-data:
             schema:
-              type: string
-              format: binary
+              type: object
+              required:
+                - template
+                - data
+              properties:
+                template:
+                  type: string
+                  format: binary
+                  description: ODT template
+                data:
+                  type: string
+                  description: JSON template data
       responses:
         "200":
-          description: Rendered document (binary) in 'outputFormat'
+          description: Generated document (binary) in specified format
           headers:
             Content-Disposition:
               description: download filename
               schema:
                 type: string
-                example: attachment; filename="output.[pdf|rtf|odt]"
+                example: attachment; filename="generated-document.[pdf|rtf|odt]"
           content:
             application/pdf:
               schema:
@@ -62,9 +77,8 @@ paths:
                 type: string
                 format: binary
         "400":
-          description: Bad request (e.g. missing data, unknown output format)
+          description: Bad request (e.g. missing template, invalid JSON data, or invalid template structure)
         "406":
           description: Unsupported Media Type
         "500":
           description: Internal server error
-

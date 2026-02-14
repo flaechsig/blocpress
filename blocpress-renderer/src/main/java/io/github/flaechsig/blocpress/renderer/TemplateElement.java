@@ -5,6 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Interface for individual template elements (User-Fields, Sections, Spans).
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a> (User-Fields, IF-Bedingungen, Wiederholungsgruppen)</li>
+ *   <li>SDC: <a href="docs/Solution_Design_Concept.adoc#sdc-ia-userfield">User-Field (Information Architecture)</a></li>
+ * </ul>
+ */
 public interface TemplateElement {
 
     /**

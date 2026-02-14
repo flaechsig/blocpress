@@ -39,10 +39,17 @@ public class RenderEngine {
      *                 Unterstützt flache und verschachtelte Strukturen. Darf nicht {@code null} sein.
      * @return Byte-Array des gerenderten ODT-Dokuments mit ersetzten Platzhaltern.
      * @throws IllegalArgumentException wenn {@code template} oder {@code data} {@code null} ist.
+     * <p><b>Design-Referenzen:</b></p>
+     * <ul>
+     *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a></li>
+     *   <li>SysDC: <a href="docs/System_Design_Concept.adoc#sydc-scenario-generate">Szenario: Dokument über API generieren</a></li>
+     *   <li>SDC: <a href="docs/Solution_Design_Concept.adoc#sdc-bp-generieren">BP: Dokument automatisiert generieren</a></li>
+     * </ul>
+     *
      * @see OdfTextDocument für Details zum ODT-Dokumentenmodell.
      */
     @SneakyThrows
-    public static byte[] renderTemplate(@NonNull URL template, @NonNull JsonNode data) {
+    public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data) {
         byte[] output;
         TemplateDocument doc = TemplateDocument.getInstance(template);
 

@@ -12,6 +12,15 @@ import org.w3c.dom.Node;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * ODT-Implementierung von {@link TemplateElement}. Kapselt ein {@link OdfElement}
+ * und stellt Methoden zur Condition-Evaluierung und User-Field-Sammlung bereit.
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a> (Condition-Evaluierung, Field-Sammlung)</li>
+ * </ul>
+ */
 public class OdtTemplateElement implements TemplateElement {
     private static final String TABLE_NS = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
     private static final String TEXT_NS  = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";

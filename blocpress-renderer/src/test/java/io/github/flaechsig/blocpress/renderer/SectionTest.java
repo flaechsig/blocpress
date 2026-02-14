@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Path;
 
 import static io.github.flaechsig.blocpress.util.ResourceUtil.extractOdtContent;
@@ -34,7 +32,7 @@ public class SectionTest {
         var expected = """
                 Absatz der unter der Bedingung „kunde.anrede“ == „FRAU“ angezeigt werden soll. Hier folgt dann weiterer Text und auch der Nachname von Müller.""";
         JsonNode node = mapper.readTree(json);
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
@@ -53,7 +51,7 @@ public class SectionTest {
         var expected = """
                 Dieser Absatz wird für angezeigt, wenn die Anrede auf „HERR“ steht. Und dann kommt weiterer Text und auch der Nachname von Müller.""";
         JsonNode node = mapper.readTree(json);
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
         assertNotNull(actual);
         assertEquals(expected, actual);
     }
@@ -72,7 +70,7 @@ public class SectionTest {
         byte[] odt = loadDocumentAsBytes("/section.odt");
         var expected = """
                 Wenn weder Frau oder Herr im Attribut steht, dann wird für dieser Text angezeigt.""";
-        var actual = extractOdtContent(RenderEngine.renderTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
+        var actual = extractOdtContent(RenderEngine.mergeTemplate(baseUri.resolve("section.odt").normalize().toURL(), node));
         assertNotNull(actual);
         assertEquals(expected, actual);
     }

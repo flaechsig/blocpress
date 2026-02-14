@@ -17,6 +17,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -26,6 +27,18 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * ODT-Implementierung von {@link TemplateDocument}. Kapselt ein {@link OdfTextDocument}
+ * und stellt Methoden zur Template-Verarbeitung bereit (Textblock-Expansion, Style-Merging,
+ * Wiederholungsgruppen, User-Field-Ersetzung).
+ *
+ * <p><b>Design-Referenzen:</b></p>
+ * <ul>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-1">TF-1: Template validieren</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-tf-5">TF-5: Dokument generieren</a></li>
+ *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-ti-3">TI-3: LibreOffice API</a></li>
+ * </ul>
+ */
 public class OdtTemplateDocument implements TemplateDocument {
 
     private static final Pattern SECTION_PARAMS = Pattern.compile("^\\s*[^()]+\\((.*)\\)\\s*$");
@@ -358,7 +371,7 @@ public class OdtTemplateDocument implements TemplateDocument {
     }
 
     /**
-     * Smart merge:
+     * Smart template:
      * - if name doesn't exist in target -> import
      * - if exists and definition identical -> skip (reuse master style)
      * - if exists but different -> import renamed copy and store mapping old->new
