@@ -13,8 +13,8 @@
     <url>https://github.com/flaechsig/blocpress</url>
 
     <modules>
-        <module>blocpress-renderer</module>
-        <module>blocpress-server</module>
+        <module>blocpress-core</module>
+        <module>blocpress-render</module>
     </modules>
 
     <properties>
@@ -129,8 +129,8 @@
                                     <element>BUNDLE</element>
                                     <excludes>
                                         <!-- OpenAPI Generator output -->
-                                        <exclude>io/github/flaechsig/blocpress/server/api/**</exclude>
-                                        <exclude>io/github/flaechsig/blocpress/server/model/**</exclude>
+                                        <exclude>io/github/flaechsig/blocpress/render/api/**</exclude>
+                                        <exclude>io/github/flaechsig/blocpress/render/model/**</exclude>
                                     </excludes>
                                     <limits>
                                         <limit>

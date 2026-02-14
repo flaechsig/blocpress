@@ -1,7 +1,7 @@
 /.idea/
-/blocpress-renderer/target/
-/blocpress-server/target/
-/blocpress-server/blocpress-server.iml
+/blocpress-core/target/
+/blocpress-render/target/
+/blocpress-render/blocpress-render.iml
 /.continue/
 CLAUDE.md
 /docs/templates/arc42-template.adoc
@@ -14,3 +14,5 @@ CLAUDE.md
 /docs/Solution_Design_Concept.pdf
 /docs/System_Design_Concept.pdf
 /docs/blocpress-logo-large-orig.svg
+/blocpress-render/blocpress-server.iml
+/src/site/

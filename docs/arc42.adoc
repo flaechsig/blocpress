@@ -44,7 +44,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 * xref:Solution_Design_Concept.adoc#sdc-vision[Solution Design Concept: blocpress] -- Vision, Value Creation Architecture, Information Architecture, Business Processes
 * xref:System_Design_Concept.adoc#sydc-goals[System Design Concept: blocpress] -- Systemziele, Systemarchitektur, Szenarien
-* xref:Element_Design_Concept.adoc#edc-goals[Element Design Concept: blocpress-server] -- Goals, Use Cases, Technical Functions, Entities
+* xref:Element_Design_Concept.adoc#edc-goals[Element Design Concept: blocpress (SCS-Module)] -- Goals, Use Cases, Technical Functions, Entities
 
 === Qualitätsziele
 
@@ -122,10 +122,10 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 | Randbedingung | Erläuterung
 
 | Quarkus Framework
-| blocpress-server muss mit Quarkus implementiert werden (schnelle Startup-Zeit, geringer Memory-Footprint, native Kompilierung möglich).
+| Alle SCS-Module müssen mit Quarkus implementiert werden (schnelle Startup-Zeit, geringer Memory-Footprint, native Kompilierung möglich).
 
 | LibreOffice ≥ 24
-| LibreOffice Version 24 oder höher muss headless in blocpress-server integriert sein. Ältere Versionen nicht unterstützt.
+| LibreOffice Version 24 oder höher muss headless in blocpress-render integriert sein. Ältere Versionen nicht unterstützt.
 
 | PostgreSQL ≥ 18
 | Datenbank muss PostgreSQL Version 18 oder höher sein. JSONB-Indizes erforderlich.
@@ -162,7 +162,7 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 | Templates ohne Status "Freigegeben" dürfen nicht für Produktiv-Generierung verwendet werden.
 
 | JWT-basierte Authentifizierung
-| Benutzer-Authentifizierung erfolgt über JWT-Validierung. blocpress-server prüft Signatur, Issuer und Ablaufdatum gegen einen konfigurierten Public Key. Kein externer Identity Provider zur Laufzeit erforderlich.
+| Benutzer-Authentifizierung erfolgt über JWT-Validierung. Jedes SCS-Modul prüft Signatur, Issuer und Ablaufdatum gegen einen konfigurierten Public Key. Kein externer Identity Provider zur Laufzeit erforderlich.
 |===
 
 === Konventionen

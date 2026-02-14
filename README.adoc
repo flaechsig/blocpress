@@ -73,7 +73,7 @@ image::docs/images/projectstructure.png[Project structure]
 [source,xml]
 ----
 <dependency>
-    <artifactId>blocpress-renderer</artifactId>
+    <artifactId>blocpress-core</artifactId>
     <groupId>io.github.flaechsig</groupId>
     <version>1.0.0</version>
 </dependency>
@@ -83,7 +83,7 @@ image::docs/images/projectstructure.png[Project structure]
 ----
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.flaechsig.blocpress.renderer.RenderEngine;
+import io.github.flaechsig.blocpress.core.RenderEngine;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
