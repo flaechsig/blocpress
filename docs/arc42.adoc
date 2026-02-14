@@ -295,10 +295,10 @@ node "Docker Host / Kubernetes" as Docker {
   component "Web-Oberfläche\n(React SPA)" as WebUI
   database "PostgreSQL ≥ 18" as DB
   queue "RabbitMQ/Kafka" as MQ
+  component "Elasticsearch ≥ 7.x" as ES
 }
 
 node "Externe Services" {
-  component "Elasticsearch ≥ 7.x" as ES
   component "SMTP-Server" as SMTP
   component "OpenTelemetry\nCollector (optional)" as Monitor
 }
