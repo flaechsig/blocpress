@@ -2,13 +2,20 @@ ifndef::imagesdir[:imagesdir: docs]
 
 image:blocpress-logo-large.png[]
 
-== Blocpress — printing made (mostly) simple
+= Blocpress – ODT to PDF Document Rendering Engine (Java + LibreOffice)
 
-Blocpress is a lightweight document template/rendering engine.
+Blocpress is an open-source Java-based document template engine that renders LibreOffice ODT templates into PDF and RTF using a REST API. It enables dynamic document generation for enterprise workflows.
+
 Its goal is simple: take a LibreOffice Writer template (ODT) plus business data (JSON) and produce a final document with as little “magic” as possible.
 
-Blocpress treats ODT as the source of truth for layout and formatting.
-Rendering focuses on:
+== Use Cases
+
+- Render LibreOffice ODT templates to PDF
+- Generate dynamic documents from JSON data
+- Automate enterprise document workflows
+- Headless document generation via REST API
+
+Blocpress treats ODT as the source of truth for layout and formatting. Rendering focuses on:
 
 * replacing placeholders with data,
 * showing/hiding conditional content,
