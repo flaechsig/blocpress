@@ -54,7 +54,7 @@ Die Anwendung ist als Self-Contained Systems (SCS) strukturiert — fünf unabh�
 
 *blocpress-studio (Portal-Shell):* Statische HTML/JS-Anwendung (nginx). Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Import Maps. Kein eigenes Backend. Lädt die Web Components der fachlichen Module.
 
-*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung. Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
+*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung. Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
 _Use Cases: UC-1 bis UC-5, UC-19 bis UC-21_ +
 _Detaillierte Beschreibung: xref:Element_Design_Concept.adoc#edc-goals[Goals im Element Design Concept]_
 
@@ -62,11 +62,15 @@ _Detaillierte Beschreibung: xref:Element_Design_Concept.adoc#edc-goals[Goals im 
 _Use Cases: UC-6 bis UC-9, UC-11 bis UC-18_ +
 _Technical Functions: xref:Element_Design_Concept.adoc#edc-tf-2[TF-2], xref:Element_Design_Concept.adoc#edc-tf-6[TF-6], xref:Element_Design_Concept.adoc#edc-tf-7[TF-7]_
 
-*blocpress-render (Quarkus):* Dokumentengenerierung — einzige öffentliche REST-API. Liest freigegebene Templates aus Schema `production`. Integriert LibreOffice headless (Version ≥ 24). Stateless, horizontal skalierbar. +
+*blocpress-render (Quarkus):* Dokumentengenerierung — einzige öffentliche REST-API. Liest freigegebene Templates aus Schema `production`. Nutzt blocpress-core (Merge-Pipeline) und LibreOffice headless (Format-Export, Version ≥ 24). Stateless, horizontal skalierbar. +
 _Technical Function: xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren]_
 
 *blocpress-admin (Quarkus):* Administration — Benutzerverwaltung, Rollenzuweisung, Systemkonfiguration, Audit-Logs. Nutzt Schema `admin`. +
 _Use Cases: UC-22 bis UC-24_
+
+*Shared Library:*
+
+*blocpress-core:* Gemeinsame Java-Library (Maven-Abhängigkeit, kein eigenständiger Container). Enthält ODT-Parsing (odfdom), Template-Validierung und Merge-Pipeline (Text-Block-Expansion, Bedingungsauswertung, Schleifenbehandlung, Feldersetzung). Keine LibreOffice-Abhängigkeit. Wird von blocpress-workbench (TF-1: Validierung) und blocpress-render (TF-5: Merge-Schritt) genutzt.
 
 *Gemeinsame Infrastruktur:*
 
@@ -114,8 +118,8 @@ _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-4[TI-4: JWT-Validi
 3. Der Template-Designer lädt eine LibreOffice-Datei (.odt) über die Workbench-Oberfläche hoch
 4. Das Web Component sendet die Datei an blocpress-workbench über die interne REST-API
 5. blocpress-workbench speichert die Datei im Schema `workbench` (PostgreSQL) und erstellt einen Metadaten-Eintrag
-6. blocpress-workbench sendet die Template-Datei an den LibreOffice Document Processor zur Validierung
-7. Der Document Processor analysiert User-Fields, Wiederholungsgruppen und IF-Bedingungen und meldet Ergebnisse zurück
+6. blocpress-workbench validiert die Template-Datei über blocpress-core (ODT-Parsing ohne LibreOffice)
+7. blocpress-core analysiert User-Fields, Wiederholungsgruppen und IF-Bedingungen und meldet Ergebnisse zurück
 8. blocpress-workbench speichert die Validierungsergebnisse und aktualisiert den Template-Status auf "Entwurf"
 9. Der Template-Designer sieht die Validierungsergebnisse und reicht das Template zur Prüfung ein
 10. blocpress-workbench kopiert das Template in das Schema `proof` (Stufenübergabe workbench → proof)
@@ -260,7 +264,7 @@ _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-
 - blocpress ist als Self-Contained Systems (SCS) strukturiert: studio, workbench, proof, render, admin
 - Alle SCS-Module (außer studio) basieren auf Quarkus Framework
 - Jedes SCS-Modul wird als eigener Docker-Container betrieben
-- LibreOffice Version ≥ 24 muss headless in blocpress-render und blocpress-workbench integriert sein
+- LibreOffice Version ≥ 24 muss headless in blocpress-render integriert sein (Format-Export). blocpress-workbench nutzt blocpress-core für Validierung ohne LibreOffice
 - Nur LibreOffice-kompatible Formate (ODT, OTT) werden als Template-Format unterstützt
 - Export nach ODT, PDF und RTF
 - PostgreSQL Version ≥ 18 als Datenbank mit vier getrennten Schemata (workbench, proof, production, admin)

@@ -11,7 +11,7 @@ image:blocpress-logo-large.png[]
 === G-1: Automatisierte Template-basierte Dokumentengenerierung
 
 *Description:*
-blocpress-render soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen und Dokumente in den Formaten ODT, PDF und RTF generieren. Die Generierung muss deterministisch, performant und über die öffentliche REST-API zugänglich sein. +
+blocpress-render soll LibreOffice-Templates (ODT) mit strukturierten JSON-Daten automatisiert zusammenführen (Merge-Pipeline via blocpress-core) und Dokumente in den Formaten ODT, PDF und RTF generieren (Format-Export via LibreOffice). Die Generierung muss deterministisch, performant und über die öffentliche REST-API zugänglich sein. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Automatisierte Dokumentengenerierung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-generieren[Dokument automatisiert generieren]_
 
 [[edc-g-2]]
@@ -544,7 +544,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 == Technical Functions
 
 [[edc-tf-1]]
-=== TF-1: Template validieren (blocpress-workbench)
+=== TF-1: Template validieren (blocpress-workbench, via blocpress-core)
 
 *Input:*
 
@@ -562,7 +562,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 
 *Main Functional Flow:*
 
-1. Lade templateBinary als ODT-Dokument über LibreOffice API
+1. Lade templateBinary als ODT-Dokument über blocpress-core (odfdom)
 2. Prüfe, ob Dokument gültige ODT-Struktur hat
 3. Extrahiere alle User-Fields aus dem Dokument
 4. Für jedes User-Field: Prüfe, ob Name in gültiger Punkt-Notation ist (z.B. "kunde.name")
@@ -651,7 +651,7 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 4. Gebe nextReviewDate zurück
 
 [[edc-tf-5]]
-=== TF-5: Dokument generieren (blocpress-render)
+=== TF-5: Dokument generieren (blocpress-render, Merge via blocpress-core)
 
 *Input:*
 
@@ -668,17 +668,17 @@ G-3: Workflow-gesteuerte Qualitätssicherung (unterstützend)
 
 *Main Functional Flow:*
 
-1. Lade Template mit templateId und templateVersion aus E-1 (Template)
+1. Lade Template mit templateId und templateVersion aus E-1 (Template, Schema: production)
 2. Prüfe, ob Template Status "Freigegeben" hat
 3. Lade Template-Binärdaten aus E-1
 4. Parse jsonData zu JSON-Objekt
-5. Öffne Template mit LibreOffice headless API
+5. *Merge via blocpress-core (Schritte 5-8 laufen ohne LibreOffice):*
 6. Für jedes User-Field im Template: Extrahiere Wert aus JSON via Punkt-Notation und setze Field-Wert
 7. Für jede Wiederholungsgruppe (Section/Table): Iteriere über Array aus JSON und dupliziere Gruppe
 8. Für jede IF-Bedingung: Evaluiere Bedingung basierend auf JSON-Daten und zeige/verstecke Inhalt
-9. Exportiere Dokument im gewünschten outputFormat (ODT, PDF oder RTF) über LibreOffice API
-10. Konvertiere exportiertes Dokument zu byte[]
-11. Schließe LibreOffice-Dokument
+9. *Format-Export via LibreOffice Processor:*
+10. Exportiere gemergtes ODT im gewünschten outputFormat (ODT, PDF oder RTF) über LibreOffice headless
+11. Konvertiere exportiertes Dokument zu byte[]
 12. Setze success=true
 13. Gebe documentBinary und success zurück
 
@@ -841,28 +841,25 @@ Entity-Objekte oder Anzahl betroffener Zeilen
 CRUD-Operationen auf Entities des jeweiligen Schemas
 
 [[edc-ti-3]]
-=== TI-3: LibreOffice API
+=== TI-3: LibreOffice API (nur blocpress-render)
 
 *Description:*
-Zugriff auf LibreOffice headless (Version ≥ 24) zur Verarbeitung von ODT-Templates. Wird intern von TF-1, TF-5 genutzt.
+Zugriff auf LibreOffice headless (Version ≥ 24) ausschließlich für Format-Export (ODT → PDF/RTF). Wird intern nur von TF-5 (Schritt Format-Export) in blocpress-render genutzt. Die Merge-Schritte (Feldersetzung, Schleifen, Bedingungen) laufen über blocpress-core ohne LibreOffice.
 
 *Input:*
 
-- ODT-Dokument (byte[])
-- Export-Format (ODT/PDF/RTF)
-- Field-Werte (Map<String, String>)
+- Gemergtes ODT-Dokument (byte[], bereits von blocpress-core verarbeitet)
+- Export-Format (PDF/RTF)
 
 *Output:*
 
 - Exportiertes Dokument (byte[])
-- Validierungsergebnisse
 
 *Action:*
 
 Ruft LibreOffice UNO-API auf:
 
 - Dokument öffnen: `XComponentLoader.loadComponentFromURL()`
-- Fields setzen: `XTextFieldsSupplier.getTextFields()`
 - Dokument exportieren: `XStorable.storeToURL()` mit Filter für PDF/RTF
 
 [[edc-ti-4]]
@@ -1236,7 +1233,7 @@ _Referenz: Quarkus.io Dokumentation_
 === C-2: LibreOffice Version
 
 *Description:*
-TF-1 (Template validieren) und TF-5 (Dokument generieren) müssen LibreOffice Version ≥ 24 headless nutzen. Ältere Versionen werden nicht unterstützt.
+TF-5 (Dokument generieren, Format-Export in blocpress-render) muss LibreOffice Version ≥ 24 headless nutzen. Ältere Versionen werden nicht unterstützt. TF-1 (Template validieren) läuft über blocpress-core und benötigt kein LibreOffice.
 
 _Referenz: LibreOffice Release Notes_
 

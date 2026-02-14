@@ -503,6 +503,8 @@ package "blocpress Gesamtsystem" {
   component "blocpress-render\n(Quarkus)" as Render
   component "blocpress-admin\n(Quarkus)" as Admin
 
+  component "blocpress-core\n(Shared Library)" as Core
+
   database "PostgreSQL\n(workbench | proof |\nproduction | admin)" as DB
   queue "Message Queue\n(RabbitMQ)" as MQ
   component "Content Search\n(Elasticsearch)" as Search
@@ -521,6 +523,10 @@ Admin -down-> DB : JDBC\n(Schema: admin)
 Workbench -down-> Search : HTTP
 Workbench ..> Render : REST (intern)\n(Vorschau)
 Proof ..> Render : REST (intern)\n(Test-Generierung)
+
+Workbench ..> Core : Maven-\nAbhängigkeit
+Render ..> Core : Maven-\nAbhängigkeit
+Proof ..> Core : Maven-\nAbhängigkeit
 
 note right of Studio
   Portal-Shell:
@@ -561,13 +567,13 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 | Portal-Shell: Authentifizierung (JWT-Handling), Navigation, Laden der Micro-Frontends via Import Maps. Kein eigenes Backend — rein statische HTML/JS-Anwendung.
 
 | blocpress-workbench
-| Template-Entwicklung: Upload, Validierung (TF-1), Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Use Cases: UC-1 bis UC-5, UC-19 bis UC-21.
+| Template-Entwicklung: Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Use Cases: UC-1 bis UC-5, UC-19 bis UC-21.
 
 | blocpress-proof
 | Prüfung und Freigabe: Workflow (TF-2, Vier-Augen-Prinzip), Testdaten (UC-14 bis UC-18), Regressionstests (TF-6), Compliance-Reviews (TF-7, UC-11 bis UC-13), Freigabe (UC-6 bis UC-9). Stufenübergabe proof → production.
 
 | blocpress-render
-| Dokumentengenerierung: Einzige öffentliche REST-API (TI-1). Liest freigegebene Templates aus Schema `production`. LibreOffice-Integration (TF-5). Stateless, horizontal skalierbar.
+| Dokumentengenerierung: Einzige öffentliche REST-API (TI-1). Liest freigegebene Templates aus Schema `production`. Nutzt blocpress-core (Merge-Pipeline) und LibreOffice (Format-Export). Stateless, horizontal skalierbar.
 
 | blocpress-admin
 | Administration: Benutzerverwaltung (UC-22 bis UC-24), Rollenzuweisung, Systemkonfiguration, Audit-Logs.
@@ -577,6 +583,9 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 
 | Message Queue
 | Asynchrone Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests). Entkopplung.
+
+| blocpress-core
+| Shared Java-Library (Maven-Abhängigkeit, kein eigenständiger Container): ODT-Parsing (odfdom), Template-Validierung, Merge-Pipeline (Text-Block-Expansion, Bedingungen, Schleifen, Feldersetzung). Wird von blocpress-workbench (Validierung) und blocpress-render (Merge + Generierung) genutzt. Keine LibreOffice-Abhängigkeit.
 
 | Content Search (Elasticsearch)
 | Indexierung von Template-Inhalten, Volltextsuche nach fachlichen Konstrukten, Highlighting. Genutzt von blocpress-workbench.
@@ -606,17 +615,18 @@ package "blocpress-workbench (Quarkus)" {
   component "Template\nService" as TS
   component "Baustein\nService" as BS
   component "Search\nService" as SS
-  component "LibreOffice\nProcessor\n(Validierung)" as LO
   component "Storage\nService" as Storage
   component "Repository\nLayer" as Repo
   component "Web Component\n(bp-workbench)" as WC
 }
 
+component "blocpress-core\n(Shared Library)" as Core
+
 WC ..> API : REST
 API -down-> TS : aufrufen
 API -down-> BS : aufrufen
 API -down-> SS : aufrufen
-TS -down-> LO : TF-1
+TS -down-> Core : TF-1\n(Validierung)
 TS -down-> Storage : save/load
 TS -down-> Repo : CRUD
 BS -down-> Repo : CRUD
@@ -626,6 +636,11 @@ note right of WC
   Custom Element:
   <bp-workbench jwt="...">
   Shadow DOM gekapselt
+end note
+
+note right of Core
+  ODT-Parsing, Validierung
+  Kein LibreOffice nötig
 end note
 @enduml
 ----
@@ -685,16 +700,26 @@ package "blocpress-render (Quarkus)" {
   component "Repository\nLayer" as Repo
 }
 
+component "blocpress-core\n(Shared Library)" as Core
+
 API -down-> DS : aufrufen
-DS -down-> LO : TF-5
+DS -down-> Core : Merge-Pipeline\n(TF-5 Schritt 1-4)
+DS -down-> LO : Format-Export\n(TF-5 Schritt 5)
 DS -down-> Storage : save/load
 DS -down-> Repo : read
 Repo -down-> "PostgreSQL\n(Schema: production)" : JDBC
 
+note right of Core
+  ODT-Parsing, Merge-Pipeline:
+  Text-Blöcke, Bedingungen,
+  Schleifen, Feldersetzung
+  (reines Java/odfdom)
+end note
+
 note right of LO
   LibreOffice ≥ 24
-  headless integriert
-  Deterministische Generierung
+  headless: nur Format-Export
+  ODT → PDF / RTF
 end note
 
 note right of Storage
@@ -715,16 +740,39 @@ Jedes SCS-Modul folgt intern einer Schichtenarchitektur mit Dependency Inversion
 * Technical Functions nutzen Infrastructure Services (LibreOffice, Storage, Repository)
 * Storage Abstraction Layer ermöglicht Austausch der Storage-Implementierung
 
+==== Blackbox blocpress-core (Shared Library)
+
+*Zweck/Verantwortung:*
+
+Gemeinsame Java-Library für ODT-Parsing, Template-Validierung und Merge-Pipeline. Wird als Maven-Abhängigkeit von blocpress-workbench und blocpress-render genutzt. Keine LibreOffice-Abhängigkeit — rein odfdom-basiert.
+
+*Schnittstellen:*
+
+* `RenderEngine.mergeTemplate(URL template, JsonNode data): OdtTemplateDocument` — Merge-Pipeline (Text-Block-Expansion, Bedingungen, Schleifen, Feldersetzung)
+* `TemplateValidator.validate(byte[] odtBinary): ValidationResult` — Struktur-Analyse, User-Fields, Wiederholungsgruppen, IF-Bedingungen extrahieren
+* `OdtTemplateDocument` / `OdtTemplateElement` — Abstraktionen über odfdom
+
+*Qualitäts-/Leistungsmerkmale:*
+
+* Deterministisch: Gleiche Eingabe → gleiche Ausgabe (Merge-Ergebnis)
+* Kein externes Prozess-Management: Reine In-Process-Verarbeitung
+* Testbar ohne LibreOffice-Installation
+
+*Ablageort/Datei:*
+
+* Maven-Modul: `blocpress-core`
+* Package: `io.github.flaechsig.blocpress.core`
+* Hauptklassen: `RenderEngine`, `OdtTemplateDocument`, `OdtTemplateElement`, `JexlConditionEvaluator`
+
 ==== Blackbox LibreOffice Processor
 
 *Zweck/Verantwortung:*
 
-Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates. Wird in blocpress-workbench (Validierung) und blocpress-render (Generierung) eingesetzt.
+Format-Konvertierung von ODT-Dokumenten nach PDF und RTF via LibreOffice headless. Wird in blocpress-render (Dokumentengenerierung) eingesetzt. Blocpress-workbench nutzt LibreOffice nicht — die Validierung läuft vollständig über blocpress-core.
 
 *Schnittstellen:*
 
-* `validateTemplate(byte[] odtBinary): ValidationResult` - TF-1 (in blocpress-workbench)
-* `generateDocument(Template template, String jsonData, OutputFormat format): byte[]` - TF-5 (in blocpress-render)
+* `exportDocument(byte[] mergedOdt, OutputFormat format): byte[]` — Konvertiert ein bereits gemergtes ODT in das Zielformat (PDF/RTF/ODT)
 
 *Qualitäts-/Leistungsmerkmale:*
 
@@ -734,7 +782,8 @@ Integration mit LibreOffice headless zur Verarbeitung von ODT-Templates. Wird in
 
 *Ablageort/Datei:*
 
-* Package: `io.github.flaechsig.blocpress.renderer`
+* Maven-Modul: `blocpress-render`
+* Package: `io.github.flaechsig.blocpress.render`
 * Hauptklasse: `LibreOfficeProcessor`
 
 ==== Blackbox Storage Service
@@ -1920,7 +1969,7 @@ Template-Verarbeitung und Dokumentengenerierung. Optionen: LibreOffice headless 
 
 *Entscheidung:*
 
-LibreOffice ≥ 24 headless, integriert in blocpress-render und blocpress-workbench
+LibreOffice ≥ 24 headless, integriert in blocpress-render (Format-Export). blocpress-workbench nutzt blocpress-core für Validierung ohne LibreOffice
 
 *Begründung:*
 
@@ -1953,6 +2002,8 @@ Zerlegung in fünf Self-Contained Systems (SCS) mit eigener UI, eigenem Backend 
 * *blocpress-proof* — Prüfung, Freigabe, Compliance, Tests (QA-Stufe)
 * *blocpress-render* — Dokumentengenerierung (Einzige öffentliche API, Production-Stufe)
 * *blocpress-admin* — Benutzerverwaltung, Systemkonfiguration
+
+Gemeinsame Logik (ODT-Parsing, Validierung, Merge-Pipeline) wird in *blocpress-core* als Shared Java-Library bereitgestellt und von blocpress-workbench und blocpress-render als Maven-Abhängigkeit genutzt.
 
 Drei Datenstufen mit kopie-basierter Übergabe: workbench → proof → production.
 
@@ -2066,7 +2117,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *Skalierbarkeit*
 | Horizontale Skalierung
 | 150 gleichzeitige Dokumentengenerierungen
-| Kubernetes skaliert auf 5 blocpress-core Pods, Queue puffert Last, alle Requests erfolgreich
+| Kubernetes skaliert auf 5 blocpress-render Pods, Queue puffert Last, alle Requests erfolgreich
 
 | *Skalierbarkeit*
 | Message Queue Entkopplung
@@ -2233,6 +2284,9 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *blocpress-admin*
 | SCS-Modul für Administration: Benutzerverwaltung, Rollenzuweisung, Systemkonfiguration, Audit-Logs. Schema: `admin`.
 
+| *blocpress-core*
+| Shared Java-Library (Maven-Abhängigkeit, kein eigenständiger Container): ODT-Parsing (odfdom), Template-Validierung, Merge-Pipeline (Text-Block-Expansion, Bedingungen, Schleifen, Feldersetzung). Wird von blocpress-workbench (Validierung) und blocpress-render (Merge + Generierung) genutzt. Keine LibreOffice-Abhängigkeit.
+
 | *blocpress-proof*
 | SCS-Modul für Prüfung und Freigabe: Workflow, Compliance-Reviews, Testdaten, Regressionstests. Arbeitsumgebung des Prüfers. Schema: `proof`.
 
@@ -2255,7 +2309,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Eigenschaft, dass identische Eingaben (Template-Version + JSON-Daten) immer identische Ausgabedokumente erzeugen. Essentiell für Regressionstests.
 
 | *Dokumentengenerierung*
-| Prozess der automatisierten Befüllung eines Templates mit JSON-Daten und Export als ODT/PDF/RTF. Ausgeführt von blocpress-render. Entity E-3, TF-5.
+| Prozess der automatisierten Befüllung eines Templates mit JSON-Daten (Merge via blocpress-core) und Export als ODT/PDF/RTF (Format-Konvertierung via LibreOffice in blocpress-render). Entity E-3, TF-5.
 
 | *Freigabeprozess*
 | Workflow zur Qualitätssicherung von Templates: Eingereicht → In Prüfung → Freigegeben/Abgelehnt. Gesteuert von blocpress-proof. Entity E-4, UC-8, UC-9.
@@ -2267,7 +2321,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Browser-Standard zur Auflösung von JavaScript-Modulnamen auf URLs. Verwendet von blocpress-studio zum dynamischen Laden der Web Component-Bundles der SCS-Module.
 
 | *LibreOffice headless*
-| LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich. Eingesetzt in blocpress-render und blocpress-workbench.
+| LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich. Eingesetzt ausschließlich in blocpress-render für Format-Export (ODT → PDF/RTF). Validierung und Merge laufen über blocpress-core ohne LibreOffice.
 
 | *Message Queue*
 | RabbitMQ oder Kafka zur asynchronen Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests).
