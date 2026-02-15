@@ -1,4 +1,5 @@
-ifndef::imagesdir[:imagesdir: .]
+ifndef::imagesdir[:imagesdir: ../images]
+ifndef::imagesdir[]:imagesdir]
 
 image:blocpress-logo-large.png[]
 

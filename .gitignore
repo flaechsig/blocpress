@@ -9,10 +9,10 @@ CLAUDE.md
 /docs/templates/Template_Solution_Design_Concept.md
 /docs/templates/Template_System_Design_Concept.md
 /target/
-/docs/arc42.pdf
-/docs/Element_Design_Concept.pdf
-/docs/Solution_Design_Concept.pdf
-/docs/System_Design_Concept.pdf
-/docs/blocpress-logo-large-orig.svg
+/docs/specification/arc42.pdf
+/docs/specification/Element_Design_Concept.pdf
+/docs/specification/Solution_Design_Concept.pdf
+/docs/specification/System_Design_Concept.pdf
+/docs/images/blocpress-logo-large-orig.svg
 /blocpress-render/blocpress-server.iml
 /src/site/
