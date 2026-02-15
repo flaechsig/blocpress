@@ -39,7 +39,6 @@ public final class UserFieldFormatter {
 
     private static final Logger log = LoggerFactory.getLogger(UserFieldFormatter.class);
 
-    private static final String DATSTYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0";
     private static final String STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
 
     private UserFieldFormatter() { /* utility */ }
@@ -49,8 +48,8 @@ public final class UserFieldFormatter {
      *
      * @param document    das ODF-Dokument
      * @param field       das Feld-Element
-     * @param officeValue der Wert, der entsprechend des Feldes formatiert werden soll
-     * @return der formatierte String (oder der Rohtext, falls nicht formatiert werden kann)
+     * @param officeValue der Wert, der entsprechend dem Feld-Typ formatiert werden soll
+     * @return der formatierte String (Fallback: der Rohtext)
      */
     public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue) {
         if (document == null || field == null || officeValue == null || StringUtils.isBlank(officeValue.toString())) {
@@ -69,16 +68,6 @@ public final class UserFieldFormatter {
             case DATE -> formatDate(document, styleName, raw);
             default -> raw;
         };
-    }
-
-    private static String serialToDateString(double serial) {
-        // ODF/LibreOffice serial epoch: 1899-12-30 (serial 0 -> 1899-12-30)
-        LocalDate epoch = LocalDate.of(1899, 12, 30);
-        long days = (long) Math.floor(serial);
-        double frac = serial - days;
-        LocalDate date = epoch.plusDays(days);
-        // Nur Datum (wie gewünscht): Ausgabeformat "yyyy-MM-dd"
-        return date.format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
     private static DataType findFieldType(@NonNull OdfTextDocument document, @NonNull OdfElement field) {
@@ -126,10 +115,9 @@ public final class UserFieldFormatter {
             NodeList nl = contentDom.getElementsByTagName(tag);
             for (int i = 0; i < nl.getLength(); i++) {
                 var node = nl.item(i);
-                if (!(node instanceof Element)) {
+                if (!(node instanceof Element elem)) {
                     continue;
                 }
-                Element elem = (Element) node;
                 if (styleName.equals(elem.getAttribute("style:name"))) {
                     return expectedType;
                 }
@@ -139,8 +127,9 @@ public final class UserFieldFormatter {
             nl = stylesDom.getElementsByTagName(tag);
             for (int i = 0; i < nl.getLength(); i++) {
                 var node = nl.item(i);
-                if (!(node instanceof Element)) continue;
-                Element elem = (Element) node;
+                if (!(node instanceof Element elem)) {
+                    continue;
+                }
                 if (styleName.equals(elem.getAttribute("style:name"))) {
                     return expectedType;
                 }
@@ -259,7 +248,7 @@ public final class UserFieldFormatter {
         if (StringUtils.isBlank(style)) {
             return value;
         }
-        Double numericValue = null;
+        Double numericValue;
         String normalized = value.replace("\u00A0", " "); // NBSP zu Leerzeichen
 
         try {
@@ -281,7 +270,6 @@ public final class UserFieldFormatter {
         return df.format(numericValue);
     }
 
-    // -------- Hilfs-Methoden: number-style Suche und Patternerzeugung (vereinfachte Heuristik) --------
     @SneakyThrows
     private static DecimalFormat findDecimalFormatForStyle(OdfTextDocument document, String styleName) {
         OdfContentDom contentDom = document.getContentDom();
@@ -316,19 +304,19 @@ public final class UserFieldFormatter {
         boolean grouping = false;
         String symbol = "";
 
-        var childs = elem.getChildNodes();
-        for (int i = 0; i < childs.getLength(); i++) {
-            Element child = (Element) childs.item(i);
+        var children = elem.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Element child = (Element) children.item(i);
             try {
                 if ("number:number".equals(child.getTagName())) {
                     var textContent = child.getAttribute("number:decimal-places");
-                    decimalPlaces = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    decimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);
                     textContent = child.getAttribute("number:min-decimal-places");
-                    minimalDecimalPlaces = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    minimalDecimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);
                     textContent = child.getAttribute("number:min-integer-digits");
-                    minIntegerDigits = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    minIntegerDigits = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);
                     textContent = child.getAttribute("number:grouping");
-                    grouping = StringUtils.isBlank(textContent)?false:Boolean.parseBoolean(textContent);
+                    grouping = !StringUtils.isBlank(textContent) && Boolean.parseBoolean(textContent);
                 }
                 if ("number:text".equals(child.getTagName())) {
                     symbol = child.getTextContent();
