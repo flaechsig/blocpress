@@ -7,6 +7,12 @@ info:
     The API is designed to be extensible; additional endpoints and service domains
     may be added over time without breaking existing integrations.
 
+
+    **Authentication:** All endpoints require a valid JWT Bearer token. The server
+    ships with a built-in dev key (issuer `https://blocpress.dev`). To use your own
+    identity provider, override the environment variables `MP_JWT_VERIFY_PUBLICKEY`
+    and `MP_JWT_VERIFY_ISSUER` when starting the container.
+
 servers:
   - url: http://localhost:8080/api
 

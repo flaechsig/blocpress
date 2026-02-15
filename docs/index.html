@@ -116,8 +116,13 @@
     <p><strong>1. Run the container</strong></p>
     <div class="code-block">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">docker run -p 8080:8080 flaechsig/blocpress-render</pre>
+        <pre class="bg-white p-3 rounded shadow-sm">docker run --name blocpress-render -d -p 8080:8080 flaechsig/blocpress-render</pre>
     </div>
+    <p class="text-muted small mt-2">
+        The image ships with a built-in dev key and issuer. To use your own JWT configuration, override via
+        environment variables: <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
+        <code>-e MP_JWT_VERIFY_ISSUER="..."</code>
+    </p>
 
     <p class="mt-3"><strong>2. Download a sample</strong></p>
     <div class="row mb-3">
@@ -126,7 +131,7 @@
                 <h5 class="accent">Welcome Letter</h5>
                 <p class="mb-2">Simple template with field replacement.</p>
                 <a href="samples/quickstart/welcome.odt" class="btn btn-outline-primary btn-sm me-2">welcome.odt</a>
-                <a href="samples/quickstart/welcome.json" class="btn btn-outline-secondary btn-sm">welcome.json</a>
+                <a href="samples/quickstart/welcome.json" class="btn btn-outline-secondary btn-sm me-2">welcome.json</a>
             </div>
         </div>
         <div class="col-md-6 mb-3">
@@ -134,21 +139,34 @@
                 <h5 class="accent">Invoice</h5>
                 <p class="mb-2">Template with loops and calculated fields.</p>
                 <a href="samples/quickstart/invoice.odt" class="btn btn-outline-primary btn-sm me-2">invoice.odt</a>
-                <a href="samples/quickstart/invoice.json" class="btn btn-outline-secondary btn-sm">invoice.json</a>
+                <a href="samples/quickstart/invoice.json" class="btn btn-outline-secondary btn-sm me-2">invoice.json</a>
             </div>
         </div>
     </div>
 
     <p><strong>3. Generate a PDF</strong></p>
-    <div class="code-block">
+    <div class="code-block" data-copy="curl -X POST http://localhost:8080/api/render/template/upload \
+  -H &quot;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2Jsb2NwcmVzcy5kZXYiLCJzdWIiOiJkZXYtdXNlciIsImdyb3VwcyI6WyJhcGktY29uc3VtZXIiXSwiaWF0IjoxNzcxMTA1OTE0LCJleHAiOjIwODI3NTQ4MDB9.JJHUcBWHHfH_MF5OV0L_Wqeg3DaCZTx1bkgoqGety6E-HIhF-_9ov-pJd1D4BLltc97BXtOEN7TiPdlvb6uwL0MGuITU0K6F3tLlIJJLtDqa6z7uh278kucZ0C5r80Hs6postgIqDlwi8kRIDq3wRhO3F4_Mmi6TtiK-59lQH5UIl1awX0hLWQz6uzEiY7pWVC4w-oQB1UJ6Sxa8PZkRhA2xC_yEJX4bBpeVS6MB6lUfinZj5Cpsw-mTJiF_hQ5QV9qr7kFvfm1idAOqDw_EZoS3LF3Qs-y-dFg1FnSYrzXHPlykDwSgXNUCFJx-Vj9H4Fpy5pDtIgE6e6jQR37F6g&quot; \
+  -H &quot;Accept: application/pdf&quot; \
+  -F &quot;template=@welcome.odt&quot; \
+  -F &quot;data=@welcome.json&quot; \
+  -o welcome.pdf">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template/upload \
-  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2Jsb2NwcmVzcy5kZXYiLCJzdWIiOiJkZXYtdXNlciIsImdyb3VwcyI6WyJhcGktY29uc3VtZXIiXSwiaWF0IjoxNzcxMTA1OTE0LCJleHAiOjIwODI3NTQ4MDB9.JJHUcBWHHfH_MF5OV0L_Wqeg3DaCZTx1bkgoqGety6E-HIhF-_9ov-pJd1D4BLltc97BXtOEN7TiPdlvb6uwL0MGuITU0K6F3tLlIJJLtDqa6z7uh278kucZ0C5r80Hs6postgIqDlwi8kRIDq3wRhO3F4_Mmi6TtiK-59lQH5UIl1awX0hLWQz6uzEiY7pWVC4w-oQB1UJ6Sxa8PZkRhA2xC_yEJX4bBpeVS6MB6lUfinZj5Cpsw-mTJiF_hQ5QV9qr7kFvfm1idAOqDw_EZoS3LF3Qs-y-dFg1FnSYrzXHPlykDwSgXNUCFJx-Vj9H4Fpy5pDtIgE6e6jQR37F6g" \
-  -H "Accept: application/pdf" \
-  -F "template=@welcome.odt" \
-  -F "data=@welcome.json" \
-  -o welcome.pdf</pre>
+        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template/upload \ <b>&#x2460;</b>
+  -H "Authorization: Bearer eyJhbG...R37F6g" \ <b>&#x2461;</b>
+  -H "Accept: application/pdf" \ <b>&#x2462;</b>
+  -F "template=@welcome.odt" \ <b>&#x2463;</b>
+  -F "data=@welcome.json" \ <b>&#x2464;</b>
+  -o welcome.pdf <b>&#x2465;</b></pre>
     </div>
+    <ol class="small text-muted mt-2">
+        <li>API endpoint for multipart template upload</li>
+        <li>Dev JWT token (included for quick testing). <a href="samples/quickstart/token.txt">Get the token</a></li>
+        <li>Desired output format (application/pdf → PDF, application/rtf → RTF, or application/vnd.oasis.opendocument.text → ODT)</li>
+        <li>ODT template file — see the <a href="/README.adoc">README</a> for authoring details.</li>
+        <li>JSON data file with template values</li>
+        <li>Save generated document to file</li>
+    </ol>
 
     <!-- TECH -->
     <h2 class="mt-5 mb-3 accent">Technology Stack</h2>
@@ -168,7 +186,8 @@
 
 <script>
 function copyCode(btn) {
-    const text = btn.parentElement.querySelector('pre').textContent;
+    const block = btn.parentElement;
+    const text = block.dataset.copy || block.querySelector('pre').textContent;
     navigator.clipboard.writeText(text).then(() => {
         btn.textContent = 'Copied!';
         setTimeout(() => btn.textContent = 'Copy', 1500);
