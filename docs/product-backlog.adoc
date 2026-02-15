@@ -1,0 +1,346 @@
+= blocpress Product Backlog
+:revnumber: 1.0
+:revdate: {docdate}
+:toc:
+:toc-title: Inhaltsverzeichnis
+:icons: font
+:numbered:
+
+Dieses Dokument bildet das Product Backlog von blocpress ab. Es leitet sich aus der
+xref:specification/arc42.adoc[Architekturdokumentation] und dem
+xref:specification/Element_Design_Concept.adoc[Element Design Concept] ab.
+
+*Legende:*
+
+[cols="1,3" options="header"]
+|===
+| Status | Bedeutung
+| icon:check-circle[role=green] DONE | Implementiert und getestet
+| icon:play-circle[role=blue] IN PROGRESS | In Bearbeitung
+| icon:circle-o[] OFFEN | Noch nicht begonnen
+|===
+
+<<<
+[[epic-1]]
+== Epic 1: Document Rendering Engine
+
+_Module: blocpress-core, blocpress-render_
+
+Kern-Engine zur Dokumentengenerierung aus ODT-Templates und JSON-Daten.
+Einzige öffentlich exponierte API des Systems.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| TF-5
+| Merge-Pipeline (Text-Blöcke, Bedingungen, Schleifen, Feldersetzung)
+| 1
+| icon:check-circle[role=green] DONE
+
+| TI-3
+| LibreOffice headless Export (ODT -> PDF/RTF)
+| 1
+| icon:check-circle[role=green] DONE
+
+| TI-1
+| REST-API: `POST /render/template/upload` (Multipart)
+| 1
+| icon:check-circle[role=green] DONE
+
+| TI-1
+| REST-API: `POST /render/template` (JSON/Base64)
+| 1
+| icon:check-circle[role=green] DONE
+
+| TI-4
+| JWT-Authentifizierung (konfigurierbar via ENV)
+| 1
+| icon:check-circle[role=green] DONE
+
+| —
+| Swagger UI (`/q/swagger-ui`)
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Docker Image mit Healthcheck
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Quickstart-Samples und Landing Page
+| 3
+| icon:check-circle[role=green] DONE
+
+| UC-10
+| Template-ID-basiertes Rendering (`POST /template/{id}/render`)
+| 2
+| icon:circle-o[] OFFEN
+
+| —
+| Caching von Templates (Caffeine Cache)
+| 3
+| icon:circle-o[] OFFEN
+
+| —
+| API Rate-Limiting (1.000 Req/h)
+| 3
+| icon:circle-o[] OFFEN
+
+| —
+| Asynchrone Generierung ueber Message Queue
+| 3
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+[[epic-2]]
+== Epic 2: Template Storage und Persistence
+
+_Module: blocpress-render, blocpress-core_
+
+Datenbankanbindung und Storage Abstraction Layer als Grundlage fuer
+Template-Verwaltung und Stufenuebergabe.
+
+NOTE: Voraussetzung fuer Epics 3-6.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| TI-2
+| PostgreSQL Multi-Schema Setup (workbench, proof, production, admin)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Storage Abstraction Layer (`StorageService` Interface)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Entity E-1 (Template) und E-3 (generiertes Dokument)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Repository Layer fuer Schema `production` in blocpress-render
+| 1
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+[[epic-3]]
+== Epic 3: Template-Entwicklung (blocpress-workbench)
+
+_Modul: blocpress-workbench_
+
+Arbeitsumgebung fuer Template-Designer: Upload, Validierung, Bearbeitung,
+Bausteinverwaltung und Content Search.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| UC-1
+| Template hochladen und validieren
+| 1
+| icon:circle-o[] OFFEN
+
+| TF-1
+| Template-Validierung (User-Fields, Wiederholungsgruppen, Bedingungen)
+| 1
+| icon:circle-o[] OFFEN
+
+| UC-3
+| Template-Details anzeigen
+| 2
+| icon:circle-o[] OFFEN
+
+| UC-2
+| Template zur Freigabe einreichen (Stufenuebergabe workbench -> proof)
+| 2
+| icon:circle-o[] OFFEN
+
+| —
+| Bausteinverwaltung (Entity E-2)
+| 2
+| icon:circle-o[] OFFEN
+
+| UC-19
+| Content Search (Volltextsuche ueber alle Templates)
+| 3
+| icon:circle-o[] OFFEN
+
+| TI-7
+| Elasticsearch-Integration
+| 3
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+[[epic-4]]
+== Epic 4: Pruefung und Freigabe (blocpress-proof)
+
+_Modul: blocpress-proof_
+
+Workflow-gesteuerte Qualitaetssicherung mit Vier-Augen-Prinzip,
+Regressionstests und Compliance-Reviews.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| UC-8
+| Template freigeben (Vier-Augen-Prinzip)
+| 1
+| icon:circle-o[] OFFEN
+
+| TF-2
+| Workflow-Status aendern (Designer != Freigeber erzwungen)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Stufenuebergabe proof -> production (Kopie)
+| 1
+| icon:circle-o[] OFFEN
+
+| UC-14
+| Test Case erstellen (Baseline-PDF)
+| 2
+| icon:circle-o[] OFFEN
+
+| UC-16
+| Regressionstest ausfuehren
+| 2
+| icon:circle-o[] OFFEN
+
+| TF-6
+| PDF-Vergleich (Baseline vs. aktuell)
+| 2
+| icon:circle-o[] OFFEN
+
+| UC-12
+| Compliance-Review durchfuehren
+| 3
+| icon:circle-o[] OFFEN
+
+| TF-4
+| Review-Datum berechnen (1/3/5 Jahre)
+| 3
+| icon:circle-o[] OFFEN
+
+| TF-7
+| Automatische Compliance-Review-Ueberwachung (Scheduler)
+| 3
+| icon:circle-o[] OFFEN
+
+| TI-5
+| Message Queue fuer asynchrone Regressionstests
+| 3
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+[[epic-5]]
+== Epic 5: Administration (blocpress-admin)
+
+_Modul: blocpress-admin_
+
+Benutzerverwaltung, Rollenzuweisung und Audit-Logging.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| UC-22
+| Benutzerverwaltung (CRUD, Rollenzuweisung)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Entity E-9 (Users) und E-10 (Audit-Logs)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| RBAC-Pruefung bei jedem API-Call
+| 2
+| icon:circle-o[] OFFEN
+
+| —
+| Audit-Logging aller Workflow-Aenderungen
+| 2
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+[[epic-6]]
+== Epic 6: Portal und Micro-Frontends (blocpress-studio)
+
+_Modul: blocpress-studio_
+
+Portal-Shell als zentraler Einstiegspunkt mit Micro-Frontend-Integration
+der SCS-Module.
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| —
+| Portal-Shell (Navigation, JWT-Handling)
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Import Maps fuer Web Components
+| 1
+| icon:circle-o[] OFFEN
+
+| —
+| Web Components: `<bp-workbench>`, `<bp-proof>`, `<bp-admin>`
+| 2
+| icon:circle-o[] OFFEN
+
+| —
+| JWT-Weitergabe als Property an Web Components
+| 2
+| icon:circle-o[] OFFEN
+|===
+
+<<<
+== Abhaengigkeiten
+
+[plantuml, backlog-dependencies, svg]
+----
+@startuml
+skinparam componentStyle rectangle
+
+component "Epic 1\nRendering Engine\n(teilweise DONE)" as E1 #lightgreen
+component "Epic 2\nStorage & Persistence" as E2
+component "Epic 3\nWorkbench" as E3
+component "Epic 4\nProof & Freigabe" as E4
+component "Epic 5\nAdministration" as E5
+component "Epic 6\nPortal & Frontends" as E6
+
+E1 <-- E2 : benoetigt DB\nfuer Template-ID
+E2 <-- E3 : benoetigt Schemas\n& StorageService
+E2 <-- E4 : benoetigt Schemas\n& StorageService
+E2 <-- E5 : benoetigt Schema admin
+E3 <-- E4 : liefert Templates\nzur Pruefung
+E3 <-- E6 : Web Component\nbp-workbench
+E4 <-- E6 : Web Component\nbp-proof
+E5 <-- E6 : Web Component\nbp-admin
+@enduml
+----
+
+*Reihenfolge:*
+
+. *Epic 6* (Studio) -- Minimale Portal-Shell als Einstiegspunkt (Navigation, JWT)
+. *Epic 3* (Workbench) -- Erster fachlicher Anwendungsfall fuer Template-Designer (UC-1: Upload)
+. *Epic 1* (Rendering Engine) -- Offene Punkte (Template-ID-Rendering, Caching) nach Bedarf
+. *Epic 4* (Proof & Freigabe) -- Aufbauend auf Workbench
+. *Epic 5* (Administration) -- RBAC und Audit-Logging
+. _Epic 2 (Storage & Persistence) entsteht inkrementell beim Aufbau der Epics 3, 4, 5_
