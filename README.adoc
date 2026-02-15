@@ -1,4 +1,4 @@
-ifndef::imagesdir[:imagesdir: docs]
+ifndef::imagesdir[:imagesdir: docs/images]
 
 image:blocpress-logo-large.png[]
 
@@ -28,7 +28,7 @@ Apache License, Version 2.0
 
 == Quick start
 
-Render an ODT template from a URL and a JSON payload:
+Render an ODT template from a File and a JSON payload:
 
 === Requirements
 
@@ -42,7 +42,7 @@ You use **User Fields** to mark the places for replacement.
 To open the dialog for defining user fields just press CTRL+F2
 
 .Field Dialog View (CTRL+F2)
-image::docs/images/fields_dialog.png[Fields Dialog (CTRL+F2)]
+image::fields_dialog.png[Fields Dialog (CTRL+F2)]
 
 * **Variables** The Variable-Panel contains the **User Field**
 * **Type** User Field is mandatory.
@@ -58,17 +58,17 @@ In the document you can toggle (CTRL+F9) between the **field value view** and th
 That makes life quite easier ;-)
 
 .Field Value View in LibreOffice
-image::docs/images/field_value_view.png[Field Value View]
+image::field_value_view.png[Field Value View]
 
 .Field Name View in LibreOffice
-image::docs/images/field_name_view.png[Field Name View]
+image::field_name_view.png[Field Name View]
 
 The prepared Document can be found link:docs/samples/sample-01.odt[Download the sample odt]
 
 === Java Code
 
 .Structure of the java project
-image::docs/images/projectstructure.png[Project structure]
+image::projectstructure.png[Project structure]
 
 [source,xml]
 ----
@@ -193,12 +193,12 @@ We only define the **User Field**.
 So we click only **Apply** and not **Insert**.
 
 .Definition of the **User Field** customer.gender
-image::docs/images/user_field_gender.png[Define User Field customer.gender]
+image::user_field_gender.png[Define User Field customer.gender]
 
 Now we can use the **User Field** in the panel **Functions** and define the salutation in dependency of the gender.
 
 .Definition of a **Conditional text**
-image::docs/images/conditional_text_customer_gener.png[Conditional text customer.gender]
+image::conditional_text_customer_gener.png[Conditional text customer.gender]
 
 If you change the customer.gender in the **Variables** then you must press F9 to refresh all **User Field**s in the Document.
 
@@ -257,7 +257,7 @@ For the to the first customer (Michael Miller) an index after the path element *
 The index is 0-based, so the access to the first name of the first customer is **customer.0.firstName**.
 
 .Index access in the field dialog
-image::docs/images/user_field_customer_index.png[]
+image::user_field_customer_index.png[]
 
 It is a good idea to know the structure before designing the template, because you must duplicate the elements and remove the old one.
 
@@ -270,17 +270,17 @@ Both mechanisms are shown in this example. We use the data from the previous exe
 The definition is straightforward. Don't use an index and the data will be treated as a list. In the next three pictures you see the **Field Value View**, **Field Name View** and the result.
 
 .Field Value View
-image::docs/images/section_with_field_data_view.png[]
+image::section_with_field_data_view.png[]
 
 The picture shows the definition of the section. In the section you use the data field as shown above. The section itself is inserted with **Insert > Sections...** menu.
 
 .Field Name View
-image::docs/images/field_name_view_with table.png[]
+image::field_name_view_with table.png[]
 
 In the second view you see why it is useful to have a value view. The layout is destroyed, but you can see the definition of each single **User Field**. The fields use an index to reference a single entry off the list. In the lower part the index is missing an the data will be treated as list. The result is shown in the next figure
 
 .Result of the rendering process
-image::docs/images/list_result.png[]
+image::list_result.png[]
 
 === Text blocks / imported templates (inline expansion)
 
@@ -289,7 +289,7 @@ Until now, we work on only one document. With text block it is possible to maint
 The blocpress way to do this with **Section**s.
 
 .Inserting a text block
-image::docs/images/text_block.png[]
+image::text_block.png[]
 
 There are two interesting parts in this kind of section definition:
 
@@ -299,5 +299,5 @@ There are two interesting parts in this kind of section definition:
 In the figure you see "Max Mustermann". At development time the value of **User Field**s are not updated with the **User Field**s from the master document. This will only happen in the rendering process. The result is showing in the next figure.
 
 .Complete document with single fields, lists and text blocks
-image::docs/images/text_block_processed.png[]
+image::text_block_processed.png[]
 
