@@ -98,15 +98,15 @@ public class ShortestExampleEver {
         JsonNode data = mapper.readTree("""
                       {
                         "customer": {
-                          "firstName": "Hans",
-                          "lastName": "Flächsig",
+                          "firstName": "John",
+                          "lastName": "Doe",
                           "address": {
                             "street": "adessoplatz 1",
                             "postcode": "44269",
                             "city": "Dortmund"
                           },
                           "contact": {
-                            "email": "flaechsig@adesso.de"
+                            "email": "john.doe@example.com",
                           }
                         }
                       }

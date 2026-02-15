@@ -16,6 +16,7 @@ RUN set -eux; \
       fonts-noto-cjk \
       fonts-noto-color-emoji \
       fonts-freefont-ttf \
+      curl \
       libreoffice-core \
       libreoffice-writer; \
     rm -rf /var/lib/apt/lists/*;
@@ -27,4 +28,6 @@ WORKDIR /app
 COPY target/quarkus-app/ /app/
 
 EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s \
+  CMD curl -sf http://localhost:8080/q/health/ready || exit 1
 CMD ["java", "-jar", "/app/quarkus-run.jar"]
