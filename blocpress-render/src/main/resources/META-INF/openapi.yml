@@ -21,7 +21,7 @@ paths:
   /template/generate:
     post:
       tags: [ Template ]
-      operationId: generateDocument
+      operationId: renderDocumentMultipart
       summary: Generate document from ODT template and JSON data
       description: >
         Upload an ODT template together with JSON data to generate a document in the
@@ -88,7 +88,66 @@ paths:
         "500":
           description: Internal server error
 
+  /template/render:
+    post:
+      tags: [ Template ]
+      operationId: renderDocumentJson
+      summary: Render document from base64-encoded template and JSON data
+      description: >
+        Submit a base64-encoded ODT template together with JSON data and desired
+        output type to generate a document. Alternative to multipart upload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderRequest'
+      responses:
+        "200":
+          description: Generated document (binary)
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/rtf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.oasis.opendocument.text:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized — missing or invalid JWT
+        "500":
+          description: Internal server error
+
 components:
+  schemas:
+    RenderRequest:
+      type: object
+      required:
+        - template
+        - data
+        - outputType
+      properties:
+        template:
+          type: string
+          format: byte
+          description: Base64-encoded ODT template
+        data:
+          type: object
+          description: JSON template data (key-value pairs matching template fields)
+        outputType:
+          type: string
+          enum:
+            - pdf
+            - rtf
+            - odt
+          description: Desired output format
   securitySchemes:
     BearerJWT:
       type: http

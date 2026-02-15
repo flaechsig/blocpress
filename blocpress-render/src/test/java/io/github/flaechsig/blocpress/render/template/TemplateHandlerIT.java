@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Testcontainers
 class TemplateHandlerIT {
     private static final Logger LOG = LoggerFactory.getLogger(TemplateHandlerIT.class);
-    private static String IMAGE = System.getProperty("it.image");
+    private static final String IMAGE = System.getProperty("it.image");
     private static final String DEV_TOKEN;
 
     static {
@@ -224,6 +225,52 @@ class TemplateHandlerIT {
         }
         var request = builder
                 .POST(HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))
+                .build();
+
+        try (var client = HttpClient.newBuilder().build()) {
+            return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        }
+    }
+
+    // --- /template/render endpoint tests ---
+
+    @Test
+    void renderDocumentPdf() throws Exception {
+        HttpResponse<byte[]> response = sendRenderRequest("pdf", VALID_JSON, DEV_TOKEN);
+
+        assertEquals(200, response.statusCode(), () -> "Response: " + new String(response.body()));
+        String contentType = response.headers().firstValue("Content-Type").orElse("");
+        assertTrue(contentType.contains("application/pdf"));
+        assertTrue(response.body().length > 0, "Response body is empty");
+    }
+
+    @Test
+    void renderDocumentWithoutAuth401() throws Exception {
+        HttpResponse<byte[]> response = sendRenderRequest("pdf", VALID_JSON, null);
+
+        assertEquals(401, response.statusCode());
+    }
+
+    private HttpResponse<byte[]> sendRenderRequest(String outputType, String jsonData, String token) throws IOException, InterruptedException {
+        URI baseUri = URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8080));
+        byte[] templateContent = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
+        String templateBase64 = Base64.getEncoder().encodeToString(templateContent);
+
+        String body = """
+                {
+                  "template": "%s",
+                  "data": %s,
+                  "outputType": "%s"
+                }
+                """.formatted(templateBase64, jsonData, outputType);
+
+        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/template/render"))
+                .header("Content-Type", "application/json");
+        if (token != null) {
+            builder.header("Authorization", "Bearer " + token);
+        }
+        var request = builder
+                .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
         try (var client = HttpClient.newBuilder().build()) {

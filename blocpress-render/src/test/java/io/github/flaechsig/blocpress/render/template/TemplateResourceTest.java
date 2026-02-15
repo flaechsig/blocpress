@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.render.template;
 
+import io.github.flaechsig.blocpress.render.model.RenderRequest;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -45,7 +46,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung.odt");
         assertNotNull(template, "Template /kuendigung.odt not found on classpath");
 
-        File result = resource.generateDocument(
+        File result = resource.renderDocumentMultipart(
                 "application/vnd.oasis.opendocument.text",
                 template,
                 VALID_JSON
@@ -69,7 +70,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
-        File result = resource.generateDocument(
+        File result = resource.renderDocumentMultipart(
                 "application/pdf",
                 template,
                 VALID_JSON
@@ -93,7 +94,7 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
-        File result = resource.generateDocument(
+        File result = resource.renderDocumentMultipart(
                 "application/rtf",
                 template,
                 VALID_JSON
@@ -118,9 +119,36 @@ class TemplateResourceTest {
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
         var ex = assertThrows(IllegalStateException.class, () ->
-                resource.generateDocument("application/json", template, VALID_JSON)
+                resource.renderDocumentMultipart("application/json", template, VALID_JSON)
         );
         assertTrue(ex.getMessage().contains("application/json"),
                 "Exception should mention the invalid accept value, but was: " + ex.getMessage());
+    }
+
+    @Test
+    void renderDocumentOdt() throws Exception {
+        byte[] templateBytes = getClass().getResourceAsStream("/kuendigung.odt").readAllBytes();
+
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        Object data = objectMapper.readValue(VALID_JSON, Object.class);
+
+        RenderRequest request = new RenderRequest()
+                .template(templateBytes)
+                .data(data)
+                .outputType(RenderRequest.OutputTypeEnum.ODT);
+
+        File result = resource.renderDocumentJson(request);
+
+        assertNotNull(result, "renderDocument returned null");
+        assertTrue(result.exists(), "Result file does not exist: " + result.getAbsolutePath());
+        assertTrue(result.length() > 0, "Result file is empty: " + result.getAbsolutePath());
+
+        byte[] actual = Files.readAllBytes(result.toPath());
+        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
+
+        String actualText = normalizeText(extractOdtText(actual));
+        String expectedText = normalizeText(extractOdtText(expected));
+        assertEquals(expectedText, actualText,
+                "ODT text mismatch.\n--- Expected ---\n" + expectedText + "\n--- Actual ---\n" + actualText);
     }
 }
