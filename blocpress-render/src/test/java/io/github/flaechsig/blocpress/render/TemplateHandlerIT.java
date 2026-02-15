@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.render.template;
+package io.github.flaechsig.blocpress.render;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -217,7 +217,7 @@ class TemplateHandlerIT {
         out.writeBytes("--" + boundary + "--\r\n");
         out.flush();
 
-        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/template/generate"))
+        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/render/template/upload"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .header("Accept", accept);
         if (token != null) {
@@ -264,7 +264,7 @@ class TemplateHandlerIT {
                 }
                 """.formatted(templateBase64, jsonData, outputType);
 
-        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/template/render"))
+        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/render/template"))
                 .header("Content-Type", "application/json");
         if (token != null) {
             builder.header("Authorization", "Bearer " + token);

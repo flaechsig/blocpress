@@ -30,6 +30,24 @@
         .accent {
             color: #2a5298;
         }
+
+        .code-block {
+            position: relative;
+        }
+
+        .code-block .btn-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .code-block:hover .btn-copy {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -96,7 +114,10 @@
     </p>
 
     <p><strong>1. Run the container</strong></p>
-    <pre class="bg-white p-3 rounded shadow-sm">docker run -p 8080:8080 flaechsig/blocpress-render</pre>
+    <div class="code-block">
+        <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+        <pre class="bg-white p-3 rounded shadow-sm">docker run -p 8080:8080 flaechsig/blocpress-render</pre>
+    </div>
 
     <p class="mt-3"><strong>2. Download a sample</strong></p>
     <div class="row mb-3">
@@ -119,11 +140,15 @@
     </div>
 
     <p><strong>3. Generate a PDF</strong></p>
-    <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/template/generate \
+    <div class="code-block">
+        <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template/upload \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2Jsb2NwcmVzcy5kZXYiLCJzdWIiOiJkZXYtdXNlciIsImdyb3VwcyI6WyJhcGktY29uc3VtZXIiXSwiaWF0IjoxNzcxMTA1OTE0LCJleHAiOjIwODI3NTQ4MDB9.JJHUcBWHHfH_MF5OV0L_Wqeg3DaCZTx1bkgoqGety6E-HIhF-_9ov-pJd1D4BLltc97BXtOEN7TiPdlvb6uwL0MGuITU0K6F3tLlIJJLtDqa6z7uh278kucZ0C5r80Hs6postgIqDlwi8kRIDq3wRhO3F4_Mmi6TtiK-59lQH5UIl1awX0hLWQz6uzEiY7pWVC4w-oQB1UJ6Sxa8PZkRhA2xC_yEJX4bBpeVS6MB6lUfinZj5Cpsw-mTJiF_hQ5QV9qr7kFvfm1idAOqDw_EZoS3LF3Qs-y-dFg1FnSYrzXHPlykDwSgXNUCFJx-Vj9H4Fpy5pDtIgE6e6jQR37F6g" \
   -H "Accept: application/pdf" \
   -F "template=@welcome.odt" \
   -F "data=@welcome.json" \
   -o welcome.pdf</pre>
+    </div>
 
     <!-- TECH -->
     <h2 class="mt-5 mb-3 accent">Technology Stack</h2>
@@ -140,6 +165,16 @@
     </footer>
 
 </div>
+
+<script>
+function copyCode(btn) {
+    const text = btn.parentElement.querySelector('pre').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+}
+</script>
 
 </body>
 </html>

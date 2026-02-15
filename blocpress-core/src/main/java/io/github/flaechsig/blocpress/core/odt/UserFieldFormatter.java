@@ -1,6 +1,7 @@
 package io.github.flaechsig.blocpress.core.odt;
 
-import io.github.flaechsig.blocpress.core.DataType;import lombok.NonNull;
+import io.github.flaechsig.blocpress.core.DataType;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
@@ -318,17 +319,26 @@ public final class UserFieldFormatter {
         var childs = elem.getChildNodes();
         for (int i = 0; i < childs.getLength(); i++) {
             Element child = (Element) childs.item(i);
-            if ("number:number".equals(child.getTagName())) {
-                decimalPlaces = Integer.parseInt(child.getAttribute("number:decimal-places"));
-                minimalDecimalPlaces = Integer.parseInt(child.getAttribute("number:min-decimal-places"));
-                minIntegerDigits = Integer.parseInt(child.getAttribute("number:min-integer-digits"));
-                grouping = Boolean.parseBoolean(child.getAttribute("number:grouping"));
-            }
-            if ("number:text".equals(child.getTagName())) {
-                symbol = child.getTextContent();
-            }
-            if ("number:currency-symbol".equals(child.getTagName())) {
-                symbol = " " + child.getTextContent();
+            try {
+                if ("number:number".equals(child.getTagName())) {
+                    var textContent = child.getAttribute("number:decimal-places");
+                    decimalPlaces = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    textContent = child.getAttribute("number:min-decimal-places");
+                    minimalDecimalPlaces = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    textContent = child.getAttribute("number:min-integer-digits");
+                    minIntegerDigits = StringUtils.isBlank(textContent)?0:Integer.parseInt(textContent);
+                    textContent = child.getAttribute("number:grouping");
+                    grouping = StringUtils.isBlank(textContent)?false:Boolean.parseBoolean(textContent);
+                }
+                if ("number:text".equals(child.getTagName())) {
+                    symbol = child.getTextContent();
+                }
+                if ("number:currency-symbol".equals(child.getTagName())) {
+                    symbol = " " + child.getTextContent();
+                }
+            } catch (RuntimeException e) {
+                log.error("Problems rendering {} Content: '{}'", child.getTagName(), child.getTextContent());
+                throw e;
             }
         }
         return new NumberStyle(minIntegerDigits, decimalPlaces, minimalDecimalPlaces, grouping, symbol, country, language);

@@ -1,0 +1,54 @@
+{
+  "invoice": {
+    "number": "BP-2026-0001",
+    "date": "2026-02-15",
+    "currency": "€",
+    "paymentTermsDays": 14
+  },
+
+  "customer": {
+    "firstname": "John",
+    "lastname": "Doe",
+    "street": "123 Main St",
+    "postcode": "12345",
+    "city": "Anytown"
+  },
+
+  "positions": [
+    {
+      "name": "blocpress Render",
+      "description": "Document rendering service",
+      "quantity": 1,
+      "unitPrice": 0.00,
+      "total": 0.00
+    },
+    {
+      "name": "blocpress Studio (coming soon)",
+      "description": "Template design environment",
+      "quantity": 1,
+      "unitPrice": 0.00,
+      "total": 0.00
+    },
+    {
+      "name": "blocpress Workbench (coming soon)",
+      "description": "Developer integration tools",
+      "quantity": 1,
+      "unitPrice": 0.00,
+      "total": 0.00
+    },
+    {
+      "name": "blocpress Proof (coming soon)",
+      "description": "Document comparison & QA",
+      "quantity": 1,
+      "unitPrice": 0.00,
+      "total": 0.00
+    }
+  ],
+
+  "summary": {
+    "netTotal": 0.00,
+    "taxRate": 19,
+    "taxAmount": 0.00,
+    "grossTotal": 0.00
+  }
+}

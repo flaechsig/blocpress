@@ -1,11 +1,11 @@
-package io.github.flaechsig.blocpress.render.template;
+package io.github.flaechsig.blocpress.render;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.flaechsig.blocpress.core.LibreOfficeProcessor;
 import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
-import io.github.flaechsig.blocpress.render.api.TemplateApi;
+import io.github.flaechsig.blocpress.render.api.RenderApi;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
 import io.quarkus.security.Authenticated;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
 
 /**
  * REST-Endpoint zur Dokumentgenerierung aus einem ODT-Template und JSON-Daten.
- * Implementiert {@code POST /api/template/generate}.
+ * Implementiert {@code POST /api/render/template/upload} und {@code POST /api/render/template}.
  *
  * <p><b>Design-Referenzen:</b></p>
  * <ul>
@@ -33,8 +33,8 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
  * </ul>
  */
 @Authenticated
-public class TemplateResource implements TemplateApi {
-    private final static Logger logger = LoggerFactory.getLogger(TemplateResource.class);
+public class RenderResource implements RenderApi {
+    private final static Logger logger = LoggerFactory.getLogger(RenderResource.class);
     private final static ObjectMapper mapper = new ObjectMapper();
 
     @Override

@@ -91,6 +91,8 @@ import java.nio.file.Path;
 public class ShortestExampleEver {
     static void main(String[] args) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
+
+        /** Load your own document and data */
         Path baseDir = Path.of(System.getProperty("user.dir"));
         Path template = baseDir.resolve("src/main/resources/sample-01.odt");
         Path outputFile = baseDir.resolve("target/output.odt");

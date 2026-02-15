@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.render.template;
+package io.github.flaechsig.blocpress.render;
 
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class TemplateResourceTest {
             }
             """;
 
-    private final TemplateResource resource = new TemplateResource();
+    private final RenderResource resource = new RenderResource();
 
     @Test
     void mergeTemplateOdt() throws Exception {
