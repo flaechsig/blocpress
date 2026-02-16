@@ -1,8 +1,5 @@
 import { LitElement, html, css } from 'lit';
 
-const RENDER_URL_KEY = 'bp-render-url';
-const DEFAULT_RENDER_URL = 'http://localhost:8080';
-
 const SAMPLE_JSON = JSON.stringify({
     firstname: 'John',
     lastname: 'Doe',
@@ -14,52 +11,20 @@ const SAMPLE_JSON = JSON.stringify({
 export class BpWorkbench extends LitElement {
     static properties = {
         jwt: { type: String },
-        _renderUrl: { state: true },
+        apiBaseUrl: { type: String, attribute: 'api-base-url' },
+        _templateName: { state: true },
         _templateFile: { state: true },
-        _templateBase64: { state: true },
         _jsonText: { state: true },
         _jsonValid: { state: true },
-        _outputType: { state: true },
         _loading: { state: true },
-        _error: { state: true }
+        _error: { state: true },
+        _success: { state: true }
     };
 
     static styles = css`
         :host {
             display: block;
             padding: 32px;
-        }
-        h2 {
-            margin: 0 0 24px;
-            font-size: 24px;
-            font-weight: 600;
-            color: #1e3c72;
-        }
-
-        /* Render URL bar */
-        .url-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
-            padding: 12px 16px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .url-bar label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #555;
-            white-space: nowrap;
-        }
-        .url-bar input {
-            flex: 1;
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 13px;
-            font-family: monospace;
         }
 
         /* Two-column layout */
@@ -82,7 +47,16 @@ export class BpWorkbench extends LitElement {
             color: #333;
         }
 
-        /* Template upload */
+        /* Form inputs */
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
         input[type="file"] {
             font-size: 13px;
         }
@@ -125,17 +99,6 @@ export class BpWorkbench extends LitElement {
             border: 1px solid #ddd;
             border-radius: 8px;
         }
-        .actions label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #555;
-        }
-        .actions select {
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 13px;
-        }
         .actions button {
             padding: 8px 24px;
             border: none;
@@ -166,7 +129,7 @@ export class BpWorkbench extends LitElement {
             to { transform: rotate(360deg); }
         }
 
-        /* Error display */
+        /* Feedback */
         .error {
             margin-top: 16px;
             padding: 12px 16px;
@@ -176,36 +139,39 @@ export class BpWorkbench extends LitElement {
             color: #c62828;
             font-size: 13px;
         }
+        .success {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #f1f8e9;
+            border: 1px solid #aed581;
+            border-radius: 8px;
+            color: #33691e;
+            font-size: 13px;
+        }
     `;
 
     constructor() {
         super();
         this.jwt = '';
-        this._renderUrl = localStorage.getItem(RENDER_URL_KEY) || DEFAULT_RENDER_URL;
+        this.apiBaseUrl = '';
+        this._templateName = '';
         this._templateFile = null;
-        this._templateBase64 = '';
         this._jsonText = SAMPLE_JSON;
         this._jsonValid = true;
-        this._outputType = 'pdf';
         this._loading = false;
         this._error = '';
+        this._success = '';
     }
 
     render() {
         return html`
-            <h2>Workbench</h2>
-
-            <div class="url-bar">
-                <label>Render API:</label>
-                <input type="text"
-                    .value=${this._renderUrl}
-                    @input=${this._onRenderUrlChange}
-                    placeholder="${DEFAULT_RENDER_URL}">
-            </div>
-
             <div class="columns">
                 <div class="panel">
                     <h3>Template (.odt)</h3>
+                    <input type="text"
+                        placeholder="Template-Name (eindeutig)"
+                        .value=${this._templateName}
+                        @input=${e => this._templateName = e.target.value}>
                     <input type="file" accept=".odt" @change=${this._onFileChange}>
                     ${this._templateFile
                         ? html`<div class="filename">${this._templateFile.name}</div>`
@@ -224,27 +190,24 @@ export class BpWorkbench extends LitElement {
             </div>
 
             <div class="actions">
-                <label>Output:</label>
-                <select @change=${e => this._outputType = e.target.value}>
-                    <option value="pdf" ?selected=${this._outputType === 'pdf'}>PDF</option>
-                    <option value="rtf" ?selected=${this._outputType === 'rtf'}>RTF</option>
-                    <option value="odt" ?selected=${this._outputType === 'odt'}>ODT</option>
-                </select>
                 <button
-                    ?disabled=${!this._canRender()}
-                    @click=${this._onRender}>
-                    Render
+                    ?disabled=${!this._canUpload()}
+                    @click=${this._onUpload}>
+                    Upload
                 </button>
                 ${this._loading ? html`<span class="spinner"></span>` : ''}
             </div>
 
             ${this._error ? html`<div class="error">${this._error}</div>` : ''}
+            ${this._success ? html`<div class="success">${this._success}</div>` : ''}
         `;
     }
 
-    _onRenderUrlChange(e) {
-        this._renderUrl = e.target.value;
-        localStorage.setItem(RENDER_URL_KEY, this._renderUrl);
+    _getApiBase() {
+        if (this.apiBaseUrl) return this.apiBaseUrl.replace(/\/+$/, '');
+        // Default: same origin as the component was loaded from
+        const src = new URL(import.meta.url);
+        return src.origin;
     }
 
     _onFileChange(e) {
@@ -252,11 +215,7 @@ export class BpWorkbench extends LitElement {
         if (!file) return;
         this._templateFile = file;
         this._error = '';
-        const reader = new FileReader();
-        reader.onload = () => {
-            this._templateBase64 = reader.result.split(',')[1];
-        };
-        reader.readAsDataURL(file);
+        this._success = '';
     }
 
     _onJsonInput(e) {
@@ -269,42 +228,37 @@ export class BpWorkbench extends LitElement {
         }
     }
 
-    _canRender() {
-        return this._templateBase64 && this._jsonValid && this.jwt && !this._loading;
+    _canUpload() {
+        return this._templateName.trim() && this._templateFile && !this._loading;
     }
 
-    async _onRender() {
+    async _onUpload() {
         this._loading = true;
         this._error = '';
+        this._success = '';
 
         try {
-            const data = JSON.parse(this._jsonText);
-            const url = this._renderUrl.replace(/\/+$/, '');
+            const formData = new FormData();
+            formData.append('name', this._templateName.trim());
+            formData.append('file', this._templateFile);
 
-            const response = await fetch(`${url}/api/render/template`, {
+            const response = await fetch(`${this._getApiBase()}/api/templates`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.jwt}`
-                },
-                body: JSON.stringify({
-                    template: this._templateBase64,
-                    data,
-                    outputType: this._outputType
-                })
+                body: formData
             });
 
+            if (response.status === 409) {
+                throw new Error(`Template '${this._templateName}' existiert bereits.`);
+            }
             if (!response.ok) {
                 const text = await response.text();
-                throw new Error(`${response.status} ${response.statusText}: ${text}`);
+                throw new Error(`${response.status}: ${text}`);
             }
 
-            const blob = await response.blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `document.${this._outputType}`;
-            a.click();
-            URL.revokeObjectURL(a.href);
+            const result = await response.json();
+            this._success = `Template gespeichert (ID: ${result.id})`;
+            this._templateName = '';
+            this._templateFile = null;
         } catch (err) {
             this._error = err.message;
         } finally {
