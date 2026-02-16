@@ -500,7 +500,7 @@ export class BpWorkbench extends LitElement {
 
     async _loadTemplates() {
         try {
-            const response = await fetch(`${this._getApiBase()}/api/templates`);
+            const response = await fetch(`${this._getApiBase()}/api/workbench/templates`);
             if (response.ok) {
                 this._templates = await response.json();
             }
@@ -562,7 +562,7 @@ export class BpWorkbench extends LitElement {
             formData.append('name', this._uploadName.trim());
             formData.append('file', this._uploadFile);
 
-            const response = await fetch(`${this._getApiBase()}/api/templates`, {
+            const response = await fetch(`${this._getApiBase()}/api/workbench/templates`, {
                 method: 'POST',
                 body: formData
             });
@@ -614,7 +614,7 @@ export class BpWorkbench extends LitElement {
         try {
             // 1. Fetch template binary from workbench API
             const templateResponse = await fetch(
-                `${this._getApiBase()}/api/templates/${this._selectedTemplate.id}`
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}`
             );
             if (!templateResponse.ok) throw new Error('Template konnte nicht geladen werden.');
 

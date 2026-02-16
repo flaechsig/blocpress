@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Path("templates")
+@Path("workbench/templates")
 @Produces(MediaType.APPLICATION_JSON)
 public class TemplateResource {
 
