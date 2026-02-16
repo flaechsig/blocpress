@@ -307,7 +307,7 @@ ScsModules --> Monitor
 | Schnittstelle | Protokoll/Technologie | Mapping fachlicher Daten
 
 | Browser → blocpress-studio
-| HTTPS, Web Components (Import Maps)
+| HTTPS, Web Components (Dynamic Import)
 | Portal-Shell lädt Micro-Frontends der SCS-Module als Web Components
 
 | blocpress-studio → SCS-Module (intern)
@@ -354,7 +354,7 @@ ScsModules --> Monitor
 | Performance, Skalierbarkeit
 
 | *Micro-Frontends (Web Components)*
-| Jedes SCS-Modul liefert eigene UI als Web Components (Custom Elements mit Shadow DOM). Portal-Shell (blocpress-studio) lädt diese via Import Maps.
+| Jedes SCS-Modul liefert eigene UI als Web Components (Custom Elements mit Shadow DOM). Portal-Shell (blocpress-studio) lädt diese via Dynamic Import.
 | Wartbarkeit, Unabhängigkeit
 
 | *LibreOffice headless ≥ 24*
@@ -393,7 +393,7 @@ Die Anwendung ist in fünf fachlich geschnittene Module zerlegt:
 | SCS-Modul | Verantwortung | Datenstufe
 
 | *blocpress-studio*
-| Portal-Shell: Navigation, Authentifizierung (JWT), Integration der Micro-Frontends via Import Maps. Kein eigenes Backend.
+| Portal-Shell (Quarkus): Navigation, Authentifizierung (JWT), Integration der Micro-Frontends via Dynamic Import. Keine eigene Business-Logik.
 | —
 
 | *blocpress-workbench*
@@ -427,7 +427,7 @@ Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das p
 
 * blocpress-studio ist die Portal-Shell (HTML-Seite mit Navigation und Auth-Handling)
 * Jedes SCS-Modul liefert seine UI als Web Component (Custom Element mit Shadow DOM)
-* Studio lädt die Web Components über Import Maps (z.B. `blocpress-workbench-ui.js`)
+* Studio lädt die Web Components per Dynamic Import von den jeweiligen SCS-Modulen (z.B. `import('http://workbench:8081/components/bp-workbench.js')`)
 * JWT wird als Property an jedes Web Component weitergereicht: `<bp-workbench jwt="${token}"></bp-workbench>`
 * Shadow DOM kapselt CSS und DOM — Module beeinflussen sich nicht gegenseitig
 
@@ -530,10 +530,10 @@ Render ..> Core : Maven-\nAbhängigkeit
 Proof ..> Core : Maven-\nAbhängigkeit
 
 note right of Studio
-  Portal-Shell:
+  Portal-Shell (Quarkus):
   - Navigation
   - JWT-Authentifizierung
-  - Import Maps für
+  - Dynamic Import für
     Web Components
 end note
 
@@ -565,7 +565,7 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 | Name | Verantwortung
 
 | blocpress-studio
-| Portal-Shell: Authentifizierung (JWT-Handling), Navigation, Laden der Micro-Frontends via Import Maps. Kein eigenes Backend — rein statische HTML/JS-Anwendung.
+| Portal-Shell (Quarkus): Authentifizierung (JWT-Handling), Navigation, Laden der Micro-Frontends via Dynamic Import. Keine eigene Business-Logik — liefert statische HTML/JS-Assets aus und lädt Web Components dynamisch von den SCS-Modulen.
 
 | blocpress-workbench
 | Template-Entwicklung: Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Use Cases: UC-1 bis UC-5, UC-19 bis UC-21.
@@ -1078,7 +1078,7 @@ skinparam componentStyle rectangle
 
 node "Docker Host" {
   node "blocpress-studio Container" {
-    component "nginx\n+ statische Assets\n(HTML/JS/Import Maps)" as Studio
+    component "Quarkus App\n+ statische Assets\n(HTML/JS/Dynamic Import)" as Studio
   }
 
   node "blocpress-workbench Container" {
@@ -1168,12 +1168,9 @@ services:
       - "9200:9200"
 
   blocpress-studio:
-    image: nginx:alpine
-    volumes:
-      - ./studio/dist:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
+    build: ./blocpress-studio
     ports:
-      - "443:443"
+      - "8082:8082"
     depends_on:
       - blocpress-workbench
       - blocpress-proof
@@ -1247,7 +1244,7 @@ skinparam componentStyle rectangle
 cloud "Kubernetes Cluster" {
   node "Namespace: blocpress-prod" {
     rectangle "Deployment: blocpress-studio" {
-      component "Pod\nstudio (nginx)" as StudioPod
+      component "Pod\nstudio (Quarkus)" as StudioPod
     }
 
     rectangle "Deployment: blocpress-workbench" {
@@ -1639,21 +1636,17 @@ blocpress-studio ist die Portal-Shell, die Micro-Frontends der SCS-Module als We
 
 * Jedes SCS-Modul liefert ein JavaScript-Bundle mit Custom Elements (z.B. `<bp-workbench>`, `<bp-proof>`, `<bp-admin>`)
 * Die Web Components nutzen Shadow DOM für vollständige CSS- und DOM-Kapselung
-* Studio lädt die Bundles dynamisch via Import Maps
+* Studio lädt die Bundles dynamisch via Dynamic Import (`import()`) von den jeweiligen SCS-Modulen
 
-*Import Map (Beispiel):*
+*Dynamic Import (Beispiel):*
 
 [source,html]
 ----
-<script type="importmap">
-{
-  "imports": {
-    "bp-workbench": "/modules/workbench/bp-workbench.js",
-    "bp-proof": "/modules/proof/bp-proof.js",
-    "bp-admin": "/modules/admin/bp-admin.js"
-  }
+// Studio lädt Web Components per Dynamic Import von den SCS-Modulen
+async function loadWorkbench() {
+  const workbenchUrl = 'http://localhost:8081'; // konfigurierbar
+  await import(`${workbenchUrl}/components/bp-workbench.js`);
 }
-</script>
 ----
 
 *JWT-Weitergabe:*
@@ -2295,7 +2288,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | SCS-Modul für Dokumentengenerierung: Einzige öffentliche REST-API. Liest freigegebene Templates aus dem production-Schema. Stateless, horizontal skalierbar.
 
 | *blocpress-studio*
-| Portal-Shell: Keine eigene Business-Logik. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends (Web Components) via Import Maps.
+| Portal-Shell (Quarkus): Keine eigene Business-Logik. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends (Web Components) via Dynamic Import.
 
 | *blocpress-workbench*
 | SCS-Modul für Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search. Arbeitsumgebung des Template-Designers. Schema: `workbench`.
@@ -2318,8 +2311,8 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *IF-Bedingung*
 | Bedingung in einem Template, die Inhalte basierend auf JSON-Daten dynamisch ein- oder ausblendet.
 
-| *Import Map*
-| Browser-Standard zur Auflösung von JavaScript-Modulnamen auf URLs. Verwendet von blocpress-studio zum dynamischen Laden der Web Component-Bundles der SCS-Module.
+| *Dynamic Import*
+| JavaScript `import()`-Ausdruck zum dynamischen Laden von ES-Modulen zur Laufzeit. Verwendet von blocpress-studio zum Laden der Web Component-Bundles von den jeweiligen SCS-Modulen.
 
 | *LibreOffice headless*
 | LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich. Eingesetzt ausschließlich in blocpress-render für Format-Export (ODT → PDF/RTF). Validierung und Merge laufen über blocpress-core ohne LibreOffice.

@@ -52,7 +52,7 @@ _Fachliche Kundensegmente: xref:Solution_Design_Concept.adoc#sdc-vp[Value Propos
 
 Die Anwendung ist als Self-Contained Systems (SCS) strukturiert — fünf unabhängig deploybare Module mit eigener UI, eigenem Backend und eigenem Datenbank-Schema:
 
-*blocpress-studio (Portal-Shell):* Statische HTML/JS-Anwendung (nginx). Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Import Maps. Kein eigenes Backend. Lädt die Web Components der fachlichen Module.
+*blocpress-studio (Portal-Shell):* Quarkus-Anwendung, die statische HTML/JS-Assets ausliefert. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Dynamic Import. Kein eigenes Backend-Logik. Lädt die Web Components der fachlichen Module dynamisch von den jeweiligen SCS-Modulen.
 
 *blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung. Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
 _Use Cases: UC-1 bis UC-5, UC-19 bis UC-21_ +
