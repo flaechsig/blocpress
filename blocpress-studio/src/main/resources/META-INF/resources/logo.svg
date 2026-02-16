@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 720 110.15625"
+   version="1.1"
+   id="svg15"
+   width="720"
+   height="110.15625"
+   xmlns="http://www.w3.org/2000/svg">
+  <defs id="defs15" />
+  <!-- Icon container -->
+  <rect
+     x="0"
+     y="0"
+     width="110"
+     height="110"
+     rx="15"
+     fill="#0099ff"
+     opacity="0.1"
+     id="rect1" />
+  <!-- Document icon - flat style -->
+  <g
+     transform="translate(20,25)"
+     id="g4">
+    <path
+       d="M 0,0 H 45 V 10 H 55 V 70 H 0 Z"
+       fill="#3d4f5c"
+       id="path1" />
+    <path
+       d="M 45,0 V 10 H 55 Z"
+       fill="#2d3f4c"
+       id="path2" />
+    <rect
+       x="8"
+       y="20"
+       width="25"
+       height="3"
+       fill="#ffffff"
+       rx="1.5"
+       id="rect2" />
+    <rect
+       x="8"
+       y="30"
+       width="35"
+       height="3"
+       fill="#ffffff"
+       rx="1.5"
+       id="rect3" />
+    <rect
+       x="8"
+       y="40"
+       width="20"
+       height="3"
+       fill="#ffffff"
+       rx="1.5"
+       id="rect4" />
+  </g>
+  <!-- Gear - flat overlapping style -->
+  <g
+     transform="translate(70,70)"
+     id="g13">
+    <circle
+       r="22"
+       fill="#6bb33f"
+       id="circle4"
+       cx="0"
+       cy="0" />
+    <circle
+       cx="0"
+       cy="-25"
+       r="4"
+       fill="#6bb33f"
+       id="circle5" />
+    <circle
+       cx="0"
+       cy="25"
+       r="4"
+       fill="#6bb33f"
+       id="circle6" />
+    <circle
+       cx="-25"
+       cy="0"
+       r="4"
+       fill="#6bb33f"
+       id="circle7" />
+    <circle
+       cx="25"
+       cy="0"
+       r="4"
+       fill="#6bb33f"
+       id="circle8" />
+    <circle
+       cx="-18"
+       cy="-18"
+       r="4"
+       fill="#6bb33f"
+       id="circle9" />
+    <circle
+       cx="18"
+       cy="-18"
+       r="4"
+       fill="#6bb33f"
+       id="circle10" />
+    <circle
+       cx="-18"
+       cy="18"
+       r="4"
+       fill="#6bb33f"
+       id="circle11" />
+    <circle
+       cx="18"
+       cy="18"
+       r="4"
+       fill="#6bb33f"
+       id="circle12" />
+    <circle
+       r="10"
+       fill="#ffffff"
+       id="circle13"
+       cx="0"
+       cy="0" />
+  </g>
+  <!-- Bold modern text -->
+  <text
+     x="140"
+     y="80"
+     font-family="Arial, sans-serif"
+     font-size="72px"
+     font-weight="800"
+     fill="#0099ff"
+     id="text13">bloc</text>
+  <text
+     x="286.35309"
+     y="79.336922"
+     font-family="Arial, sans-serif"
+     font-size="72px"
+     font-weight="800"
+     fill="#6bb33f"
+     id="text14">press</text>
+  <text
+     x="485"
+     y="80"
+     font-family="Arial, sans-serif"
+     font-size="72px"
+     font-weight="400"
+     fill="#ffffff"
+     opacity="0.85"
+     id="text-studio">- studio</text>
+  <!-- Tagline -->
+  <text
+     x="140"
+     y="110"
+     font-family="Arial, sans-serif"
+     font-size="16px"
+     font-weight="400"
+     fill="#ffffff"
+     opacity="0.5"
+     id="text15">document automation</text>
+</svg>
