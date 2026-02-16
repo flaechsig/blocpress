@@ -1758,7 +1758,7 @@ public class DocumentService {
     @Inject
     MqttClient mqttClient;
 
-    public GenerationId generateDocument(Long templateId,
+    public GenerationId generateDocument(UUID templateId,
                                          String jsonData,
                                          OutputFormat format) {
         // 1. Erstelle Generierungs-Record

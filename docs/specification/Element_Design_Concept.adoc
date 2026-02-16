@@ -938,14 +938,14 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Template-ID (Primary Key)
+| 1 | id | UUID | Eindeutige Template-ID (Primary Key, auto-generiert)
 | 2 | name | String(255) | Name des Templates
 | 3 | description | String(2000) | Beschreibung des Templates
 | 4 | version | Integer | Versionsnummer (1, 2, 3, ...)
 | 5 | status | String(50) | Status: "Entwurf", "Eingereicht", "In Prüfung", "Freigegeben", "Abgelehnt", "Archiviert"
-| 6 | ersteller_id | Long | Foreign Key zu E-9 (Benutzer)
+| 6 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
 | 7 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
-| 8 | freigeber_id | Long | Foreign Key zu E-9 (Benutzer), nullable
+| 8 | freigeber_id | UUID | Foreign Key zu E-9 (Benutzer), nullable
 | 9 | freigabedatum | Timestamp | Freigabezeitpunkt, nullable
 | 10 | template_binary | bytea | ODT-Datei als Binärdaten (PostgreSQL BLOB)
 | 11 | user_fields | JSONB | Extrahierte User-Fields aus Validierung
@@ -966,13 +966,13 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-baustein[Baustein 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Baustein-ID (Primary Key)
+| 1 | id | UUID | Eindeutige Baustein-ID (Primary Key, auto-generiert)
 | 2 | name | String(255) | Name des Bausteins
 | 3 | description | String(2000) | Beschreibung
 | 4 | typ | String(50) | Typ: "Kopfzeile", "Fußzeile", "Klausel", "Abschnitt"
 | 5 | inhalt | bytea | ODT-Fragment als Binärdaten
 | 6 | version | Integer | Versionsnummer
-| 7 | ersteller_id | Long | Foreign Key zu E-9 (Benutzer)
+| 7 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
 | 8 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
 |===
 
@@ -988,8 +988,8 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-generierung[Dokume
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Generierungs-ID (Primary Key)
-| 2 | template_id | Long | Foreign Key zu E-1 (Template)
+| 1 | id | UUID | Eindeutige Generierungs-ID (Primary Key, auto-generiert)
+| 2 | template_id | UUID | Foreign Key zu E-1 (Template)
 | 3 | template_version | Integer | Version des verwendeten Templates
 | 4 | json_daten | JSONB | Eingabe-JSON-Daten
 | 5 | output_format | String(10) | "ODT", "PDF" oder "RTF"
@@ -997,7 +997,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-generierung[Dokume
 | 7 | zeitstempel | Timestamp | Generierungszeitpunkt
 | 8 | status | String(50) | "In Bearbeitung", "Erfolgreich", "Fehlgeschlagen"
 | 9 | fehlerprotokoll | Text | Fehlerdetails bei Fehlschlag, nullable
-| 10 | requestor_id | Long | Foreign Key zu E-9 (Benutzer) oder API-Key
+| 10 | requestor_id | UUID | Foreign Key zu E-9 (Benutzer) oder API-Key
 |===
 
 [[edc-e-4]]
@@ -1012,13 +1012,13 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-freigabe[Freigabep
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Prozess-ID (Primary Key)
-| 2 | template_id | Long | Foreign Key zu E-1 (Template)
+| 1 | id | UUID | Eindeutige Prozess-ID (Primary Key, auto-generiert)
+| 2 | template_id | UUID | Foreign Key zu E-1 (Template)
 | 3 | workflow_status | String(50) | "Eingereicht", "In Prüfung", "Freigegeben", "Abgelehnt"
-| 4 | pruefer_id | Long | Foreign Key zu E-9 (Benutzer), nullable
+| 4 | pruefer_id | UUID | Foreign Key zu E-9 (Benutzer), nullable
 | 5 | pruefkommentare | Text | Kommentare des Prüfers, nullable
 | 6 | pruefdatum | Timestamp | Prüfzeitpunkt, nullable
-| 7 | freigeber_id | Long | Foreign Key zu E-9 (Benutzer), nullable
+| 7 | freigeber_id | UUID | Foreign Key zu E-9 (Benutzer), nullable
 | 8 | freigabedatum | Timestamp | Freigabezeitpunkt, nullable
 |===
 
@@ -1034,12 +1034,12 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-review[Compliance 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Review-ID (Primary Key)
-| 2 | template_id | Long | Foreign Key zu E-1 (Template)
+| 1 | id | UUID | Eindeutige Review-ID (Primary Key, auto-generiert)
+| 2 | template_id | UUID | Foreign Key zu E-1 (Template)
 | 3 | review_typ | String(20) | "1-Jahres-Review", "3-Jahres-Review", "5-Jahres-Review"
 | 4 | faelligkeitsdatum | Date | Geplantes Review-Datum
 | 5 | review_status | String(50) | "Anstehend", "In Bearbeitung", "Abgeschlossen", "Überfällig"
-| 6 | reviewer_id | Long | Foreign Key zu E-9 (Benutzer), nullable
+| 6 | reviewer_id | UUID | Foreign Key zu E-9 (Benutzer), nullable
 | 7 | review_datum | Timestamp | Tatsächliches Review-Datum, nullable
 | 8 | review_ergebnis | String(50) | "Freigegeben", "Überarbeitung erforderlich", "Archivieren", nullable
 | 9 | kommentare | Text | Review-Kommentare, nullable
@@ -1058,8 +1058,8 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testcase[Test Case
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Test-ID (Primary Key)
-| 2 | template_id | Long | Foreign Key zu E-1 (Template)
+| 1 | id | UUID | Eindeutige Test-ID (Primary Key, auto-generiert)
+| 2 | template_id | UUID | Foreign Key zu E-1 (Template)
 | 3 | template_version | Integer | Getestete Template-Version
 | 4 | test_name | String(255) | Name des Tests
 | 5 | beschreibung | String(2000) | Beschreibung
@@ -1067,7 +1067,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testcase[Test Case
 | 7 | erwartetes_pdf | bytea | Baseline-PDF als Binärdaten, nullable
 | 8 | aktuelles_pdf | bytea | Zuletzt generiertes PDF, nullable
 | 9 | test_status | String(50) | "Bestanden", "Fehlgeschlagen", "Baseline fehlt"
-| 10 | ersteller_id | Long | Foreign Key zu E-9 (Benutzer)
+| 10 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
 | 11 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
 | 12 | letzte_ausfuehrung | Timestamp | Zeitpunkt der letzten Ausführung, nullable
 | 13 | test_typ | String(50) | "Abnahmetest", "Regressionstest"
@@ -1086,7 +1086,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-testpool[Testpool 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Pool-ID (Primary Key)
+| 1 | id | UUID | Eindeutige Pool-ID (Primary Key, auto-generiert)
 | 2 | name | String(255) | Name des Testpools
 | 3 | beschreibung | String(2000) | Beschreibung
 | 4 | letzte_ausfuehrung | Timestamp | Zeitpunkt der letzten Ausführung, nullable
@@ -1106,8 +1106,8 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-contentindex[Conte
 | ID | Name | Data Type | Description
 
 | 1 | id | String | Elasticsearch Document ID
-| 2 | template_id | Long | Referenz zu E-1 (Template)
-| 3 | baustein_id | Long | Referenz zu E-2 (Baustein), nullable
+| 2 | template_id | UUID | Referenz zu E-1 (Template)
+| 3 | baustein_id | UUID | Referenz zu E-2 (Baustein), nullable
 | 4 | inhalt | Text | Volltext-Inhalt (in Elasticsearch indexiert)
 | 5 | letzte_aktualisierung | Timestamp | Zeitpunkt der letzten Indexierung
 |===
@@ -1126,7 +1126,7 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-benutzer[Benutzer 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Benutzer-ID (Primary Key)
+| 1 | id | UUID | Eindeutige Benutzer-ID (Primary Key, auto-generiert)
 | 2 | name | String(255) | Vollständiger Name
 | 3 | email | String(255) | E-Mail-Adresse
 | 4 | rollen | JSONB | Array von Rollen: ["Template-Designer", "Prüfer", "Administrator", "API-Konsument"]
@@ -1147,7 +1147,7 @@ Speichert System-Konfiguration und API-Keys. Schema: `admin`.
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | Long | Eindeutige Konfigurations-ID (Primary Key)
+| 1 | id | UUID | Eindeutige Konfigurations-ID (Primary Key, auto-generiert)
 | 2 | schluessel | String(255) | Konfigurations-Schlüssel (z.B. "default_review_cycle")
 | 3 | wert | String(2000) | Konfigurations-Wert
 | 4 | datentyp | String(50) | "String", "Integer", "Boolean", "JSON"

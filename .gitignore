@@ -240,3 +240,9 @@ CLAUDE.md
 /blocpress-workbench/target/quarkus-app/lib/main/org.jboss.narayana.jts.narayana-jts-integration-7.2.2.Final.jar
 /blocpress-workbench/target/quarkus-app/lib/main/org.jspecify.jspecify-1.0.0.jar
 /blocpress-workbench/target/quarkus-app/lib/main/org.postgresql.postgresql-42.7.7.jar
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/class-use/Template.html
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/class-use/TemplateResource.html
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/class-use/TemplateResource.TemplateSummary.html
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/Template.html
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/TemplateResource.html
+/blocpress-workbench/target/apidocs/io/github/flaechsig/blocpress/workbench/TemplateResource.TemplateSummary.html
