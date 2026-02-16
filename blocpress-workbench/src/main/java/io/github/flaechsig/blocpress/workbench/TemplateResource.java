@@ -51,10 +51,9 @@ public class TemplateResource {
 
     @GET
     public List<TemplateSummary> list() {
-        return Template.findAll().stream()
-                .map(e -> (Template) e)
-                .map(t -> new TemplateSummary(t.id, t.name, t.createdAt))
-                .toList();
+        return Template.find("ORDER BY name")
+                .project(TemplateSummary.class)
+                .list();
     }
 
     @GET
