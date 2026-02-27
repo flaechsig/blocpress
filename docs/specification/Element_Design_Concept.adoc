@@ -778,10 +778,20 @@ Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist ö
 
 *Interne API (blocpress-workbench, Port 8081):*
 
+Template-Management:
 - `POST /api/workbench/templates` - Template hochladen
 - `GET /api/workbench/templates/{id}` - Template-Details abrufen
+- `GET /api/workbench/templates/{id}/details` - Template-Details mit Validierungsergebnis
 - `POST /api/workbench/templates/{id}/submit` - Template zur Freigabe einreichen (löst Stufenübergabe an proof aus)
 - `GET /api/workbench/search` - Nach Begriff suchen
+
+TestDataSet-Management (UC-20, UC-21, TF-8, UC-11):
+- `GET /api/workbench/templates/{id}/testdata` - Alle TestDataSets für Template abrufen
+- `POST /api/workbench/templates/{id}/testdata` - Neues TestDataSet erstellen {name, testData}
+- `PUT /api/workbench/templates/{id}/testdata/{testDataId}` - TestDataSet aktualisieren
+- `DELETE /api/workbench/templates/{id}/testdata/{testDataId}` - TestDataSet löschen
+- `POST /api/workbench/templates/{id}/testdata/{testDataId}/save-expected` - PDF als Expected Result speichern
+- `GET /api/workbench/templates/{id}/testdata/{testDataId}/expected-pdf` - Expected PDF abrufen
 
 *Interne API (blocpress-proof, Port 8082):*
 
@@ -1154,6 +1164,39 @@ Speichert System-Konfiguration und API-Keys. Schema: `admin`.
 | 5 | beschreibung | String(2000) | Beschreibung des Parameters
 | 6 | aenderbar | Boolean | Kann zur Laufzeit geändert werden
 |===
+
+[[edc-e-11]]
+=== E-11: TestDataSet (blocpress-workbench)
+
+*Description:*
+Speichert Test-Datensätze und optionale PDF-Baselines für Template-Designer zur lokalen Validierung. Schema: `workbench`. Separate von E-6 (Test Case in proof), da Designer ihre eigenen Testdaten verwalten und PDFs als "Expected Results" speichern können für zukünftige Regression-Tests. +
+_Stories: UC-20 (Auto-generiertes Formular), UC-21 (Mehrere TestDataSets), TF-8 (PDF speichern), UC-11 (Regression-Vorbereitung)_
+
+*Attributes:*
+
+|===
+| ID | Name | Data Type | Description
+
+| 1 | id | UUID | Eindeutige TestDataSet-ID (Primary Key, auto-generiert)
+| 2 | template_id | UUID | Foreign Key zu E-1 (Template), Schema workbench
+| 3 | name | String(255) | Sprechender Name (z.B. "Standardfall", "Grenzfall")
+| 4 | test_data | JSONB | Test-JSON-Daten (Struktur folgt template.validationResult.userFields)
+| 5 | expected_pdf | bytea | Optional: Baseline-PDF als Binärdaten, nullable
+| 6 | pdf_hash | String(64) | SHA-256 Hash des expected_pdf für schnelle Vergleiche, nullable
+| 7 | created_at | Timestamp | Erstellungszeitpunkt
+| 8 | updated_at | Timestamp | Letzter Aktualisierungszeitpunkt, nullable
+|===
+
+*Relationships:*
+
+- One-to-Many: Template (E-1) ← → TestDataSet (E-11)
+- Cascade Delete: Wenn Template gelöscht, werden auch alle TestDataSets gelöscht
+
+*Usage in Components:*
+
+- **bp-workbench (UI):** Zeigt TestDataSet-Liste im Tab "Testdaten", erlaubt Create/Edit/Delete
+- **blocpress-workbench (Backend):** TI-1 REST-Endpoints für CRUD-Operationen, SHA-256 Hash-Berechnung
+- **Future (Phase 4):** PDF-Vergleich mit E-6 (Test Case in proof) für umfassende Regression-Tests
 
 [[edc-qr]]
 == Quality Requirements

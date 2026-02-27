@@ -854,6 +854,90 @@ end note
 @enduml
 ----
 
+=== TestDataSet-Verwaltung und lokale Regression-Tests (blocpress-workbench)
+
+*Szenario:* Template-Designer erstellt Test-Datensätze und speichert PDF-Baselines für lokale Regression-Tests (UC-20, UC-21, TF-8, UC-11)
+
+[plantuml, laufzeit-testdata-management, svg]
+----
+@startuml
+actor "Template-Designer" as User
+participant "blocpress-workbench\n(Web Component)" as WC
+participant "blocpress-workbench\nREST-API" as API
+participant "TestDataSetService" as Service
+participant "RenderService" as Render
+participant "StorageService" as Storage
+participant "Repository\n(Schema: workbench)" as Repo
+
+User -> WC : Tab "Testdaten" öffnen
+WC -> API : GET /templates/{id}/testdata
+API -> Service : listTestDataSets(templateId)
+Service -> Repo : findByTemplateId(templateId)
+Repo --> Service : List<TestDataSet>
+Service --> API : TestDataSetDTO[]
+API --> WC : JSON Array
+WC --> User : Testdaten-Liste anzeigen
+
+User -> WC : "+ Neu" Button klicken
+WC --> User : Auto-generiertes Formular\n(aus template.validationResult.userFields)
+
+User -> WC : Testdaten eingeben\n(z.B. customer.name, amount)
+User -> WC : "Speichern" Button
+WC -> API : POST /templates/{id}/testdata\n{name, testData: {...}}
+API -> Service : createTestDataSet(templateId, name, data)
+Service -> Service : validateTestData(template, data)
+Service -> Repo : persist(testDataSet)
+Repo --> Service : TestDataSet (with id)
+Service --> API : TestDataSetDTO
+API --> WC : 201 Created
+WC --> User : "TestDataSet erstellt"
+
+note right of Service
+  UC-20: Auto-generiertes Formular\naus template.validationResult.userFields
+  UC-21: Mehrere TestDataSets pro Template
+end note
+
+== PDF als Expected Result speichern ==
+
+User -> WC : Testdaten-Item → "Vorschau" klicken
+WC -> WC : Tab wechselt zu "Vorschau"
+WC -> Render : POST /api/render/template\n(template + testData)
+Render --> WC : pdfBlob
+WC --> User : PDF wird angezeigt
+
+User -> WC : "PDF speichern" Button
+WC -> API : POST /templates/{id}/testdata/{dataId}/save-expected\n(pdfBlob als octet-stream)
+API -> Service : saveExpectedPdf(testDataSetId, pdfContent)
+Service -> Service : hash = SHA256(pdfContent)
+Service -> Storage : save(pdfContent)
+Storage --> Service : storageId
+Service -> Repo : updateTestDataSet(hash, storageId)
+Repo --> Service : OK
+Service --> API : {hash, message}
+API --> WC : 200 OK
+WC --> User : "Expected PDF gespeichert"
+
+note right of Service
+  TF-8: PDF-Speichern als Baseline\nfür Regression-Tests
+  UC-11: Hash für schnelle Vergleiche
+end note
+
+== Regression-Test vorbereiten ==
+
+User -> WC : Testdaten-Item mit Expected PDF → "Vorschau"
+WC -> WC : Tab "Vorschau", Testdaten laden
+WC -> Render : PDF mit aktuellem Template generieren
+Render --> WC : currentPdf
+WC --> User : PDF anzeigen (mit Hash-Info)
+
+note right of WC
+  Zukünftig (Phase 4): Automatischer Vergleich
+  mit Expected PDF und Diff-Visualisierung
+end note
+
+@enduml
+----
+
 === Dokument über API generieren (asynchron)
 
 *Szenario:* Externe Anwendung generiert Dokument über blocpress-render (UC-10, TF-5)
