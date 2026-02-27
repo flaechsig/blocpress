@@ -146,17 +146,17 @@ Bausteinverwaltung und Content Search.
 | UC-1
 | Template hochladen und validieren
 | 1
-| icon:play-circle[role=blue] IN PROGRESS
+| icon:check-circle[role=green] DONE
 
 | TF-1
 | Template-Validierung (User-Fields, Wiederholungsgruppen, Bedingungen)
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | UC-3
 | Template-Details anzeigen
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | UC-2
 | Template zur Freigabe einreichen (Stufenuebergabe workbench -> proof)
