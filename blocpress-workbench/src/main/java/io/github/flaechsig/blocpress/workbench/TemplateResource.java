@@ -1,11 +1,13 @@
 package io.github.flaechsig.blocpress.workbench;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -28,6 +30,9 @@ public class TemplateResource {
 
     @Inject
     TemplateValidator validator;
+
+    @Inject
+    TestDataSetService testDataSetService;
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -144,6 +149,81 @@ public class TemplateResource {
         return Response.noContent().build();
     }
 
+    // ===== TestDataSet Endpoints =====
+
+    @GET
+    @Path("{templateId}/testdata")
+    public List<TestDataSetDTO> listTestDataSets(@PathParam("templateId") UUID templateId) {
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return testDataSetService.listByTemplate(templateId)
+            .stream()
+            .map(TestDataSetDTO::fromEntity)
+            .toList();
+    }
+
+    @POST
+    @Path("{templateId}/testdata")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response createTestDataSet(@PathParam("templateId") UUID templateId,
+                                      CreateTestDataSetRequest request) {
+        TestDataSet tds = testDataSetService.createTestDataSet(templateId, request.name(), request.testData());
+        return Response.status(Response.Status.CREATED)
+            .entity(TestDataSetDTO.fromEntity(tds))
+            .build();
+    }
+
+    @PUT
+    @Path("{templateId}/testdata/{testDataSetId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateTestDataSet(@PathParam("templateId") UUID templateId,
+                                      @PathParam("testDataSetId") UUID testDataSetId,
+                                      CreateTestDataSetRequest request) {
+        TestDataSet tds = testDataSetService.updateTestDataSet(testDataSetId, request.name(), request.testData());
+        return Response.ok(TestDataSetDTO.fromEntity(tds)).build();
+    }
+
+    @DELETE
+    @Path("{templateId}/testdata/{testDataSetId}")
+    @Transactional
+    public Response deleteTestDataSet(@PathParam("templateId") UUID templateId,
+                                      @PathParam("testDataSetId") UUID testDataSetId) {
+        testDataSetService.deleteTestDataSet(testDataSetId);
+        return Response.noContent().build();
+    }
+
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/save-expected")
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Transactional
+    public Response saveExpectedPdf(@PathParam("templateId") UUID templateId,
+                                    @PathParam("testDataSetId") UUID testDataSetId,
+                                    byte[] pdfContent) {
+        testDataSetService.saveExpectedPdf(testDataSetId, pdfContent);
+        return Response.ok(Map.of(
+            "message", "Expected PDF saved successfully",
+            "hash", testDataSetService.calculateHash(pdfContent)
+        )).build();
+    }
+
+    @GET
+    @Path("{templateId}/testdata/{testDataSetId}/expected-pdf")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response getExpectedPdf(@PathParam("templateId") UUID templateId,
+                                   @PathParam("testDataSetId") UUID testDataSetId) {
+        var pdfOptional = testDataSetService.getExpectedPdf(testDataSetId);
+        if (pdfOptional.isEmpty()) {
+            throw new WebApplicationException("Expected PDF not found", Response.Status.NOT_FOUND);
+        }
+        return Response.ok(pdfOptional.get())
+            .header("Content-Disposition", "attachment; filename=\"expected.pdf\"")
+            .build();
+    }
+
     public record TemplateSummary(UUID id, String name, Instant createdAt, TemplateStatus status) {}
 
     public record TemplateDetails(
@@ -153,4 +233,28 @@ public class TemplateResource {
         TemplateStatus status,
         ValidationResult validationResult
     ) {}
+
+    public record CreateTestDataSetRequest(String name, JsonNode testData) {}
+
+    public record TestDataSetDTO(
+        UUID id,
+        String name,
+        JsonNode testData,
+        boolean hasExpectedPdf,
+        String pdfHash,
+        Instant createdAt,
+        Instant updatedAt
+    ) {
+        public static TestDataSetDTO fromEntity(TestDataSet entity) {
+            return new TestDataSetDTO(
+                entity.id,
+                entity.name,
+                entity.testData,
+                entity.expectedPdf != null,
+                entity.pdfHash,
+                entity.createdAt,
+                entity.updatedAt
+            );
+        }
+    }
 }
