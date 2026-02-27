@@ -129,6 +129,13 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <excludes>
+                                <!-- External dependencies - outside our control -->
+                                <exclude>io/smallrye/**</exclude>
+                                <exclude>io/vertx/**</exclude>
+                                <exclude>io/quarkus/**</exclude>
+                                <exclude>org/jboss/**</exclude>
+                            </excludes>
                             <rules>
                                 <!-- Core library: strict 70% requirement -->
                                 <rule>
