@@ -163,6 +163,26 @@ Bausteinverwaltung und Content Search.
 | 2
 | icon:check-circle[role=green] DONE
 
+| UC-20
+| Testdaten-Generator aus Template-Feldern
+| 2
+| icon:play-circle[role=blue] IN PROGRESS
+
+| UC-21
+| Mehrere Test-Datensaetze pro Template verwalten
+| 2
+| icon:play-circle[role=blue] IN PROGRESS
+
+| TF-8
+| PDF-Speicherung als "expected result" fuer Regression-Tests
+| 2
+| icon:play-circle[role=blue] IN PROGRESS
+
+| UC-11
+| Regression-Test durchfuehren (Ist-PDF vs. expected PDF)
+| 3
+| icon:circle-o[] OFFEN
+
 | —
 | Bausteinverwaltung (Entity E-2)
 | 2
