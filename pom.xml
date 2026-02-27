@@ -155,7 +155,7 @@
     <distributionManagement>
         <site>
             <id>local</id>
-            <url>file://${maven.multiModuleProjectDirectory}/target/staging</url>
+            <url>file://${maven.multiModuleProjectDirectory}/target/site</url>
         </site>
     </distributionManagement>
 
@@ -176,6 +176,17 @@
                 <configuration>
                     <aggregate>true</aggregate>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
