@@ -81,12 +81,12 @@ Einzige öffentlich exponierte API des Systems.
 | —
 | Caching von Templates (Caffeine Cache)
 | 3
-| icon:circle-o[] OFFEN
+| ~~icon:circle-o[] OFFEN~~ NICHT GEPLANT
 
 | —
 | API Rate-Limiting (1.000 Req/h)
 | 3
-| icon:circle-o[] OFFEN
+| ~~icon:circle-o[] OFFEN~~ NICHT GEPLANT
 
 | —
 | Asynchrone Generierung ueber Message Queue
@@ -161,7 +161,7 @@ Bausteinverwaltung und Content Search.
 | UC-2
 | Template zur Freigabe einreichen (Stufenuebergabe workbench -> proof)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
 | Bausteinverwaltung (Entity E-2)
@@ -292,22 +292,22 @@ der SCS-Module.
 | —
 | Portal-Shell (Navigation, JWT-Handling)
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
 | Import Maps fuer Web Components
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
 | Web Components: `<bp-workbench>`, `<bp-proof>`, `<bp-admin>`
 | 2
-| icon:circle-o[] OFFEN
+| icon:play-circle[role=blue] IN PROGRESS
 
 | —
 | JWT-Weitergabe als Property an Web Components
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 |===
 
 <<<
