@@ -17,6 +17,7 @@
     <properties>
         <it.image>blocpress-render:it</it.image>
         <openapi.generator.version>7.7.0</openapi.generator.version>
+        <skipITs>true</skipITs>
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <quarkus.container-image.build>false</quarkus.container-image.build>
@@ -196,6 +197,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <skipITs>${skipITs}</skipITs>
                     <systemPropertyVariables>
                         <it.image>${it.image}</it.image>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>

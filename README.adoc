@@ -303,3 +303,48 @@ In the figure you see "Max Mustermann". At development time the value of **User 
 .Complete document with single fields, lists and text blocks
 image::text_block_processed.png[]
 
+== Development & Build
+
+=== Building the Project
+
+[source,bash]
+----
+# Build everything (compile + unit tests)
+mvn clean verify
+
+# Build without tests
+mvn clean package -DskipTests
+
+# Run only unit tests
+mvn test -pl blocpress-core
+
+# Generate Maven site with coverage reports
+mvn clean test site
+./aggregate-site.sh
+# Then open: target/site/index.html
+----
+
+=== Site Reports and Coverage
+
+The project uses JaCoCo for code coverage reporting with a 70% instruction coverage requirement on blocpress-core.
+
+To generate site reports with aggregated module coverage:
+
+[source,bash]
+----
+mvn clean test site
+./aggregate-site.sh
+----
+
+This will:
+1. Run all unit tests and generate coverage data
+2. Create Maven site reports for all modules
+3. Aggregate module reports into the parent site
+4. Open `target/site/index.html` to view all reports
+
+The Coverage menu includes links to:
+- **Core** — Core library coverage
+- **Render** — REST API and rendering module
+- **Workbench** — Template development workspace
+- **Studio** — Portal shell
+

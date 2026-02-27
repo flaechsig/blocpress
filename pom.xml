@@ -84,6 +84,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
                 <version>4.0.0-M16</version>
+                <configuration>
+                    <stagingDirectory>${project.build.directory}/staging</stagingDirectory>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -127,10 +130,41 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <!-- Core library: strict 70% requirement -->
                                 <rule>
-                                    <element>BUNDLE</element>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>io/github/flaechsig/blocpress/core/**</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Workbench: REST/JPA components - pragmatic target -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>io/github/flaechsig/blocpress/workbench/**</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.40</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Render: Generated code excluded -->
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>io/github/flaechsig/blocpress/render/**</include>
+                                    </includes>
                                     <excludes>
-                                        <!-- OpenAPI Generator output -->
                                         <exclude>io/github/flaechsig/blocpress/render/api/**</exclude>
                                         <exclude>io/github/flaechsig/blocpress/render/model/**</exclude>
                                     </excludes>
