@@ -79,16 +79,6 @@ Einzige öffentlich exponierte API des Systems.
 | icon:circle-o[] OFFEN
 
 | —
-| Caching von Templates (Caffeine Cache)
-| 3
-| ~~icon:circle-o[] OFFEN~~ NICHT GEPLANT
-
-| —
-| API Rate-Limiting (1.000 Req/h)
-| 3
-| ~~icon:circle-o[] OFFEN~~ NICHT GEPLANT
-
-| —
 | Asynchrone Generierung ueber Message Queue
 | 3
 | icon:circle-o[] OFFEN

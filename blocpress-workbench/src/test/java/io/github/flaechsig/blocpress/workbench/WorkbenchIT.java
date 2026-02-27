@@ -262,4 +262,144 @@ class WorkbenchIT {
                 .when()
                 .post("/api/workbench/templates");
     }
+
+    // --- TestDataSet CRUD ---
+
+    private static String testDataSetId;
+
+    @Test
+    @Order(19)
+    void listTestDataSetsInitiallyEmpty() throws Exception {
+        // Upload a template first for TestDataSet tests
+        Response uploadResp = uploadMultipart("testdata-template", "template-content".getBytes());
+        assertEquals(201, uploadResp.statusCode());
+        JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
+        String templateId = uploadBody.get("id").asText();
+
+        Response response = get("/api/workbench/templates/" + templateId + "/testdata");
+
+        assertEquals(200, response.statusCode());
+        JsonNode list = MAPPER.readTree(response.body().asString());
+        assertTrue(list.isArray());
+        assertEquals(0, list.size());
+    }
+
+    @Test
+    @Order(20)
+    void createTestDataSet() throws Exception {
+        // Get the template from previous test
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        // Create TestDataSet
+        String testDataJson = "{\"name\": \"Test1\", \"testData\": {\"firstname\": \"John\", \"lastname\": \"Doe\"}}";
+        Response response = RestAssured.given()
+                .header("Content-Type", "application/json")
+                .body(testDataJson)
+                .when()
+                .post("/api/workbench/templates/" + templateId + "/testdata");
+
+        assertEquals(201, response.statusCode());
+        JsonNode body = MAPPER.readTree(response.body().asString());
+        assertNotNull(body.get("id"));
+        assertEquals("Test1", body.get("name").asText());
+        testDataSetId = body.get("id").asText();
+    }
+
+    @Test
+    @Order(21)
+    void listTestDataSetsAfterCreate() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        Response response = get("/api/workbench/templates/" + templateId + "/testdata");
+
+        assertEquals(200, response.statusCode());
+        JsonNode list = MAPPER.readTree(response.body().asString());
+        assertTrue(list.isArray());
+        assertEquals(1, list.size());
+        assertEquals("Test1", list.get(0).get("name").asText());
+    }
+
+    @Test
+    @Order(22)
+    void updateTestDataSet() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        String updatedDataJson = "{\"name\": \"Test1Updated\", \"testData\": {\"firstname\": \"Jane\", \"lastname\": \"Smith\"}}";
+        Response response = RestAssured.given()
+                .header("Content-Type", "application/json")
+                .body(updatedDataJson)
+                .when()
+                .put("/api/workbench/templates/" + templateId + "/testdata/" + testDataSetId);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = MAPPER.readTree(response.body().asString());
+        assertEquals("Test1Updated", body.get("name").asText());
+    }
+
+    @Test
+    @Order(23)
+    void saveExpectedPdf() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        byte[] pdfContent = "fake-pdf-content".getBytes();
+        Response response = RestAssured.given()
+                .header("Content-Type", "application/octet-stream")
+                .body(pdfContent)
+                .when()
+                .post("/api/workbench/templates/" + templateId + "/testdata/" + testDataSetId + "/save-expected");
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = MAPPER.readTree(response.body().asString());
+        assertTrue(body.has("hash"));
+        assertNotNull(body.get("hash").asText());
+    }
+
+    @Test
+    @Order(24)
+    void getExpectedPdf() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        Response response = get("/api/workbench/templates/" + templateId + "/testdata/" + testDataSetId + "/expected-pdf");
+
+        assertEquals(200, response.statusCode());
+        byte[] content = response.body().asByteArray();
+        assertEquals("fake-pdf-content", new String(content));
+    }
+
+    @Test
+    @Order(25)
+    void deleteTestDataSet() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        Response response = delete("/api/workbench/templates/" + templateId + "/testdata/" + testDataSetId);
+
+        assertEquals(204, response.statusCode());
+    }
+
+    @Test
+    @Order(26)
+    void listTestDataSetsAfterDelete() throws Exception {
+        Response templatesResp = get("/api/workbench/templates");
+        JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
+        String templateId = templates.get(templates.size() - 1).get("id").asText();
+
+        Response response = get("/api/workbench/templates/" + templateId + "/testdata");
+
+        assertEquals(200, response.statusCode());
+        JsonNode list = MAPPER.readTree(response.body().asString());
+        assertTrue(list.isArray());
+        assertEquals(0, list.size());
+    }
 }
