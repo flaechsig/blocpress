@@ -28,7 +28,10 @@ export class BpWorkbench extends LitElement {
         _rendering: { state: true },
         _uploading: { state: true },
         _error: { state: true },
-        _success: { state: true }
+        _success: { state: true },
+        _detailsView: { state: true },
+        _templateDetails: { state: true },
+        _submitting: { state: true }
     };
 
     static styles = css`
@@ -333,6 +336,114 @@ export class BpWorkbench extends LitElement {
             color: #33691e;
             font-size: 13px;
         }
+
+        /* Status badge */
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Details panel */
+        .details-panel {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .details-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .details-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .validation-section {
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .validation-section h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+        .validation-section ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+        .validation-message {
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .validation-message.error {
+            background: #fff5f5;
+            border-left: 3px solid #c62828;
+            color: #c62828;
+        }
+        .validation-message.warning {
+            background: #fffbf0;
+            border-left: 3px solid #f57c00;
+            color: #f57c00;
+        }
+        .condition {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #fff;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .condition.invalid {
+            border-left: 3px solid #c62828;
+        }
+        .condition code {
+            font-family: monospace;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .condition .error-msg {
+            font-size: 11px;
+            color: #c62828;
+        }
+        .btn-submit {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #1e3c72;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            align-self: flex-start;
+        }
+        .btn-submit:hover:not(:disabled) {
+            background: #2a5298;
+        }
+        .btn-submit:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
     `;
 
     constructor() {
@@ -353,6 +464,9 @@ export class BpWorkbench extends LitElement {
         this._uploading = false;
         this._error = '';
         this._success = '';
+        this._detailsView = false;
+        this._templateDetails = null;
+        this._submitting = false;
     }
 
     connectedCallback() {
@@ -379,8 +493,10 @@ export class BpWorkbench extends LitElement {
 
             ${this._uploadMode ? this._renderUploadForm() : ''}
 
-            <!-- Row 2: Preview + JSON (only when template selected) -->
-            ${this._selectedTemplate ? html`
+            ${this._detailsView ? this._renderDetailsView() : ''}
+
+            <!-- Row 2: Preview + JSON (only when template selected and NOT in details view) -->
+            ${this._selectedTemplate && !this._detailsView ? html`
                 <div class="workspace">
                     <div class="panel">
                         <div class="panel-header">
@@ -446,10 +562,23 @@ export class BpWorkbench extends LitElement {
     }
 
     _renderSelectedTemplate() {
+        const statusColors = {
+            'DRAFT': '#888',
+            'SUBMITTED': '#1976d2',
+            'APPROVED': '#388e3c',
+            'REJECTED': '#d32f2f'
+        };
+
         return html`
             <div class="autocomplete">
                 <div class="selected-template">
                     ${this._selectedTemplate.name}
+                    <span class="status-badge"
+                        style="background: ${statusColors[this._selectedTemplate.status] || '#888'}">
+                        ${this._selectedTemplate.status}
+                    </span>
+                    <button class="icon-btn" title="Details anzeigen"
+                        @click=${this._showDetails}>ⓘ</button>
                     <button class="clear-btn" title="Auswahl aufheben"
                         @click=${this._clearSelection}>&times;</button>
                 </div>
@@ -479,6 +608,94 @@ export class BpWorkbench extends LitElement {
                     </button>
                     <button class="btn-cancel" @click=${this._toggleUploadMode}>Abbrechen</button>
                     ${this._uploading ? html`<span class="spinner"></span>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    _renderDetailsView() {
+        if (!this._templateDetails) return '';
+
+        const vr = this._templateDetails.validationResult;
+        const canSubmit = this._templateDetails.status === 'DRAFT' && vr?.isValid;
+
+        return html`
+            <div class="details-panel">
+                <div class="details-header">
+                    <h3>Template Details: ${this._templateDetails.name}</h3>
+                    <button class="icon-btn" title="Schließen"
+                        @click=${this._closeDetails}>&times;</button>
+                </div>
+
+                <div class="details-body">
+                    <div class="validation-section">
+                        <strong>Status:</strong> ${this._templateDetails.status}<br>
+                        <strong>Erstellt:</strong> ${new Date(this._templateDetails.createdAt).toLocaleString('de-DE')}<br>
+                        <strong>Validierung:</strong>
+                        ${vr?.isValid ? html`<span style="color: #388e3c;">✓ Gültig</span>` : html`<span style="color: #c62828;">✗ Ungültig</span>`}
+                    </div>
+
+                    ${vr?.errors?.length > 0 ? html`
+                        <div class="validation-section">
+                            <h4>Fehler</h4>
+                            ${vr.errors.map(e => html`
+                                <div class="validation-message error">
+                                    <strong>${e.code}:</strong> ${e.message}
+                                </div>
+                            `)}
+                        </div>
+                    ` : ''}
+
+                    ${vr?.warnings?.length > 0 ? html`
+                        <div class="validation-section">
+                            <h4>Warnungen</h4>
+                            ${vr.warnings.map(w => html`
+                                <div class="validation-message warning">
+                                    <strong>${w.code}:</strong> ${w.message}
+                                </div>
+                            `)}
+                        </div>
+                    ` : ''}
+
+                    ${vr?.userFields?.length > 0 ? html`
+                        <div class="validation-section">
+                            <h4>Datenfelder (${vr.userFields.length})</h4>
+                            <ul>
+                                ${vr.userFields.map(f => html`<li>${f.name} (${f.type})</li>`)}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${vr?.repetitionGroups?.length > 0 ? html`
+                        <div class="validation-section">
+                            <h4>Wiederholungsgruppen (${vr.repetitionGroups.length})</h4>
+                            <ul>
+                                ${vr.repetitionGroups.map(rg => html`
+                                    <li>${rg.name} → <code>${rg.arrayPath}</code> (${rg.type})</li>
+                                `)}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${vr?.conditions?.length > 0 ? html`
+                        <div class="validation-section">
+                            <h4>Bedingungen (${vr.conditions.length})</h4>
+                            ${vr.conditions.map(c => html`
+                                <div class="condition ${c.syntaxValid ? '' : 'invalid'}">
+                                    <code>${c.expression}</code>
+                                    ${!c.syntaxValid ? html`<div class="error-msg">${c.errorMessage}</div>` : ''}
+                                </div>
+                            `)}
+                        </div>
+                    ` : ''}
+
+                    ${canSubmit ? html`
+                        <button class="btn-submit"
+                            ?disabled=${this._submitting}
+                            @click=${this._submitTemplate}>
+                            ${this._submitting ? 'Wird eingereicht...' : 'Zur Freigabe einreichen'}
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -659,6 +876,62 @@ export class BpWorkbench extends LitElement {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
+    }
+
+    // --- Details View ---
+
+    async _showDetails() {
+        if (!this._selectedTemplate) return;
+
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/details`
+            );
+            if (!response.ok) throw new Error('Details konnten nicht geladen werden');
+
+            this._templateDetails = await response.json();
+            this._detailsView = true;
+        } catch (err) {
+            this._error = err.message;
+        }
+    }
+
+    _closeDetails() {
+        this._detailsView = false;
+        this._templateDetails = null;
+    }
+
+    async _submitTemplate() {
+        if (!this._templateDetails) return;
+
+        this._submitting = true;
+        this._error = '';
+
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._templateDetails.id}/submit`,
+                { method: 'POST' }
+            );
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text);
+            }
+
+            this._success = 'Template erfolgreich eingereicht';
+            this._closeDetails();
+            await this._loadTemplates();
+
+            // Re-select template to update status
+            const updated = this._templates.find(t => t.id === this._templateDetails.id);
+            if (updated) {
+                this._selectedTemplate = updated;
+            }
+        } catch (err) {
+            this._error = err.message;
+        } finally {
+            this._submitting = false;
+        }
     }
 }
 

@@ -40,6 +40,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.github.flaechsig</groupId>
+            <artifactId>blocpress-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest</artifactId>
         </dependency>

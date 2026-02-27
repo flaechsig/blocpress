@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.workbench;
 
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -25,6 +26,9 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 public class TemplateResource {
 
+    @Inject
+    TemplateValidator validator;
+
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Transactional
@@ -38,14 +42,25 @@ public class TemplateResource {
                     Response.Status.CONFLICT);
         }
 
+        byte[] content = Files.readAllBytes(file.uploadedFile());
+        ValidationResult validationResult = validator.validate(content);
+
         Template template = new Template();
         template.name = name.strip();
-        template.content = Files.readAllBytes(file.uploadedFile());
+        template.content = content;
         template.createdAt = Instant.now();
+        template.status = TemplateStatus.DRAFT;
+        template.validationResult = validationResult;
         template.persist();
 
         return Response.status(Response.Status.CREATED)
-                .entity(Map.of("id", template.id, "name", template.name))
+                .entity(Map.of(
+                    "id", template.id,
+                    "name", template.name,
+                    "isValid", validationResult.isValid(),
+                    "errors", validationResult.errors(),
+                    "warnings", validationResult.warnings()
+                ))
                 .build();
     }
 
@@ -69,6 +84,54 @@ public class TemplateResource {
                 .build();
     }
 
+    @GET
+    @Path("{id}/details")
+    public TemplateDetails getDetails(@PathParam("id") UUID id) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return new TemplateDetails(
+            template.id,
+            template.name,
+            template.createdAt,
+            template.status,
+            template.validationResult
+        );
+    }
+
+    @POST
+    @Path("{id}/submit")
+    @Transactional
+    public Response submitForApproval(@PathParam("id") UUID id) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        if (template.status != TemplateStatus.DRAFT) {
+            throw new WebApplicationException(
+                "Template must be in DRAFT status to submit",
+                Response.Status.BAD_REQUEST
+            );
+        }
+
+        if (template.validationResult == null || !template.validationResult.isValid()) {
+            throw new WebApplicationException(
+                "Template must be valid to submit",
+                Response.Status.BAD_REQUEST
+            );
+        }
+
+        template.status = TemplateStatus.SUBMITTED;
+        template.persist();
+
+        return Response.ok(Map.of(
+            "id", template.id,
+            "status", template.status
+        )).build();
+    }
+
     @DELETE
     @Path("{id}")
     @Transactional
@@ -81,5 +144,13 @@ public class TemplateResource {
         return Response.noContent().build();
     }
 
-    public record TemplateSummary(UUID id, String name, Instant createdAt) {}
+    public record TemplateSummary(UUID id, String name, Instant createdAt, TemplateStatus status) {}
+
+    public record TemplateDetails(
+        UUID id,
+        String name,
+        Instant createdAt,
+        TemplateStatus status,
+        ValidationResult validationResult
+    ) {}
 }
