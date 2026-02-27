@@ -146,7 +146,7 @@ Bausteinverwaltung und Content Search.
 | UC-1
 | Template hochladen und validieren
 | 1
-| icon:circle-o[] OFFEN
+| icon:play-circle[role=blue] IN PROGRESS
 
 | TF-1
 | Template-Validierung (User-Fields, Wiederholungsgruppen, Bedingungen)

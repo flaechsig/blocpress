@@ -126,7 +126,7 @@ class WorkbenchHealthIT {
 
     @Test
     @Order(2)
-    void workbenchComponentIsServed() throws Exception {
+    void workbenchWebComponentIsServed() throws Exception {
         HttpResponse<String> response = get("/components/bp-workbench.js");
 
         assertEquals(200, response.statusCode());
