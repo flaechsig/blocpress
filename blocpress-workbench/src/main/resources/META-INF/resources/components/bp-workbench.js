@@ -705,8 +705,13 @@ export class BpWorkbench extends LitElement {
 
     _getApiBase() {
         if (this.apiBaseUrl) return this.apiBaseUrl.replace(/\/+$/, '');
-        const src = new URL(import.meta.url);
-        return src.origin;
+        try {
+            const src = new URL(import.meta.url);
+            return src.origin;
+        } catch {
+            // Fallback when import.meta.url is not available (cross-origin dynamic import)
+            return window.location.origin;
+        }
     }
 
     _getRenderUrl() {
