@@ -226,6 +226,7 @@
                         <it.image>${it.image}</it.image>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemPropertyVariables>
+                    <argLine>${failsafeArgLine}</argLine>
                 </configuration>
                 <executions>
                     <execution>
