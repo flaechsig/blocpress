@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from 'https://esm.sh/lit@3.2.1';
 
 const RENDER_URL_KEY = 'bp-render-url';
 const DEFAULT_RENDER_URL = 'http://localhost:8080';
