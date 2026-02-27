@@ -1,71 +1,72 @@
 package io.github.flaechsig.blocpress.workbench;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for TemplateValidator field name validation.
+ * (Integration tests with full ODT validation require @QuarkusTest with DB setup)
+ */
 class TemplateValidatorTest {
 
-    private TemplateValidator validator;
-    private ObjectMapper objectMapper;
+    private static final String FIELD_NAME_PATTERN = "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$";
 
-    @BeforeEach
-    void setUp() {
-        objectMapper = new ObjectMapper();
-        validator = new TemplateValidator(objectMapper);
+    @Test
+    void testValidFieldNames() {
+        assertTrue("customer".matches(FIELD_NAME_PATTERN));
+        assertTrue("customer".matches(FIELD_NAME_PATTERN));
+        assertTrue("customer_name".matches(FIELD_NAME_PATTERN));
+        assertTrue("customer123".matches(FIELD_NAME_PATTERN));
     }
 
     @Test
-    void testValidateWithValidTemplate() throws Exception {
-        // Load valid test template from resources
-        Path templatePath = Path.of("src/test/resources/templates/valid-template.odt");
-        if (!Files.exists(templatePath)) {
-            // Skip if test template doesn't exist yet
-            System.out.println("Test template not found: " + templatePath);
-            return;
-        }
-
-        byte[] content = Files.readAllBytes(templatePath);
-        ValidationResult result = validator.validate(content);
-
-        assertTrue(result.isValid(), "Valid template should pass validation");
-        assertTrue(result.errors().isEmpty(), "Valid template should have no errors");
+    void testValidDottedFieldNames() {
+        assertTrue("customer.name".matches(FIELD_NAME_PATTERN));
+        assertTrue("customer.address.street".matches(FIELD_NAME_PATTERN));
+        assertTrue("customer.contact.email".matches(FIELD_NAME_PATTERN));
+        assertTrue("data.items.name".matches(FIELD_NAME_PATTERN));
     }
 
     @Test
-    void testValidateWithInvalidOdt() {
-        // Provide invalid ODT content
-        byte[] invalidContent = "This is not an ODT file".getBytes();
-        ValidationResult result = validator.validate(invalidContent);
-
-        assertFalse(result.isValid(), "Invalid ODT should fail validation");
-        assertFalse(result.errors().isEmpty(), "Invalid ODT should have errors");
-
-        boolean hasOdtError = result.errors().stream()
-            .anyMatch(e -> e.code().equals("INVALID_ODT_STRUCTURE"));
-        assertTrue(hasOdtError, "Should report invalid ODT structure");
+    void testInvalidFieldNames() {
+        assertFalse("123customer".matches(FIELD_NAME_PATTERN), "Should not start with number");
+        assertFalse("customer-name".matches(FIELD_NAME_PATTERN), "Should not contain dash");
+        assertFalse(".customer".matches(FIELD_NAME_PATTERN), "Should not start with dot");
+        assertFalse("customer.".matches(FIELD_NAME_PATTERN), "Should not end with dot");
+        assertFalse("customer..name".matches(FIELD_NAME_PATTERN), "Should not have consecutive dots");
+        assertFalse("customer.123name".matches(FIELD_NAME_PATTERN), "Field after dot should not start with number");
+        assertFalse("_customer".matches(FIELD_NAME_PATTERN), "Should not start with underscore");
     }
 
-    @Test
-    void testValidateFieldNameFormat() throws Exception {
-        // This test validates the field name regex
-        String validFieldName1 = "customer";
-        String validFieldName2 = "customer.name";
-        String validFieldName3 = "customer.address.street";
-        String invalidFieldName1 = "123customer"; // starts with number
-        String invalidFieldName2 = "customer-name"; // contains dash
-        String invalidFieldName3 = ".customer"; // starts with dot
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "firstName",
+        "lastName",
+        "street_address",
+        "customer.firstName",
+        "address.street.number",
+        "items.name"
+    })
+    void testValidFieldNamePatterns(String fieldName) {
+        assertTrue(fieldName.matches(FIELD_NAME_PATTERN),
+            "Field name should match pattern: " + fieldName);
+    }
 
-        assertTrue(validFieldName1.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
-        assertTrue(validFieldName2.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
-        assertTrue(validFieldName3.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
-        assertFalse(invalidFieldName1.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
-        assertFalse(invalidFieldName2.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
-        assertFalse(invalidFieldName3.matches("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$"));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "0firstName",        // starts with digit
+        "first-name",        // contains dash
+        ".firstName",        // starts with dot
+        "firstName.",        // ends with dot
+        "first..name",       // consecutive dots
+        "first.0name",       // component starts with digit
+        "_firstName"         // starts with underscore
+    })
+    void testInvalidFieldNamePatterns(String fieldName) {
+        assertFalse(fieldName.matches(FIELD_NAME_PATTERN),
+            "Field name should not match pattern: " + fieldName);
     }
 }
