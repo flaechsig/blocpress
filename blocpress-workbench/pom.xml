@@ -16,7 +16,6 @@
 
     <properties>
         <it.image>blocpress-workbench:it</it.image>
-        <skipITs>true</skipITs>
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <quarkus.container-image.build>false</quarkus.container-image.build>
@@ -77,42 +76,22 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-junit-jupiter</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-postgresql</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jacoco</groupId>
-            <artifactId>org.jacoco.core</artifactId>
-            <version>0.8.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.3.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.3.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
@@ -127,72 +106,6 @@
                             <goal>build</goal>
                         </goals>
                     </execution>
-                    <execution>
-                        <id>build-it-image</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                        <configuration>
-                            <systemProperties>
-                                <quarkus.container-image.build>true</quarkus.container-image.build>
-                                <quarkus.container-image.image>${it.image}</quarkus.container-image.image>
-                            </systemProperties>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.7.1</version>
-                <executions>
-                    <execution>
-                        <id>copy-jacoco-agent-jar</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.jacoco</groupId>
-                                    <artifactId>org.jacoco.agent</artifactId>
-                                    <version>0.8.11</version>
-                                    <classifier>runtime</classifier>
-                                    <type>jar</type>
-                                    <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
-                                    <destFileName>jacocoagent.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>extract-quarkus-classes</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <!-- Quarkus-transformierte Klassen über target/classes kopieren -->
-                                <unjar src="${project.build.directory}/quarkus-app/quarkus/transformed-bytecode.jar"
-                                       dest="${project.build.outputDirectory}"
-                                       overwrite="true">
-                                    <patternset>
-                                        <include name="**/*.class"/>
-                                    </patternset>
-                                </unjar>
-                            </target>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -206,8 +119,8 @@
                             <goal>report</goal>
                         </goals>
                         <configuration>
-                            <dataFile>${project.build.directory}/jacoco-it/jacoco-it.exec</dataFile>
-                            <classesDirectory>${project.build.directory}/quarkus-classes</classesDirectory>
+                            <dataFile>${project.build.directory}/jacoco.exec</dataFile>
+                            <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                         </configuration>
                     </execution>
                     <execution>
@@ -216,30 +129,8 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.2.5</version>
-                <configuration>
-                    <skipITs>${skipITs}</skipITs>
-                    <systemPropertyVariables>
-                        <it.image>${it.image}</it.image>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    </systemPropertyVariables>
-                    <argLine>${failsafeArgLine}</argLine>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
-
     <reporting>
         <plugins>
             <plugin>
@@ -247,6 +138,7 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
                     <dataFile>${project.build.directory}/jacoco.exec</dataFile>
+                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                 </configuration>
                 <reportSets>
                     <reportSet>
@@ -284,11 +176,15 @@
                                     <systemProperties>
                                         <quarkus.container-image.build>true</quarkus.container-image.build>
                                         <quarkus.container-image.push>true</quarkus.container-image.push>
-                                        <quarkus.container-image.registry>${quarkus.container-image.registry}</quarkus.container-image.registry>
-                                        <quarkus.container-image.group>${quarkus.container-image.group}</quarkus.container-image.group>
-                                        <quarkus.container-image.name>${project.artifactId}</quarkus.container-image.name>
+                                        <quarkus.container-image.registry>${quarkus.container-image.registry}
+                                        </quarkus.container-image.registry>
+                                        <quarkus.container-image.group>${quarkus.container-image.group}
+                                        </quarkus.container-image.group>
+                                        <quarkus.container-image.name>${project.artifactId}
+                                        </quarkus.container-image.name>
                                         <quarkus.container-image.tag>${project.version}</quarkus.container-image.tag>
-                                        <quarkus.container-image.additional-tags>latest</quarkus.container-image.additional-tags>
+                                        <quarkus.container-image.additional-tags>latest
+                                        </quarkus.container-image.additional-tags>
                                     </systemProperties>
                                 </configuration>
                             </execution>

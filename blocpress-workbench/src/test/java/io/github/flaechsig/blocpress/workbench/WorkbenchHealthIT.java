@@ -2,146 +2,63 @@ package io.github.flaechsig.blocpress.workbench;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Disabled;
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled("Disabled due to JaCoCo + Quarkus bytecode conflicts causing container startup failures")
-@Testcontainers
+/**
+ * Integration tests for blocpress-workbench.
+ * Quarkus Dev Services startet PostgreSQL automatisch via Testcontainers.
+ * Tests laufen im selben Prozess – JaCoCo Coverage funktioniert ohne
+ * zusätzliche Konfiguration.
+ */
+@QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class WorkbenchHealthIT {
-    private static final Logger LOG = LoggerFactory.getLogger(WorkbenchHealthIT.class);
-    private static final String IMAGE = System.getProperty("it.image");
+class WorkbenchIT {
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private static final int JACOCO_PORT = 6300;
-    private static final Path JACOCO_DIR;
-    private static final Path JACOCO_AGENT_JAR;
-
     private static String uploadedTemplateId;
 
-    static {
-        try {
-            JACOCO_DIR = Path.of("target", "jacoco-it").toAbsolutePath();
-            Files.createDirectories(JACOCO_DIR);
-
-            JACOCO_AGENT_JAR = Path.of("target", "jacoco", "jacocoagent.jar").toAbsolutePath();
-            if (!Files.exists(JACOCO_AGENT_JAR)) {
-                throw new IllegalStateException(
-                        "JaCoCo agent jar not found: " + JACOCO_AGENT_JAR +
-                                " (did maven-dependency-plugin copy it to target/jacoco/jacocoagent.jar?)");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static final Network network = Network.newNetwork();
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"))
-                    .withDatabaseName("workbench")
-                    .withUsername("workbench")
-                    .withPassword("workbench")
-                    .withNetwork(network)
-                    .withNetworkAliases("postgres");
-
-    @Container
-    static final GenericContainer<?> app =
-            new GenericContainer<>(DockerImageName.parse(IMAGE))
-                    .withExposedPorts(8081, JACOCO_PORT)
-                    .withNetwork(network)
-                    .withEnv("QUARKUS_DATASOURCE_JDBC_URL", "jdbc:postgresql://postgres:5432/workbench")
-                    .withEnv("QUARKUS_DATASOURCE_USERNAME", "workbench")
-                    .withEnv("QUARKUS_DATASOURCE_PASSWORD", "workbench")
-                    .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("workbench"))
-                    .dependsOn(postgres)
-                    .withCopyFileToContainer(
-                            org.testcontainers.utility.MountableFile.forHostPath(JACOCO_AGENT_JAR),
-                            "/jacoco/jacocoagent.jar")
-                    .withEnv("JAVA_TOOL_OPTIONS",
-                            "-javaagent:/jacoco/jacocoagent.jar=output=tcpserver,address=*,port="
-                                    + JACOCO_PORT + ",append=true")
-                    .waitingFor(
-                            Wait.forHttp("/q/health/ready")
-                                    .forPort(8081)
-                                    .forStatusCode(200)
-                                    .withStartupTimeout(Duration.ofMinutes(2))
-                    );
-
-    @AfterAll
-    static void dumpJacocoExecFromContainer() throws Exception {
-        Path destExec = JACOCO_DIR.resolve("jacoco-it.exec");
-
-        String host = app.getHost();
-        int port = app.getMappedPort(JACOCO_PORT);
-
-        org.jacoco.core.tools.ExecFileLoader loader = new org.jacoco.core.tools.ExecDumpClient().dump(host, port);
-        loader.save(destExec.toFile(), true);
-
-        long bytes = Files.exists(destExec) ? Files.size(destExec) : 0;
-        LOG.info("JaCoCo exec dumped to {} ({} bytes)", destExec, bytes);
-        if (bytes == 0) {
-            throw new IllegalStateException("Dump produced empty exec file: " + destExec);
-        }
-    }
+    // --- Health & Infrastructure ---
 
     @Test
     @Order(1)
     void healthEndpointReturnsUp() throws Exception {
-        HttpResponse<String> response = get("/q/health/ready");
+        Response response = get("/q/health/ready");
 
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("UP"));
+        assertTrue(response.body().asString().contains("UP"));
     }
 
     @Test
     @Order(2)
-    void workbenchWebComponentIsServed() throws Exception {
-        HttpResponse<String> response = get("/components/bp-workbench.js");
+    void workbenchWebComponentIsServed() {
+        Response response = get("/components/bp-workbench.js");
 
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("BpWorkbench"));
+        assertTrue(response.body().asString().contains("BpWorkbench"));
     }
+
+    // --- Template CRUD ---
 
     @Test
     @Order(3)
     void listTemplatesInitiallyEmpty() throws Exception {
-        HttpResponse<String> response = get("/api/workbench/templates");
+        Response response = get("/api/workbench/templates");
 
         assertEquals(200, response.statusCode());
-        JsonNode list = MAPPER.readTree(response.body());
+        JsonNode list = MAPPER.readTree(response.body().asString());
         assertTrue(list.isArray());
         assertEquals(0, list.size());
     }
@@ -150,29 +67,30 @@ class WorkbenchHealthIT {
     @Order(4)
     void uploadTemplate() throws Exception {
         byte[] odtContent = "fake-odt-content".getBytes(StandardCharsets.UTF_8);
-        HttpResponse<String> response = uploadMultipart("test-template", odtContent);
+        Response response = uploadMultipart("test-template", odtContent);
 
         assertEquals(201, response.statusCode());
-        JsonNode body = MAPPER.readTree(response.body());
+        JsonNode body = MAPPER.readTree(response.body().asString());
         assertNotNull(body.get("id"));
         assertEquals("test-template", body.get("name").asText());
+        assertTrue(body.has("isValid"));
         uploadedTemplateId = body.get("id").asText();
     }
 
     @Test
     @Order(5)
-    void uploadDuplicateNameReturnsConflict() throws Exception {
+    void uploadDuplicateNameReturnsConflict() {
         byte[] odtContent = "other-content".getBytes(StandardCharsets.UTF_8);
-        HttpResponse<String> response = uploadMultipart("test-template", odtContent);
+        Response response = uploadMultipart("test-template", odtContent);
 
         assertEquals(409, response.statusCode());
     }
 
     @Test
     @Order(6)
-    void uploadWithoutNameReturnsBadRequest() throws Exception {
+    void uploadWithoutNameReturnsBadRequest() {
         byte[] odtContent = "content".getBytes(StandardCharsets.UTF_8);
-        HttpResponse<String> response = uploadMultipart("", odtContent);
+        Response response = uploadMultipart("", odtContent);
 
         assertEquals(400, response.statusCode());
     }
@@ -180,10 +98,10 @@ class WorkbenchHealthIT {
     @Test
     @Order(7)
     void listTemplatesAfterUpload() throws Exception {
-        HttpResponse<String> response = get("/api/workbench/templates");
+        Response response = get("/api/workbench/templates");
 
         assertEquals(200, response.statusCode());
-        JsonNode list = MAPPER.readTree(response.body());
+        JsonNode list = MAPPER.readTree(response.body().asString());
         assertTrue(list.isArray());
         assertEquals(1, list.size());
         assertEquals("test-template", list.get(0).get("name").asText());
@@ -191,209 +109,157 @@ class WorkbenchHealthIT {
 
     @Test
     @Order(8)
-    void downloadTemplate() throws Exception {
+    void downloadTemplate() {
         assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
-        HttpResponse<byte[]> response = getBytes("/api/workbench/templates/" + uploadedTemplateId);
+        Response response = get("/api/workbench/templates/" + uploadedTemplateId);
 
         assertEquals(200, response.statusCode());
-        String contentDisposition = response.headers().firstValue("Content-Disposition").orElse("");
+        String contentDisposition = response.header("Content-Disposition");
+        assertNotNull(contentDisposition);
         assertTrue(contentDisposition.contains("test-template"));
-        assertEquals("fake-odt-content", new String(response.body(), StandardCharsets.UTF_8));
+        assertEquals("fake-odt-content", response.body().asString());
     }
 
     @Test
     @Order(9)
-    void downloadNonExistentTemplateReturns404() throws Exception {
-        HttpResponse<byte[]> response = getBytes("/api/workbench/templates/" + UUID.randomUUID());
+    void downloadNonExistentTemplateReturns404() {
+        Response response = get("/api/workbench/templates/" + UUID.randomUUID());
 
         assertEquals(404, response.statusCode());
     }
 
+    // --- Template Details & Submit ---
+
     @Test
     @Order(10)
-    void deleteTemplate() throws Exception {
+    void getTemplateDetails() throws Exception {
         assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
-        HttpResponse<String> response = delete("/api/workbench/templates/" + uploadedTemplateId);
+        Response response = get("/api/workbench/templates/" + uploadedTemplateId + "/details");
 
-        assertEquals(204, response.statusCode());
+        assertEquals(200, response.statusCode());
+        JsonNode details = MAPPER.readTree(response.body().asString());
+        assertNotNull(details.get("id"));
+        assertEquals("test-template", details.get("name").asText());
+        assertNotNull(details.get("status"));
+        assertNotNull(details.get("validationResult"));
     }
 
     @Test
     @Order(11)
-    void deleteNonExistentTemplateReturns404() throws Exception {
-        HttpResponse<String> response = delete("/api/workbench/templates/" + UUID.randomUUID());
+    void getDetailsOfNonExistentTemplate() {
+        Response response = get("/api/workbench/templates/" + UUID.randomUUID() + "/details");
 
         assertEquals(404, response.statusCode());
     }
 
     @Test
     @Order(12)
-    void listTemplatesAfterDelete() throws Exception {
-        HttpResponse<String> response = get("/api/workbench/templates");
-
-        assertEquals(200, response.statusCode());
-        JsonNode list = MAPPER.readTree(response.body());
-        assertTrue(list.isArray());
-        assertEquals(0, list.size());
-    }
-
-    @Test
-    @Order(13)
-    void uploadTemplateWithValidation() throws Exception {
-        byte[] odtContent = "fake-odt-content-for-validation".getBytes();
-        HttpResponse<String> response = uploadMultipart("validation-test", odtContent);
-
-        assertEquals(201, response.statusCode());
-        JsonNode body = MAPPER.readTree(response.body());
-        assertNotNull(body.get("id"));
-        assertEquals("validation-test", body.get("name").asText());
-        uploadedTemplateId = body.get("id").asText();
-    }
-
-    @Test
-    @Order(14)
-    void getTemplateDetails() throws Exception {
-        assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
-        HttpResponse<String> response = get("/api/workbench/templates/" + uploadedTemplateId + "/details");
-
-        assertEquals(200, response.statusCode());
-        JsonNode details = MAPPER.readTree(response.body());
-        assertNotNull(details.get("id"));
-        assertEquals("validation-test", details.get("name").asText());
-        assertNotNull(details.get("status"));
-        assertNotNull(details.get("validationResult"));
-    }
-
-    @Test
-    @Order(15)
     void submitTemplateForApproval() throws Exception {
         assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
+        Response response = post("/api/workbench/templates/" + uploadedTemplateId + "/submit", "");
 
-        String submitUrl = "/api/workbench/templates/" + uploadedTemplateId + "/submit";
-        HttpResponse<String> response = post(submitUrl, "");
-
-        // May succeed or fail depending on validation result
+        // Kann 200 oder 400 sein je nach Validierungsergebnis
         assertTrue(response.statusCode() == 200 || response.statusCode() == 400);
 
         if (response.statusCode() == 200) {
-            JsonNode body = MAPPER.readTree(response.body());
+            JsonNode body = MAPPER.readTree(response.body().asString());
             assertNotNull(body.get("status"));
         }
     }
 
     @Test
-    @Order(16)
-    void getDetailsOfNonExistentTemplate() throws Exception {
-        HttpResponse<String> response = get("/api/workbench/templates/" + UUID.randomUUID() + "/details");
+    @Order(13)
+    void submitNonExistentTemplate() {
+        Response response = post("/api/workbench/templates/" + UUID.randomUUID() + "/submit", "");
 
         assertEquals(404, response.statusCode());
     }
+
+    // --- Delete ---
+
+    @Test
+    @Order(14)
+    void deleteTemplate() {
+        assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
+        Response response = delete("/api/workbench/templates/" + uploadedTemplateId);
+
+        assertEquals(204, response.statusCode());
+    }
+
+    @Test
+    @Order(15)
+    void deleteNonExistentTemplateReturns404() {
+        Response response = delete("/api/workbench/templates/" + UUID.randomUUID());
+
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    @Order(16)
+    void listTemplatesAfterDelete() throws Exception {
+        Response response = get("/api/workbench/templates");
+
+        assertEquals(200, response.statusCode());
+        JsonNode list = MAPPER.readTree(response.body().asString());
+        assertTrue(list.isArray());
+        assertEquals(0, list.size());
+    }
+
+    // --- Weitere Szenarien ---
 
     @Test
     @Order(17)
-    void submitNonExistentTemplate() throws Exception {
-        String submitUrl = "/api/workbench/templates/" + UUID.randomUUID() + "/submit";
-        HttpResponse<String> response = post(submitUrl, "");
-
-        assertEquals(404, response.statusCode());
-    }
-
-    @Test
-    @Order(18)
     void uploadMultipleTemplates() throws Exception {
         for (int i = 0; i < 3; i++) {
-            byte[] content = ("template-" + i).getBytes();
-            HttpResponse<String> response = uploadMultipart("multi-template-" + i, content);
+            Response response = uploadMultipart("multi-template-" + i, ("template-" + i).getBytes());
             assertEquals(201, response.statusCode());
         }
 
-        // Verify all templates are listed
-        HttpResponse<String> listResponse = get("/api/workbench/templates");
+        Response listResponse = get("/api/workbench/templates");
         assertEquals(200, listResponse.statusCode());
-        JsonNode list = MAPPER.readTree(listResponse.body());
+        JsonNode list = MAPPER.readTree(listResponse.body().asString());
         assertTrue(list.size() >= 3);
     }
 
     @Test
-    @Order(19)
+    @Order(18)
     void validationResultStructure() throws Exception {
-        byte[] content = "test-validation".getBytes();
-        HttpResponse<String> response = uploadMultipart("validation-structure", content);
+        Response response = uploadMultipart("validation-structure", "test-validation".getBytes());
 
         assertEquals(201, response.statusCode());
-        JsonNode body = MAPPER.readTree(response.body());
-
-        // Check validation result structure
-        assertNotNull(body.get("isValid"));
-        assertTrue(body.has("errors") || body.has("warnings") || body.has("validationResult"));
+        JsonNode body = MAPPER.readTree(response.body().asString());
+        assertNotNull(body.get("id"));
+        assertNotNull(body.get("name"));
+        assertTrue(body.has("isValid") || body.has("validationResult"));
     }
 
-    private URI baseUri() {
-        return URI.create("http://" + app.getHost() + ":" + app.getMappedPort(8081));
+    // --- Hilfsmethoden ---
+
+    private Response get(String path) {
+        return RestAssured.given()
+                .when()
+                .get(path);
     }
 
-    private HttpResponse<String> get(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(baseUri().resolve(path))
-                .GET()
-                .build();
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
-        }
+    private Response delete(String path) {
+        return RestAssured.given()
+                .when()
+                .delete(path);
     }
 
-    private HttpResponse<byte[]> getBytes(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(baseUri().resolve(path))
-                .GET()
-                .build();
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        }
+    private Response post(String path, String body) {
+        return RestAssured.given()
+                .body(body)
+                .when()
+                .post(path);
     }
 
-    private HttpResponse<String> delete(String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(baseUri().resolve(path))
-                .DELETE()
-                .build();
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
-        }
-    }
-
-    private HttpResponse<String> post(String path, String body) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(baseUri().resolve(path))
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
-        }
-    }
-
-    private HttpResponse<String> uploadMultipart(String name, byte[] fileContent) throws Exception {
-        String boundary = "TestBoundary-" + System.nanoTime();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(baos);
-
-        out.writeBytes("--" + boundary + "\r\n");
-        out.writeBytes("Content-Disposition: form-data; name=\"name\"\r\n\r\n");
-        out.writeBytes(name);
-        out.writeBytes("\r\n");
-
-        out.writeBytes("--" + boundary + "\r\n");
-        out.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"template.odt\"\r\n");
-        out.writeBytes("Content-Type: application/vnd.oasis.opendocument.text\r\n\r\n");
-        out.write(fileContent);
-        out.writeBytes("\r\n");
-
-        out.writeBytes("--" + boundary + "--\r\n");
-        out.flush();
-
-        HttpRequest request = HttpRequest.newBuilder(baseUri().resolve("/api/workbench/templates"))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(baos.toByteArray()))
-                .build();
-
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
-        }
+    private Response uploadMultipart(String name, byte[] fileContent) {
+        return RestAssured.given()
+                .multiPart("name", name)
+                .multiPart("file", "template.odt", fileContent,
+                        "application/vnd.oasis.opendocument.text")
+                .when()
+                .post("/api/workbench/templates");
     }
 }
