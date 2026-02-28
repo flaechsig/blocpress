@@ -802,13 +802,25 @@ export class BpWorkbench extends LitElement {
 
                     ${this._generatedForm?.map(field => {
                         if (field.inputType === 'array-info') {
+                            const currentValue = this._getNestedValue(this._testDataFormData, field.name);
+                            const jsonValue = Array.isArray(currentValue) ? JSON.stringify(currentValue, null, 2) : '[]';
+
                             return html`
                                 <div class="form-group">
-                                    <label>${field.label} (${field.description})</label>
-                                    <p style="color: #888; font-size: 12px;">
-                                        Array-Felder werden als JSON eingegeben<br/>
-                                        Beispiel: [{ "description": "Item 1" }, { "description": "Item 2" }]
-                                    </p>
+                                    <label>
+                                        ${field.label}
+                                        <span style="color: #666; font-size: 12px; font-weight: normal;">
+                                            (${field.description})
+                                        </span>
+                                    </label>
+                                    <textarea
+                                        name="${field.name}"
+                                        style="font-family: monospace; font-size: 12px; height: 150px;"
+                                        placeholder='[{"field": "value"}]'
+                                        @input=${(e) => this._onArrayInput(e)}>${jsonValue}</textarea>
+                                    <div style="color: #888; font-size: 11px; margin-top: 4px;">
+                                        Geben Sie ein JSON-Array ein (Beispiel: [{"name": "Artikel 1"}, {"name": "Artikel 2"}])
+                                    </div>
                                 </div>
                             `;
                         }
@@ -1465,6 +1477,40 @@ export class BpWorkbench extends LitElement {
         return JSON.stringify(result, null, 2);
     }
 
+    /**
+     * Get nested value from object using dot-notation path.
+     * Example: _getNestedValue({a: {b: 5}}, 'a.b') returns 5
+     */
+    _getNestedValue(obj, path) {
+        if (!obj || !path) return null;
+        const parts = path.split('.');
+        let value = obj;
+        for (const part of parts) {
+            if (value && typeof value === 'object') {
+                value = value[part];
+            } else {
+                return null;
+            }
+        }
+        return value;
+    }
+
+    /**
+     * Set nested value in object using dot-notation path.
+     * Creates intermediate objects as needed.
+     */
+    _setNestedValue(obj, path, value) {
+        const parts = path.split('.');
+        let current = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!current[parts[i]]) {
+                current[parts[i]] = {};
+            }
+            current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = value;
+    }
+
     _onTestDataInput(e) {
         const name = e.target.name;
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -1479,6 +1525,25 @@ export class BpWorkbench extends LitElement {
         obj[parts[parts.length - 1]] = value;
 
         this._testDataFormData = { ...this._testDataFormData };
+    }
+
+    _onArrayInput(e) {
+        const name = e.target.name;
+        const value = e.target.value;
+
+        try {
+            // Try to parse as JSON
+            const arrayValue = JSON.parse(value);
+            if (!Array.isArray(arrayValue)) {
+                throw new Error('Muss ein Array sein');
+            }
+            // Set the parsed array value
+            this._setNestedValue(this._testDataFormData, name, arrayValue);
+            this._testDataFormData = { ...this._testDataFormData };
+        } catch (err) {
+            // Show error but don't fail - user is still typing
+            console.warn(`Invalid JSON for ${name}: ${err.message}`);
+        }
     }
 
     async _createTestDataSet() {
