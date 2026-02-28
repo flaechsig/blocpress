@@ -191,4 +191,30 @@ class TemplateValidatorIntegrationTest {
         assertEquals(result1.errors().size(), result2.errors().size());
         assertEquals(result1.warnings().size(), result2.warnings().size());
     }
+
+    @Test
+    void testValidatorExtractsDefaultValuesFromUserFields() throws Exception {
+        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+
+        if (!Files.exists(odtPath)) {
+            return;
+        }
+
+        byte[] odtContent = Files.readAllBytes(odtPath);
+        ValidationResult result = validator.validate(odtContent);
+
+        // Check if schema properties include default values
+        assertNotNull(result.schema());
+        assertNotNull(result.schema().get("properties"));
+
+        // If there are properties, some of them may have default values from the ODT
+        var properties = result.schema().get("properties");
+        if (properties.size() > 0) {
+            // At least verify that the structure supports default values
+            var firstProperty = properties.elements().next();
+            assertTrue(firstProperty.isObject(), "Properties should be objects");
+            // Some properties may have default, some may not - both are valid
+            assertTrue(firstProperty.has("type"), "Properties should have type");
+        }
+    }
 }

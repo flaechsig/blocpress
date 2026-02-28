@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -32,11 +33,13 @@ public class JsonSchemaGenerator {
      *
      * @param fieldNames List of field names in dot-notation (e.g., "customer.name", "items")
      * @param arrayPaths List of array paths (e.g., "items", "customer.addresses")
+     * @param fieldValues Map of field names to their default values from ODT
      * @return JSON-Schema as JsonNode
      */
-    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths) {
+    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths, Map<String, String> fieldValues) {
         Set<String> uniqueFields = new HashSet<>(fieldNames);
         Set<String> arrayPathsSet = new HashSet<>(arrayPaths);
+        Map<String, String> values = Objects.requireNonNullElseGet(fieldValues, HashMap::new);
 
         ObjectNode schema = objectMapper.createObjectNode();
         schema.put("type", "object");
@@ -47,16 +50,23 @@ public class JsonSchemaGenerator {
         // Build nested structure from dot-notation fields
         for (String fieldName : uniqueFields) {
             String[] parts = fieldName.split("\\.");
-            addPropertyToSchema(properties, parts, 0, arrayPathsSet);
+            addPropertyToSchema(properties, parts, 0, arrayPathsSet, values);
         }
 
         return schema;
     }
 
     /**
+     * Legacy method for backward compatibility. Calls generateSchema with empty fieldValues.
+     */
+    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths) {
+        return generateSchema(fieldNames, arrayPaths, new HashMap<>());
+    }
+
+    /**
      * Recursively add property to schema, handling nested objects and arrays.
      */
-    private void addPropertyToSchema(ObjectNode parentProperties, String[] parts, int depth, Set<String> arrayPaths) {
+    private void addPropertyToSchema(ObjectNode parentProperties, String[] parts, int depth, Set<String> arrayPaths, Map<String, String> fieldValues) {
         if (depth >= parts.length) {
             return;
         }
@@ -93,6 +103,13 @@ public class JsonSchemaGenerator {
                     prop = objectMapper.createObjectNode();
                     String type = inferType(partName);
                     prop.put("type", type);
+
+                    // Add default value if available
+                    String defaultValue = fieldValues.get(fullPath);
+                    if (defaultValue != null) {
+                        addDefaultValue(prop, type, defaultValue);
+                    }
+
                     parentProperties.set(partName, prop);
                 } else {
                     // Property already exists, don't overwrite
@@ -130,7 +147,7 @@ public class JsonSchemaGenerator {
                 }
 
                 // Add remaining parts as properties of array items
-                addPropertyToSchema(itemProperties, parts, depth + 1, arrayPaths);
+                addPropertyToSchema(itemProperties, parts, depth + 1, arrayPaths, fieldValues);
             } else {
                 // Regular nested object
                 ObjectNode prop;
@@ -152,7 +169,7 @@ public class JsonSchemaGenerator {
                 }
 
                 // Recursively add remaining parts
-                addPropertyToSchema(nestedProperties, parts, depth + 1, arrayPaths);
+                addPropertyToSchema(nestedProperties, parts, depth + 1, arrayPaths, fieldValues);
             }
         }
     }
@@ -169,6 +186,38 @@ public class JsonSchemaGenerator {
             sb.append(parts[i]);
         }
         return sb.toString();
+    }
+
+    /**
+     * Add a default value to a property node, converting the string value to the appropriate type.
+     */
+    private void addDefaultValue(ObjectNode prop, String type, String stringValue) {
+        if (stringValue == null || stringValue.isBlank()) {
+            return;
+        }
+
+        try {
+            switch (type) {
+                case "number" -> {
+                    try {
+                        // Try to parse as double, but preserve the format
+                        double numValue = Double.parseDouble(stringValue);
+                        prop.put("default", numValue);
+                    } catch (NumberFormatException e) {
+                        // If it's not a valid number, store as string
+                        prop.put("default", stringValue);
+                    }
+                }
+                case "boolean" -> {
+                    boolean boolValue = Boolean.parseBoolean(stringValue);
+                    prop.put("default", boolValue);
+                }
+                default -> prop.put("default", stringValue);
+            }
+        } catch (Exception e) {
+            // Fallback: store as string
+            prop.put("default", stringValue);
+        }
     }
 
     /**

@@ -1443,6 +1443,11 @@ export class BpWorkbench extends LitElement {
         const generateValue = (fieldSchema, fieldName) => {
             if (!fieldSchema) return null;
 
+            // Check if there's a default value from the ODT
+            if ('default' in fieldSchema) {
+                return fieldSchema.default;
+            }
+
             if (fieldSchema.type === 'object') {
                 // Nested object
                 if (fieldSchema.properties) {
@@ -1466,7 +1471,7 @@ export class BpWorkbench extends LitElement {
             } else if (fieldSchema.type === 'boolean') {
                 return false;
             } else {
-                // Default string with field name as example
+                // Default string with field name as example (only if no default value)
                 return `${fieldName}_example`;
             }
         };

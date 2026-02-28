@@ -42,6 +42,20 @@ public class OdtTemplateElement implements TemplateElement {
     }
 
     /**
+     * Gets the text content of this element.
+     * For user field elements, this is the displayed/default value.
+     *
+     * @return the text content of the element, or null if empty
+     */
+    public String getTextContent() {
+        if (element == null) {
+            return null;
+        }
+        String content = element.getTextContent();
+        return (content != null && !content.isBlank()) ? content.strip() : null;
+    }
+
+    /**
      * Collects user fields from element nodes
      */
     @Override

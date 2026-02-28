@@ -3,6 +3,7 @@ package io.github.flaechsig.blocpress.workbench;
 import io.github.flaechsig.blocpress.core.TemplateDocument;
 import io.github.flaechsig.blocpress.core.TemplateElement;
 import io.github.flaechsig.blocpress.core.odt.JexlConditionEvaluator;
+import io.github.flaechsig.blocpress.core.odt.OdtTemplateElement;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,6 +15,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,7 @@ public class TemplateValidator {
         List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
         List<String> fieldNames = new ArrayList<>();
         List<String> arrayPaths = new ArrayList<>();
+        Map<String, String> fieldValues = new HashMap<>();  // fieldName -> text content value
         JsonNode schema = null;
 
         Path tempFile = null;
@@ -65,6 +68,12 @@ public class TemplateValidator {
             for (TemplateElement field : extractedFields) {
                 String name = field.getName();
                 uniqueFields.add(name);
+
+                // Extract field value (text content from ODT element)
+                String fieldValue = extractFieldValue(field);
+                if (fieldValue != null && !fieldValue.isBlank()) {
+                    fieldValues.put(name, fieldValue);
+                }
 
                 // Check field name format
                 if (!VALID_FIELD_NAME.matcher(name).matches()) {
@@ -121,7 +130,7 @@ public class TemplateValidator {
             System.out.println("DEBUG: Field names: " + fieldNames);
 
             // Step 4: Generate JSON-Schema from fields and arrays
-            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues);
             System.out.println("DEBUG: Generated schema: " + schema);
 
             // Step 5: Extract and validate conditions (syntax only)
@@ -185,5 +194,25 @@ public class TemplateValidator {
             errors,
             warnings
         );
+    }
+
+    /**
+     * Extracts the text content value of a user field from the ODT element.
+     * This represents the displayed/default value of the field.
+     *
+     * @param field the template element representing a user field
+     * @return the text content of the field, or null if not available
+     */
+    private String extractFieldValue(TemplateElement field) {
+        try {
+            // Cast to OdtTemplateElement to access the text content
+            if (field instanceof OdtTemplateElement odtElement) {
+                return odtElement.getTextContent();
+            }
+        } catch (Exception e) {
+            // Log but don't fail if we can't extract the value
+            System.out.println("DEBUG: Could not extract field value: " + e.getMessage());
+        }
+        return null;
     }
 }
