@@ -74,7 +74,7 @@ Einzige öffentlich exponierte API des Systems.
 | icon:check-circle[role=green] DONE
 
 | UC-10
-| Template-ID-basiertes Rendering (`POST /template/{id}/render`)
+| Template-ID-basiertes Rendering (`POST /render/{id}`)
 | 2
 | icon:check-circle[role=green] DONE
 
@@ -673,7 +673,7 @@ GET /api/workbench/templates/{id}/content
 **Neuer OpenAPI Endpoint:**
 
 ```
-POST /api/template/{id}/render
+POST /api/render/{id}
 ```
 
 - Path Parameter: `id` (UUID)
@@ -753,7 +753,7 @@ blocpress.workbench.url=http://localhost:8081
 **Request:**
 
 ```bash
-curl -X POST http://localhost:8080/api/template/{template-id}/render \
+curl -X POST http://localhost:8080/api/render/{template-id} \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGc..." \
   -d '{

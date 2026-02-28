@@ -94,21 +94,21 @@ public class RenderResource implements RenderApi {
         return output.toFile();
     }
 
-    public File renderDocumentById(UUID id, Object renderByIdRequest) {
+    public File renderDocumentById(UUID id, io.github.flaechsig.blocpress.render.model.RenderByIdRequest renderByIdRequest) {
         logger.info("Rendering document from template ID: {}", id);
 
         try {
-            // Parse the request object (generated from OpenAPI)
-            var requestNode = mapper.valueToTree(renderByIdRequest);
-            var outputTypeStr = requestNode.get("outputType").asText().toUpperCase();
-            var dataNode = requestNode.get("data");
-
+            // Extract output type from request
+            var outputTypeStr = renderByIdRequest.getOutputType().toString();
             OutputFormat format = switch (outputTypeStr) {
-                case "PDF" -> OutputFormat.PDF;
-                case "RTF" -> RTF;
-                case "ODT" -> ODT;
+                case "pdf" -> OutputFormat.PDF;
+                case "rtf" -> RTF;
+                case "odt" -> ODT;
                 default -> throw new IllegalArgumentException("Invalid output type: " + outputTypeStr);
             };
+
+            // Convert data to JsonNode
+            var dataNode = mapper.valueToTree(renderByIdRequest.getData());
 
             // Fetch template content from cache (or workbench if cache miss)
             byte[] templateContent = templateCache.getTemplateContent(id);

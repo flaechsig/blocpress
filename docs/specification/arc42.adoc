@@ -954,7 +954,7 @@ participant "RenderEngine\n(TF-5)" as Engine
 participant "LibreOfficeProcessor" as LO
 participant "Repository\n(Schema: workbench)" as Repo
 
-App -> Render : POST /api/template/{id}/render\n{data, outputType: pdf}
+App -> Render : POST /api/render/{id}\n{data, outputType: pdf}
 Render -> Resource : renderDocumentById(uuid, request)
 Resource -> Cache : getTemplateContent(templateId)
 

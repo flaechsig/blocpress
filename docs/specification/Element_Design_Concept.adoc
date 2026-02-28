@@ -777,7 +777,7 @@ Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist ö
 
 - `POST /api/render/template/merge` - Template mit JSON-Daten zusammenführen und als ODT/PDF/RTF zurückgeben
 - Parameter: file (multipart/form-data), data (JSON), outputFormat (String)
-- `POST /api/template/{id}/render` - Dokument mit gespeichertem Template (ID) und JSON-Daten generieren (UC-10)
+- `POST /api/render/{id}` - Dokument mit gespeichertem Template (ID) und JSON-Daten generieren (UC-10)
 - Parameter: id (UUID path), requestBody (data: JSON, outputType: pdf|rtf|odt)
 - Nur APPROVED Templates zugänglich
 - Template-Content wird gecacht (10 min TTL)
