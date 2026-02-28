@@ -32,6 +32,9 @@ export class BpWorkbench extends LitElement {
         _detailsView: { state: true },
         _templateDetails: { state: true },
         _submitting: { state: true },
+        // Phase 4: Dashboard & Status Management
+        _dashboardView: { state: true },
+        _statusFilter: { state: true },
         // Phase 3: TestData Management
         _activeTab: { state: true },
         _testDataSets: { state: true },
@@ -763,6 +766,250 @@ export class BpWorkbench extends LitElement {
             font-size: 14px;
             color: #333;
         }
+
+        /* Dashboard View */
+        .dashboard {
+            padding: 0;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .dashboard-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .btn-primary {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #1e3c72;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            background: #2a5298;
+        }
+
+        /* Status Filter */
+        .status-filter {
+            margin-bottom: 24px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #f5f5f5;
+            border-color: #1e3c72;
+        }
+
+        .filter-btn.active {
+            background: #1e3c72;
+            color: white;
+            border-color: #1e3c72;
+        }
+
+        .filter-btn .badge {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-size: 12px;
+        }
+
+        .filter-btn.active .badge {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Template List */
+        .template-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .template-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .template-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .status-badge-card {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: auto;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            border-color: #1e3c72;
+            color: #1e3c72;
+        }
+
+        .action-btn.primary {
+            background: #1e3c72;
+            color: white;
+            border-color: #1e3c72;
+        }
+
+        .action-btn.primary:hover {
+            background: #2a5298;
+        }
+
+        .action-btn.success {
+            background: #388e3c;
+            color: white;
+            border-color: #388e3c;
+        }
+
+        .action-btn.success:hover {
+            background: #45a049;
+        }
+
+        .action-btn.danger {
+            background: #d32f2f;
+            color: white;
+            border-color: #d32f2f;
+        }
+
+        .action-btn.danger:hover {
+            background: #e53935;
+        }
+
+        .action-btn.secondary {
+            background: #f5f5f5;
+            border-color: #ddd;
+        }
+
+        .action-btn.secondary:hover {
+            background: #eee;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: #999;
+        }
+
+        /* Workspace Header with Back Button */
+        .workspace-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .btn-back {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            color: #555;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-back:hover {
+            background: #f5f5f5;
+            border-color: #1e3c72;
+            color: #1e3c72;
+        }
+
+        .workspace-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
     `;
 
     constructor() {
@@ -786,6 +1033,9 @@ export class BpWorkbench extends LitElement {
         this._detailsView = false;
         this._templateDetails = null;
         this._submitting = false;
+        // Phase 4: Dashboard & Status Management
+        this._dashboardView = true; // Start with dashboard
+        this._statusFilter = 'ALL'; // Filter: ALL, DRAFT, SUBMITTED, APPROVED, REJECTED
         // Phase 3: TestData Management
         this._activeTab = 'testdata'; // Only 'testdata' tab now
         this._testDataSets = [];
@@ -817,15 +1067,16 @@ export class BpWorkbench extends LitElement {
     }
 
     render() {
+        if (this._dashboardView) {
+            return this._renderDashboard();
+        }
+
         return html`
-            <!-- Row 1: Template selection -->
-            <div class="template-bar">
-                ${this._selectedTemplate
-                    ? this._renderSelectedTemplate()
-                    : this._renderAutocomplete()}
-                <button class="icon-btn"
-                    title="Neues Template hochladen"
-                    @click=${this._toggleUploadMode}>&#8679;</button>
+            <div class="workspace-header">
+                <button class="btn-back" @click=${() => this._returnToDashboard()}>
+                    ← Zurück zum Dashboard
+                </button>
+                <h2>${this._selectedTemplate?.name || 'Template Workspace'}</h2>
             </div>
 
             ${this._uploadMode ? this._renderUploadForm() : ''}
@@ -848,6 +1099,297 @@ export class BpWorkbench extends LitElement {
             ${this._error ? html`<div class="error">${this._error}</div>` : ''}
             ${this._success ? html`<div class="success">${this._success}</div>` : ''}
         `;
+    }
+
+    _renderDashboard() {
+        const filteredTemplates = this._filterTemplates();
+
+        return html`
+            <div class="dashboard">
+                <div class="dashboard-header">
+                    <h2>Template Verwaltung</h2>
+                    <button class="btn-primary" @click=${this._openUploadDialog.bind(this)}>
+                        + Neues Template hochladen
+                    </button>
+                </div>
+
+                <div class="status-filter">
+                    ${this._renderFilterButtons()}
+                </div>
+
+                <div class="template-list">
+                    ${filteredTemplates.length === 0 ? html`
+                        <div class="empty-state">
+                            <p>Keine Templates mit Status "${this._statusFilter === 'ALL' ? 'beliebig' : this._statusFilter}"</p>
+                        </div>
+                    ` : filteredTemplates.map(t => this._renderTemplateCard(t))}
+                </div>
+
+                ${this._uploadMode ? this._renderUploadForm() : ''}
+
+                ${this._error ? html`<div class="error">${this._error}</div>` : ''}
+                ${this._success ? html`<div class="success">${this._success}</div>` : ''}
+            </div>
+        `;
+    }
+
+    _renderFilterButtons() {
+        const filters = [
+            { key: 'ALL', label: '📋 Alle', count: this._templates.length },
+            { key: 'DRAFT', label: '📝 Entwurf', count: this._countByStatus('DRAFT') },
+            { key: 'SUBMITTED', label: '🧪 Test', count: this._countByStatus('SUBMITTED') },
+            { key: 'APPROVED', label: '✅ Produktiv', count: this._countByStatus('APPROVED') },
+            { key: 'REJECTED', label: '❌ Abgelehnt', count: this._countByStatus('REJECTED') }
+        ];
+
+        return html`
+            <div class="filter-buttons">
+                ${filters.map(f => html`
+                    <button
+                        class="filter-btn ${this._statusFilter === f.key ? 'active' : ''}"
+                        @click=${() => { this._statusFilter = f.key; }}>
+                        ${f.label} <span class="badge">${f.count}</span>
+                    </button>
+                `)}
+            </div>
+        `;
+    }
+
+    _filterTemplates() {
+        if (this._statusFilter === 'ALL') return this._templates;
+        return this._templates.filter(t => t.status === this._statusFilter);
+    }
+
+    _countByStatus(status) {
+        return this._templates.filter(t => t.status === status).length;
+    }
+
+    _getStatusColor(status) {
+        const colors = {
+            'DRAFT': '#888',
+            'SUBMITTED': '#1976d2',
+            'APPROVED': '#388e3c',
+            'REJECTED': '#d32f2f'
+        };
+        return colors[status] || '#888';
+    }
+
+    _getStatusIcon(status) {
+        const icons = {
+            'DRAFT': '📝',
+            'SUBMITTED': '🧪',
+            'APPROVED': '✅',
+            'REJECTED': '❌'
+        };
+        return icons[status] || '•';
+    }
+
+    _renderTemplateCard(template) {
+        const statusColor = this._getStatusColor(template.status);
+        const actions = this._getTemplateActions(template);
+
+        return html`
+            <div class="template-card">
+                <div class="card-header">
+                    <h3 style="color: ${statusColor};">
+                        ${this._getStatusIcon(template.status)} ${template.name}
+                    </h3>
+                    <span class="status-badge-card" style="background: ${statusColor};">
+                        ${template.status}
+                    </span>
+                </div>
+
+                <div class="card-meta">
+                    <span>Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}</span>
+                    <span>${template.isValid ? '✓ Valid' : '✗ Invalid'}</span>
+                </div>
+
+                <div class="card-actions">
+                    ${actions.map(action => html`
+                        <button
+                            class="action-btn ${action.style}"
+                            @click=${action.handler}>
+                            ${action.label}
+                        </button>
+                    `)}
+                </div>
+            </div>
+        `;
+    }
+
+    _getTemplateActions(template) {
+        const actions = [
+            { label: 'Öffnen', style: 'primary', handler: () => this._openTemplate(template) }
+        ];
+
+        switch (template.status) {
+            case 'DRAFT':
+                actions.push(
+                    { label: 'Aktualisieren', style: 'secondary', handler: () => this._updateTemplate(template) },
+                    { label: '→ Test', style: 'success', handler: () => this._changeStatus(template.id, 'SUBMITTED') },
+                    { label: 'Löschen', style: 'danger', handler: () => this._deleteTemplate(template.id) }
+                );
+                break;
+
+            case 'SUBMITTED':
+                actions.push(
+                    { label: '← Zurück', style: 'secondary', handler: () => this._changeStatus(template.id, 'DRAFT') },
+                    { label: '✓ Genehmigen', style: 'success', handler: () => this._changeStatus(template.id, 'APPROVED') },
+                    { label: '✗ Ablehnen', style: 'danger', handler: () => this._changeStatus(template.id, 'REJECTED') }
+                );
+                break;
+
+            case 'APPROVED':
+                actions.push(
+                    { label: '← Zurück zu Test', style: 'secondary', handler: () => this._changeStatus(template.id, 'SUBMITTED') },
+                    { label: 'Als Kopie', style: 'primary', handler: () => this._duplicateTemplate(template) }
+                );
+                break;
+
+            case 'REJECTED':
+                actions.push(
+                    { label: '← Zurück', style: 'secondary', handler: () => this._changeStatus(template.id, 'DRAFT') },
+                    { label: 'Löschen', style: 'danger', handler: () => this._deleteTemplate(template.id) }
+                );
+                break;
+        }
+
+        return actions;
+    }
+
+    _openUploadDialog() {
+        this._uploadMode = true;
+        this._uploadName = '';
+        this._uploadFile = null;
+        this._error = '';
+        this._success = '';
+    }
+
+    _openTemplate(template) {
+        this._dashboardView = false;
+        this._selectTemplate(template);
+    }
+
+    _returnToDashboard() {
+        this._dashboardView = true;
+        this._selectedTemplate = null;
+        this._searchText = '';
+        this._showSuggestions = false;
+        this._error = '';
+        this._success = '';
+        this._activeTab = 'testdata';
+        if (this._pdfUrl) {
+            URL.revokeObjectURL(this._pdfUrl);
+            this._pdfUrl = null;
+        }
+    }
+
+    async _changeStatus(templateId, newStatus) {
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${templateId}/status`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newStatus })
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Fehler: ${response.status} - ${errorText}`);
+            }
+
+            this._success = `Template Status geändert zu ${newStatus}`;
+            await this._loadTemplates();
+        } catch (err) {
+            this._error = err.message;
+        }
+    }
+
+    async _duplicateTemplate(template) {
+        const newName = prompt('Name für Kopie:', `${template.name} (Kopie)`);
+        if (!newName || !newName.trim()) return;
+
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${template.id}/duplicate`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName.trim() })
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Fehler: ${response.status} - ${errorText}`);
+            }
+
+            const created = await response.json();
+            this._success = `Template "${created.name}" erstellt als DRAFT`;
+            await this._loadTemplates();
+        } catch (err) {
+            this._error = err.message;
+        }
+    }
+
+    async _updateTemplate(template) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.odt';
+
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(
+                    `${this._getApiBase()}/api/workbench/templates/${template.id}/content`,
+                    {
+                        method: 'PUT',
+                        body: formData
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Fehler: ${response.status} - ${errorText}`);
+                }
+
+                const updated = await response.json();
+                this._success = `Template "${updated.name}" aktualisiert`;
+                await this._loadTemplates();
+            } catch (err) {
+                this._error = err.message;
+            }
+        };
+
+        input.click();
+    }
+
+    async _deleteTemplate(templateId) {
+        if (!confirm('Wirklich löschen?')) return;
+
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${templateId}`,
+                { method: 'DELETE' }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Fehler: ${response.status} - ${errorText}`);
+            }
+
+            this._success = 'Template gelöscht';
+            await this._loadTemplates();
+        } catch (err) {
+            this._error = err.message;
+        }
     }
 
     _renderTestDataTab() {

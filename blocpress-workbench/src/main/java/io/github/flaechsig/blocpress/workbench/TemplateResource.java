@@ -71,9 +71,16 @@ public class TemplateResource {
 
     @GET
     public List<TemplateSummary> list() {
-        return Template.find("ORDER BY name")
-                .project(TemplateSummary.class)
-                .list();
+        return Template.<Template>find("ORDER BY name").list()
+                .stream()
+                .map(t -> new TemplateSummary(
+                    t.id,
+                    t.name,
+                    t.createdAt,
+                    t.status,
+                    t.validationResult != null && t.validationResult.isValid()
+                ))
+                .toList();
     }
 
     @GET
@@ -147,6 +154,119 @@ public class TemplateResource {
         }
         template.delete();
         return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("{id}/status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateStatus(@PathParam("id") UUID id, StatusUpdateRequest request) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        // Validate status transition
+        if (!isValidTransition(template.status, request.newStatus())) {
+            throw new WebApplicationException(
+                "Invalid status transition: " + template.status + " -> " + request.newStatus(),
+                Response.Status.BAD_REQUEST
+            );
+        }
+
+        template.status = request.newStatus();
+        template.persist();
+
+        return Response.ok(Map.of(
+            "id", template.id,
+            "status", template.status
+        )).build();
+    }
+
+    @POST
+    @Path("{id}/duplicate")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response duplicate(@PathParam("id") UUID id, DuplicateRequest request) throws IOException {
+        Template source = Template.findById(id);
+        if (source == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        // Check for name conflict
+        if (Template.find("name", request.name()).firstResult() != null) {
+            throw new WebApplicationException(
+                "Template with name '" + request.name() + "' already exists",
+                Response.Status.CONFLICT
+            );
+        }
+
+        // Create new template as DRAFT
+        Template duplicate = new Template();
+        duplicate.name = request.name();
+        duplicate.content = source.content.clone(); // Copy binary content
+        duplicate.status = TemplateStatus.DRAFT;
+        duplicate.createdAt = Instant.now();
+
+        // Re-validate (might have different results due to changes in validator)
+        ValidationResult validationResult = validator.validate(duplicate.content);
+        duplicate.validationResult = validationResult;
+
+        duplicate.persist();
+
+        return Response.status(Response.Status.CREATED)
+            .entity(Map.of(
+                "id", duplicate.id,
+                "name", duplicate.name,
+                "status", duplicate.status,
+                "isValid", validationResult.isValid()
+            ))
+            .build();
+    }
+
+    @PUT
+    @Path("{id}/content")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Transactional
+    public Response updateContent(@PathParam("id") UUID id, @RestForm("file") FileUpload file) throws IOException {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        // Only DRAFT templates can be updated
+        if (template.status != TemplateStatus.DRAFT) {
+            throw new WebApplicationException(
+                "Only DRAFT templates can be updated. Current status: " + template.status,
+                Response.Status.BAD_REQUEST
+            );
+        }
+
+        // Update content and re-validate
+        byte[] content = Files.readAllBytes(file.uploadedFile());
+        ValidationResult validationResult = validator.validate(content);
+
+        template.content = content;
+        template.validationResult = validationResult;
+        template.persist();
+
+        return Response.ok(Map.of(
+            "id", template.id,
+            "name", template.name,
+            "status", template.status,
+            "isValid", validationResult.isValid(),
+            "errors", validationResult.errors(),
+            "warnings", validationResult.warnings()
+        )).build();
+    }
+
+    private boolean isValidTransition(TemplateStatus from, TemplateStatus to) {
+        return switch (from) {
+            case DRAFT -> to == TemplateStatus.SUBMITTED;
+            case SUBMITTED -> to == TemplateStatus.DRAFT || to == TemplateStatus.APPROVED || to == TemplateStatus.REJECTED;
+            case APPROVED -> to == TemplateStatus.SUBMITTED;
+            case REJECTED -> to == TemplateStatus.DRAFT;
+        };
     }
 
     // ===== TestDataSet Endpoints =====
@@ -239,7 +359,7 @@ public class TemplateResource {
             .build();
     }
 
-    public record TemplateSummary(UUID id, String name, Instant createdAt, TemplateStatus status) {}
+    public record TemplateSummary(UUID id, String name, Instant createdAt, TemplateStatus status, boolean isValid) {}
 
     public record TemplateDetails(
         UUID id,
@@ -248,6 +368,10 @@ public class TemplateResource {
         TemplateStatus status,
         ValidationResult validationResult
     ) {}
+
+    public record StatusUpdateRequest(TemplateStatus newStatus) {}
+
+    public record DuplicateRequest(String name) {}
 
     public record CreateTestDataSetRequest(String name, JsonNode testData) {}
 

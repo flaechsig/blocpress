@@ -56,7 +56,7 @@ _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Intelligente Inhaltssuch
 === UI-1: Template-Verwaltungsoberfläche (blocpress-workbench)
 
 *Description:*
-Web Component `<bp-workbench>` zum Hochladen, Bearbeiten, Anzeigen und Verwalten von Templates. Wird von Template-Designern genutzt. Geladen via Dynamic Import in blocpress-studio.
+Web Component `<bp-workbench>` zum Hochladen, Bearbeiten, Anzeigen und Verwalten von Templates. Wird von Template-Designern genutzt. Geladen via Dynamic Import in blocpress-studio. Bietet Dashboard-Ansicht mit Status-Filtern und Workflow-Funktionen (UC-5).
 
 *Actions:*
 
@@ -64,11 +64,13 @@ Web Component `<bp-workbench>` zum Hochladen, Bearbeiten, Anzeigen und Verwalten
 - Template zur Freigabe einreichen (UC-2)
 - Template-Details anzeigen (UC-3)
 - Template-Versionen vergleichen (UC-4)
+- Template Management Dashboard: Status-Filter, Workflow-Übergänge, Kopieren, Re-Upload (UC-5)
 - Baustein erstellen/bearbeiten (UC-5)
 
 *Visible Data:*
 
-- Template-Liste: Name, Version, Status, Ersteller, Erstellungsdatum (aus E-1: Template)
+- Template-Dashboard: Name, Status (DRAFT/SUBMITTED/APPROVED/REJECTED), Validierungsstatus, Erstellungsdatum (aus E-1: Template)
+- Status-Filter: Übersicht nach Status mit Zählern
 - Template-Details: ID, Name, Beschreibung, Version, Status, User-Fields, Wiederholungsgruppen, Bedingungen (aus E-1: Template)
 - Validierungsergebnisse: Fehler, Warnungen (aus TF-1: Template validieren)
 - Baustein-Liste: Name, Typ, verwendende Templates (aus E-2: Baustein)
@@ -780,9 +782,14 @@ Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist ö
 
 Template-Management:
 - `POST /api/workbench/templates` - Template hochladen
-- `GET /api/workbench/templates/{id}` - Template-Details abrufen
+- `GET /api/workbench/templates/{id}` - Template-Binärdaten abrufen
+- `GET /api/workbench/templates` - Template-Liste mit Status und Validierung abrufen
 - `GET /api/workbench/templates/{id}/details` - Template-Details mit Validierungsergebnis
 - `POST /api/workbench/templates/{id}/submit` - Template zur Freigabe einreichen (löst Stufenübergabe an proof aus)
+- `PUT /api/workbench/templates/{id}/status` - Template-Status ändern (DRAFT→SUBMITTED, etc., UC-5)
+- `POST /api/workbench/templates/{id}/duplicate` - Produktives Template als DRAFT-Kopie erstellen (UC-5)
+- `PUT /api/workbench/templates/{id}/content` - Template-Inhalt aktualisieren/neu hochladen (UC-5)
+- `DELETE /api/workbench/templates/{id}` - Template löschen
 - `GET /api/workbench/search` - Nach Begriff suchen
 
 TestDataSet-Management (UC-20, UC-21, TF-8, UC-11):
@@ -820,7 +827,7 @@ JSON-Response je nach Endpoint (Template-Objekte, Generierungs-Ergebnisse, Test-
 
 Jedes SCS-Modul ruft seine eigenen Technical Functions auf:
 
-- blocpress-workbench: TF-1 (Template validieren), Schreibt E-1 (Schema: workbench)
+- blocpress-workbench: TF-1 (Template validieren), Schreibt E-1 (Schema: workbench), verwaltet Status-Übergänge (UC-5: Dashboard mit Workflow)
 - blocpress-proof: TF-2 (Workflow-Status ändern), TF-4 (Review-Datum), TF-6 (PDF vergleichen), TF-7 (Reviews prüfen)
 - blocpress-render: TF-5 (Dokument generieren)
 - blocpress-admin: CRUD auf E-9 (Benutzer), E-10 (Konfiguration)

@@ -42,12 +42,13 @@ class TemplateResourceUnitTest {
         TemplateStatus status = TemplateStatus.DRAFT;
 
         TemplateResource.TemplateSummary summary =
-            new TemplateResource.TemplateSummary(id, name, createdAt, status);
+            new TemplateResource.TemplateSummary(id, name, createdAt, status, true);
 
         assertEquals(id, summary.id());
         assertEquals(name, summary.name());
         assertEquals(createdAt, summary.createdAt());
         assertEquals(TemplateStatus.DRAFT, summary.status());
+        assertTrue(summary.isValid());
     }
 
     @Test
@@ -58,9 +59,9 @@ class TemplateResourceUnitTest {
         TemplateStatus status = TemplateStatus.SUBMITTED;
 
         TemplateResource.TemplateSummary summary1 =
-            new TemplateResource.TemplateSummary(id, name, instant, status);
+            new TemplateResource.TemplateSummary(id, name, instant, status, true);
         TemplateResource.TemplateSummary summary2 =
-            new TemplateResource.TemplateSummary(id, name, instant, status);
+            new TemplateResource.TemplateSummary(id, name, instant, status, true);
 
         assertEquals(summary1, summary2);
     }
@@ -72,13 +73,13 @@ class TemplateResourceUnitTest {
         Instant instant = Instant.now();
 
         TemplateResource.TemplateSummary draft =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.DRAFT);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.DRAFT, true);
         TemplateResource.TemplateSummary submitted =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.SUBMITTED);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.SUBMITTED, true);
         TemplateResource.TemplateSummary approved =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.APPROVED);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.APPROVED, true);
         TemplateResource.TemplateSummary rejected =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.REJECTED);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.REJECTED, false);
 
         assertEquals(TemplateStatus.DRAFT, draft.status());
         assertEquals(TemplateStatus.SUBMITTED, submitted.status());
@@ -90,9 +91,9 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryHashCode() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary1 =
-            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT);
+            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT, true);
         TemplateResource.TemplateSummary summary2 =
-            new TemplateResource.TemplateSummary(id, "Test", summary1.createdAt(), TemplateStatus.DRAFT);
+            new TemplateResource.TemplateSummary(id, "Test", summary1.createdAt(), TemplateStatus.DRAFT, true);
 
         assertEquals(summary1.hashCode(), summary2.hashCode());
     }
@@ -233,7 +234,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryToString() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary =
-            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT);
+            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT, true);
         String str = summary.toString();
         assertNotNull(str);
         assertTrue(str.contains("Test") || str.contains("DRAFT"));

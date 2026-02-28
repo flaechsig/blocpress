@@ -153,6 +153,11 @@ Bausteinverwaltung und Content Search.
 | 2
 | icon:check-circle[role=green] DONE
 
+| UC-5
+| Template Management Dashboard mit Status-Filtern und Workflow
+| 2
+| icon:check-circle[role=green] DONE
+
 | UC-20
 | Testdaten-Generator aus Template-Feldern
 | 2
