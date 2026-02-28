@@ -1339,7 +1339,6 @@ export class BpWorkbench extends LitElement {
 
         this._loadTestDataSets();
         this._generateFormFromTemplate();
-        this._ensureDefaultTestData();
         this._renderPdf();
     }
 
@@ -2104,42 +2103,6 @@ export class BpWorkbench extends LitElement {
         }
     }
 
-    /**
-     * Auto-create "default" test data set if it doesn't exist (fallback method).
-     * Only used if _createDefaultTestDataAfterUpload was not called during upload.
-     */
-    async _ensureDefaultTestData() {
-        if (!this._selectedTemplate?.validationResult?.schema) {
-            return;
-        }
-
-        // Check if "default" already exists
-        const hasDefault = this._testDataSets.some(td => td.name === 'default');
-
-        if (!hasDefault) {
-            // Create default test data from schema
-            const defaultData = this._generateDefaultTestData(this._selectedTemplate.validationResult.schema);
-
-            try {
-                await fetch(
-                    `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: 'default',
-                            testData: defaultData
-                        })
-                    }
-                );
-
-                // Reload test data sets to show the new default
-                await this._loadTestDataSets();
-            } catch (err) {
-                console.warn('Could not create default test data:', err);
-            }
-        }
-    }
 
     /**
      * Generate default test data object from schema.
