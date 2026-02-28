@@ -77,13 +77,37 @@ public class TemplateValidator {
             fieldNames.addAll(uniqueFields);
 
             // Step 3: Identify repetition groups (loops)
-            ObjectNode emptyData = objectMapper.createObjectNode();
-            Map<TemplateElement, String> repeatGroups = doc.findRepeatGroups(emptyData);
-            for (Map.Entry<TemplateElement, String> entry : repeatGroups.entrySet()) {
-                String arrayPath = entry.getValue();
-                arrayPaths.add(arrayPath);
+            // Note: doc.findRepeatGroups() uses emptyData and won't detect arrays from template structure alone.
+            // Use heuristic: if multiple fields share the same prefix (e.g., positions.name, positions.quantity),
+            // then the prefix is likely an array path.
+            Set<String> detectedArrayPaths = new HashSet<>();
+            Set<String> fieldPrefixes = new HashSet<>();
+
+            for (String fieldName : fieldNames) {
+                if (fieldName.contains(".")) {
+                    int lastDotIndex = fieldName.lastIndexOf(".");
+                    String prefix = fieldName.substring(0, lastDotIndex);
+                    fieldPrefixes.add(prefix);
+                }
             }
-            System.out.println("DEBUG: Found array paths: " + arrayPaths);
+
+            // Count how many fields each prefix has
+            for (String prefix : fieldPrefixes) {
+                int count = 0;
+                for (String fieldName : fieldNames) {
+                    if (fieldName.startsWith(prefix + ".")) {
+                        count++;
+                    }
+                }
+                // If a prefix has 2+ fields, it's likely an array (e.g., positions.name, positions.quantity)
+                if (count >= 2) {
+                    detectedArrayPaths.add(prefix);
+                }
+            }
+
+            arrayPaths.addAll(detectedArrayPaths);
+
+            System.out.println("DEBUG: Found array paths (heuristic): " + arrayPaths);
             System.out.println("DEBUG: Field names: " + fieldNames);
 
             // Step 4: Generate JSON-Schema from fields and arrays
