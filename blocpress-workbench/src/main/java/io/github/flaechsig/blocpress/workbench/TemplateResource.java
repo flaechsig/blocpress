@@ -234,11 +234,14 @@ public class TemplateResource {
 
         template.persist();
 
-        return Response.ok(Map.of(
-            "id", template.id,
-            "status", template.status,
-            "validFrom", template.validFrom
-        )).build();
+        var responseMap = new java.util.HashMap<String, Object>();
+        responseMap.put("id", template.id);
+        responseMap.put("status", template.status);
+        if (template.validFrom != null) {
+            responseMap.put("validFrom", template.validFrom);
+        }
+
+        return Response.ok(responseMap).build();
     }
 
     @POST
