@@ -786,6 +786,7 @@ Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist ö
 *Interne API (blocpress-workbench, Port 8081):*
 
 Template-Management:
+
 - `POST /api/workbench/templates` - Template hochladen
 - `GET /api/workbench/templates/{id}` - Template-Binärdaten abrufen
 - `GET /api/workbench/templates` - Template-Liste mit Status und Validierung abrufen
@@ -799,6 +800,7 @@ Template-Management:
 - `GET /api/workbench/search` - Nach Begriff suchen
 
 TestDataSet-Management (UC-20, UC-21, TF-8, UC-11):
+
 - `GET /api/workbench/templates/{id}/testdata` - Alle TestDataSets für Template abrufen
 - `POST /api/workbench/templates/{id}/testdata` - Neues TestDataSet erstellen {name, testData}
 - `PUT /api/workbench/templates/{id}/testdata/{testDataId}` - TestDataSet aktualisieren
