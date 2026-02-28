@@ -29,7 +29,7 @@ public class TestDataSet extends PanacheEntityBase {
     public JsonNode testData;
 
     @Lob
-    @Column(columnDefinition = "bytea")
+    @Column(columnDefinition = "bytea", nullable = true)
     public byte[] expectedPdf;
 
     @Column(length = 64)
