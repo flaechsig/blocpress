@@ -83,9 +83,12 @@ public class TemplateValidator {
                 String arrayPath = entry.getValue();
                 arrayPaths.add(arrayPath);
             }
+            System.out.println("DEBUG: Found array paths: " + arrayPaths);
+            System.out.println("DEBUG: Field names: " + fieldNames);
 
             // Step 4: Generate JSON-Schema from fields and arrays
             schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+            System.out.println("DEBUG: Generated schema: " + schema);
 
             // Step 5: Extract and validate conditions (syntax only)
             List<TemplateElement> conditionalElements = doc.collectConditionalTemplateElements();
