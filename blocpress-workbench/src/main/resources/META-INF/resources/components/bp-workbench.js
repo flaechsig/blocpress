@@ -1109,6 +1109,7 @@ export class BpWorkbench extends LitElement {
                     // DEBUG: Log schema to see if arrays are correct
                     console.log('Template schema:', JSON.stringify(details.validationResult.schema, null, 2));
                     this._jsonText = this._generateSampleJsonFromSchema(details.validationResult.schema);
+                    console.log('Generated sample JSON:', this._jsonText);
                     this._jsonValid = true;
                 }
             }
