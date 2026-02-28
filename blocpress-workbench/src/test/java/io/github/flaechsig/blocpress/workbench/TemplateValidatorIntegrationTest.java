@@ -41,9 +41,8 @@ class TemplateValidatorIntegrationTest {
         assertNotNull(result);
         assertNotNull(result.errors());
         assertNotNull(result.warnings());
-        assertNotNull(result.userFields());
-        assertNotNull(result.repetitionGroups());
-        assertNotNull(result.conditions());
+        assertNotNull(result.schema());
+        assertEquals("object", result.schema().get("type").asText());
     }
 
     @Test
@@ -81,9 +80,8 @@ class TemplateValidatorIntegrationTest {
         assertTrue(result.isValid() || !result.isValid(), "Should have valid/invalid status");
         assertNotNull(result.errors(), "Errors should not be null");
         assertNotNull(result.warnings(), "Warnings should not be null");
-        assertNotNull(result.userFields(), "User fields should not be null");
-        assertNotNull(result.repetitionGroups(), "Repetition groups should not be null");
-        assertNotNull(result.conditions(), "Conditions should not be null");
+        assertNotNull(result.schema(), "Schema should not be null");
+        assertEquals("object", result.schema().get("type").asText(), "Schema should be object type");
     }
 
     @Test
@@ -97,11 +95,12 @@ class TemplateValidatorIntegrationTest {
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);
 
-        // Check if user fields were extracted (should be present in sample-04.odt)
-        assertNotNull(result.userFields());
-        // Sample files have user fields, so we should have some
-        assertTrue(result.userFields().size() > 0 || result.errors().isEmpty(),
-            "Should extract user fields or have no errors");
+        // Check if schema was generated (should contain properties for user fields)
+        assertNotNull(result.schema());
+        assertNotNull(result.schema().get("properties"));
+        // Sample files have user fields, so schema should have properties or no errors
+        assertTrue(result.schema().get("properties").size() > 0 || result.errors().isEmpty(),
+            "Should extract user fields in schema or have no errors");
     }
 
     @Test
@@ -130,9 +129,7 @@ class TemplateValidatorIntegrationTest {
         assertNotNull(result.isValid());
         assertNotNull(result.errors());
         assertNotNull(result.warnings());
-        assertNotNull(result.userFields());
-        assertNotNull(result.repetitionGroups());
-        assertNotNull(result.conditions());
+        assertNotNull(result.schema());
     }
 
     @Test
@@ -190,8 +187,8 @@ class TemplateValidatorIntegrationTest {
         ValidationResult result2 = validator.validate(odtContent);
 
         assertEquals(result1.isValid(), result2.isValid());
-        assertEquals(result1.userFields().size(), result2.userFields().size());
-        assertEquals(result1.repetitionGroups().size(), result2.repetitionGroups().size());
-        assertEquals(result1.conditions().size(), result2.conditions().size());
+        assertEquals(result1.schema().toString(), result2.schema().toString());
+        assertEquals(result1.errors().size(), result2.errors().size());
+        assertEquals(result1.warnings().size(), result2.warnings().size());
     }
 }

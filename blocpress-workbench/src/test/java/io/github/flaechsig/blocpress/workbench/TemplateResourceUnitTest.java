@@ -128,12 +128,12 @@ class TemplateResourceUnitTest {
             new ValidationResult.ValidationMessage("INVALID_STRUCTURE", "ODT structure is invalid")
         );
         var warnings = java.util.List.<ValidationResult.ValidationMessage>of();
-        var userFields = java.util.List.<ValidationResult.UserFieldInfo>of();
-        var repeatGroups = java.util.List.<ValidationResult.RepetitionGroupInfo>of();
-        var conditions = java.util.List.<ValidationResult.ConditionInfo>of();
+        var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
 
         ValidationResult validationResult =
-            new ValidationResult(false, errors, warnings, userFields, repeatGroups, conditions);
+            new ValidationResult(false, schema, errors, warnings);
 
         TemplateResource.TemplateDetails details =
             new TemplateResource.TemplateDetails(id, name, createdAt, status, validationResult);
@@ -253,14 +253,22 @@ class TemplateResourceUnitTest {
     // ===== Helper Methods =====
 
     private ValidationResult createValidValidationResult() {
-        var userFields = java.util.List.of(
-            new ValidationResult.UserFieldInfo("customer.name", "user-field")
-        );
-        var repeatGroups = java.util.List.<ValidationResult.RepetitionGroupInfo>of();
-        var conditions = java.util.List.<ValidationResult.ConditionInfo>of();
         var errors = java.util.List.<ValidationResult.ValidationMessage>of();
         var warnings = java.util.List.<ValidationResult.ValidationMessage>of();
+        var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        var properties = objectMapper.createObjectNode();
+        var customerProp = objectMapper.createObjectNode();
+        customerProp.put("type", "object");
+        var customerProps = objectMapper.createObjectNode();
+        var nameProp = objectMapper.createObjectNode();
+        nameProp.put("type", "string");
+        customerProps.set("name", nameProp);
+        customerProp.set("properties", customerProps);
+        properties.set("customer", customerProp);
+        schema.set("properties", properties);
 
-        return new ValidationResult(true, errors, warnings, userFields, repeatGroups, conditions);
+        return new ValidationResult(true, schema, errors, warnings);
     }
 }

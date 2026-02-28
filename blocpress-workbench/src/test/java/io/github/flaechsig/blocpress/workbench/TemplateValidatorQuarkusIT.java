@@ -59,9 +59,8 @@ class TemplateValidatorQuarkusIT {
 
         assertNotNull(result.errors());
         assertNotNull(result.warnings());
-        assertNotNull(result.userFields());
-        assertNotNull(result.repetitionGroups());
-        assertNotNull(result.conditions());
+        assertNotNull(result.schema());
+        assertEquals("object", result.schema().get("type").asText());
     }
 
     @Test
@@ -97,9 +96,9 @@ class TemplateValidatorQuarkusIT {
 
             assertNotNull(result);
             // Real ODT should parse (may have errors or be valid)
-            assertNotNull(result.userFields());
-            assertNotNull(result.repetitionGroups());
-            assertNotNull(result.conditions());
+            assertNotNull(result.schema());
+            assertNotNull(result.errors());
+            assertNotNull(result.warnings());
         }
     }
 
@@ -112,7 +111,7 @@ class TemplateValidatorQuarkusIT {
             ValidationResult result = validator.validate(odtContent);
 
             assertNotNull(result);
-            assertNotNull(result.userFields());
+            assertNotNull(result.schema());
         }
     }
 

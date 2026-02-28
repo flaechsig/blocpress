@@ -5,15 +5,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Comprehensive unit tests for TemplateValidator logic.
- * Tests validation result creation and error handling paths.
+ * Tests validation result creation and error handling paths with JSON-Schema structure.
  */
 class TemplateValidatorMockTest {
 
@@ -45,9 +43,8 @@ class TemplateValidatorMockTest {
         assertNotNull(result.isValid(), "isValid should be set");
         assertNotNull(result.errors(), "errors list should not be null");
         assertNotNull(result.warnings(), "warnings list should not be null");
-        assertNotNull(result.userFields(), "userFields list should not be null");
-        assertNotNull(result.repetitionGroups(), "repetitionGroups list should not be null");
-        assertNotNull(result.conditions(), "conditions list should not be null");
+        assertNotNull(result.schema(), "schema should not be null");
+        assertEquals("object", result.schema().get("type").asText());
     }
 
     @Test
@@ -89,17 +86,14 @@ class TemplateValidatorMockTest {
         errors.add(new ValidationResult.ValidationMessage("ERR001", "Error message"));
 
         List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        userFields.add(new ValidationResult.UserFieldInfo("field.name", "user-field"));
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
 
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
-
-        ValidationResult result = new ValidationResult(false, errors, warnings, userFields, repeatGroups, conditions);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
 
         assertFalse(result.isValid());
         assertEquals(1, result.errors().size());
-        assertEquals(1, result.userFields().size());
+        assertNotNull(result.schema());
     }
 
     @Test
@@ -109,11 +103,10 @@ class TemplateValidatorMockTest {
         errors.add(new ValidationResult.ValidationMessage("CODE2", "Message 2"));
 
         List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(false, errors, warnings, userFields, repeatGroups, conditions);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
 
         assertEquals(2, result.errors().size());
         assertEquals("CODE1", result.errors().get(0).code());
@@ -121,65 +114,50 @@ class TemplateValidatorMockTest {
     }
 
     @Test
-    void testUserFieldExtraction() {
-        List<ValidationResult.ValidationMessage> errors = new ArrayList<>();
-        List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
+    void testSchemaGeneration() {
+        var errors = new ArrayList<ValidationResult.ValidationMessage>();
+        var warnings = new ArrayList<ValidationResult.ValidationMessage>();
 
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        userFields.add(new ValidationResult.UserFieldInfo("customer.name", "user-field"));
-        userFields.add(new ValidationResult.UserFieldInfo("customer.email", "user-field"));
-        userFields.add(new ValidationResult.UserFieldInfo("order.total", "user-field"));
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        var properties = objectMapper.createObjectNode();
+        var customerProp = objectMapper.createObjectNode();
+        customerProp.put("type", "object");
+        var customerProps = objectMapper.createObjectNode();
+        var nameProp = objectMapper.createObjectNode();
+        nameProp.put("type", "string");
+        customerProps.set("name", nameProp);
+        customerProp.set("properties", customerProps);
+        properties.set("customer", customerProp);
+        schema.set("properties", properties);
 
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
 
-        ValidationResult result = new ValidationResult(true, errors, warnings, userFields, repeatGroups, conditions);
-
-        assertEquals(3, result.userFields().size());
-        assertEquals("customer.name", result.userFields().get(0).name());
-        assertEquals("customer.email", result.userFields().get(1).name());
-        assertEquals("order.total", result.userFields().get(2).name());
+        assertTrue(result.isValid());
+        assertNotNull(result.schema());
+        assertNotNull(result.schema().get("properties"));
+        assertNotNull(result.schema().get("properties").get("customer"));
     }
 
     @Test
-    void testRepetitionGroupDetection() {
-        List<ValidationResult.ValidationMessage> errors = new ArrayList<>();
-        List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
+    void testArrayPropertyGeneration() {
+        var errors = new ArrayList<ValidationResult.ValidationMessage>();
+        var warnings = new ArrayList<ValidationResult.ValidationMessage>();
 
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-        repeatGroups.add(new ValidationResult.RepetitionGroupInfo("items", "data.items", "section"));
-        repeatGroups.add(new ValidationResult.RepetitionGroupInfo("lines", "data.lines", "table-row"));
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        var properties = objectMapper.createObjectNode();
+        var itemsProp = objectMapper.createObjectNode();
+        itemsProp.put("type", "array");
+        var items = objectMapper.createObjectNode();
+        items.put("type", "object");
+        itemsProp.set("items", items);
+        properties.set("items", itemsProp);
+        schema.set("properties", properties);
 
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
 
-        ValidationResult result = new ValidationResult(true, errors, warnings, userFields, repeatGroups, conditions);
-
-        assertEquals(2, result.repetitionGroups().size());
-        assertEquals("items", result.repetitionGroups().get(0).name());
-        assertEquals("data.items", result.repetitionGroups().get(0).arrayPath());
-        assertEquals("section", result.repetitionGroups().get(0).type());
-    }
-
-    @Test
-    void testConditionValidation() {
-        List<ValidationResult.ValidationMessage> errors = new ArrayList<>();
-        List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
-        conditions.add(new ValidationResult.ConditionInfo("status == 'ACTIVE'", "section", true, null));
-        conditions.add(new ValidationResult.ConditionInfo("amount > 100", "p", true, null));
-        conditions.add(new ValidationResult.ConditionInfo("invalid {{}", "span", false, "Syntax error"));
-
-        ValidationResult result = new ValidationResult(false, errors, warnings, userFields, repeatGroups, conditions);
-
-        assertEquals(3, result.conditions().size());
-        assertTrue(result.conditions().get(0).syntaxValid());
-        assertTrue(result.conditions().get(1).syntaxValid());
-        assertFalse(result.conditions().get(2).syntaxValid());
-        assertEquals("Syntax error", result.conditions().get(2).errorMessage());
+        assertEquals("array", result.schema().get("properties").get("items").get("type").asText());
     }
 
     @Test
@@ -210,25 +188,21 @@ class TemplateValidatorMockTest {
         List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
         warnings.add(new ValidationResult.ValidationMessage("W001", "Field may be unused"));
 
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        userFields.add(new ValidationResult.UserFieldInfo("invalid_field!", "user-field"));
-        userFields.add(new ValidationResult.UserFieldInfo("valid.field", "user-field"));
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+        var properties = objectMapper.createObjectNode();
+        var fieldProp = objectMapper.createObjectNode();
+        fieldProp.put("type", "string");
+        properties.set("valid_field", fieldProp);
+        schema.set("properties", properties);
 
-        List<ValidationResult.RepetitionGroupInfo> repeatGroups = new ArrayList<>();
-        repeatGroups.add(new ValidationResult.RepetitionGroupInfo("items", "data.items", "section"));
-
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
-        conditions.add(new ValidationResult.ConditionInfo("bad syntax {{", "p", false, "Parse error"));
-
-        ValidationResult result = new ValidationResult(false, errors, warnings, userFields, repeatGroups, conditions);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
 
         // Verify complex structure
         assertFalse(result.isValid());
         assertEquals(2, result.errors().size());
         assertEquals(1, result.warnings().size());
-        assertEquals(2, result.userFields().size());
-        assertEquals(1, result.repetitionGroups().size());
-        assertEquals(1, result.conditions().size());
+        assertNotNull(result.schema());
     }
 
     @Test
@@ -241,11 +215,18 @@ class TemplateValidatorMockTest {
     }
 
     @Test
-    void testUserFieldInfoEquality() {
-        ValidationResult.UserFieldInfo field1 = new ValidationResult.UserFieldInfo("name", "type");
-        ValidationResult.UserFieldInfo field2 = new ValidationResult.UserFieldInfo("name", "type");
+    void testEmptySchema() {
+        var errors = new ArrayList<ValidationResult.ValidationMessage>();
+        var warnings = new ArrayList<ValidationResult.ValidationMessage>();
 
-        assertEquals(field1.name(), field2.name());
-        assertEquals(field1.type(), field2.type());
+        var schema = objectMapper.createObjectNode();
+        schema.put("type", "object");
+
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+
+        assertTrue(result.isValid());
+        assertEquals("object", result.schema().get("type").asText());
+        assertTrue(result.errors().isEmpty());
+        assertTrue(result.warnings().isEmpty());
     }
 }
