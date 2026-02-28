@@ -1401,7 +1401,8 @@ export class BpWorkbench extends LitElement {
             await this._loadTemplates();
             const created = this._templates.find(t => t.id === result.id);
             if (created) {
-                this._selectTemplate(created);
+                // Wait for template to be fully loaded (with schema)
+                await this._selectTemplate(created);
 
                 // Auto-create "default" test data set with generated sample JSON
                 await this._createDefaultTestDataAfterUpload();
@@ -2047,14 +2048,33 @@ export class BpWorkbench extends LitElement {
      * Create "default" test data set with the generated sample JSON after upload.
      */
     async _createDefaultTestDataAfterUpload() {
-        if (!this._selectedTemplate || !this._jsonValid) {
-            console.warn('Cannot create default test data: template or JSON not ready');
+        if (!this._selectedTemplate) {
+            console.warn('Cannot create default test data: template not set');
+            return;
+        }
+
+        if (!this._jsonValid) {
+            console.warn('Cannot create default test data: JSON not valid');
+            return;
+        }
+
+        if (!this._jsonText) {
+            console.warn('Cannot create default test data: no JSON text available');
             return;
         }
 
         try {
             // Parse the generated sample JSON
-            const testData = JSON.parse(this._jsonText);
+            let testData;
+            try {
+                testData = JSON.parse(this._jsonText);
+            } catch (parseErr) {
+                console.error('Invalid JSON in _jsonText:', parseErr);
+                this._error = `JSON Parse Error: ${parseErr.message}`;
+                return;
+            }
+
+            console.log('Creating default test data with:', testData);
 
             const response = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
@@ -2071,14 +2091,16 @@ export class BpWorkbench extends LitElement {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Failed to create default test data: ${response.status} - ${errorText}`);
+                this._error = `Fehler beim Erstellen des default Testfalls: ${response.status}`;
                 return;
             }
 
             // Reload test data sets
             await this._loadTestDataSets();
-            console.log('Default test data created successfully');
+            console.log('✓ Default test data created successfully');
         } catch (err) {
             console.error('Could not create default test data:', err);
+            this._error = `Fehler: ${err.message}`;
         }
     }
 
