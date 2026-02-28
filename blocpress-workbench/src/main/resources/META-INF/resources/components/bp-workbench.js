@@ -44,7 +44,8 @@ export class BpWorkbench extends LitElement {
         _savingExpectedPdf: { state: true },
         _comparingPdf: { state: true },
         _regressionResult: { state: true },
-        _testDataModeSaving: { state: true }
+        _testDataModeSaving: { state: true },
+        _selectedTestDataForPreview: { state: true }
     };
 
     static styles = css`
@@ -499,6 +500,19 @@ export class BpWorkbench extends LitElement {
             background: #f9f9f9;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .testdata-item.selected {
+            background: #e3f2fd;
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 2px rgba(30, 60, 114, 0.1);
+        }
+        .testdata-item:hover {
+            background: #f5f5f5;
+        }
+        .testdata-item.selected:hover {
+            background: #e3f2fd;
         }
         .testdata-item-info {
             flex: 1;
@@ -668,7 +682,7 @@ export class BpWorkbench extends LitElement {
         this._templateDetails = null;
         this._submitting = false;
         // Phase 3: TestData Management
-        this._activeTab = 'upload'; // 'upload', 'testdata', 'preview'
+        this._activeTab = 'testdata'; // Only 'testdata' tab now
         this._testDataSets = [];
         this._selectedTestData = null;
         this._generatedForm = null;
@@ -680,6 +694,7 @@ export class BpWorkbench extends LitElement {
         this._comparingPdf = false;
         this._regressionResult = null;
         this._testDataModeSaving = false;
+        this._selectedTestDataForPreview = null;
     }
 
     connectedCallback() {
@@ -711,77 +726,15 @@ export class BpWorkbench extends LitElement {
             <!-- Tab Navigation (only when template selected) -->
             ${this._selectedTemplate && !this._detailsView ? html`
                 <div class="tabs">
-                    <button class="tab-btn ${this._activeTab === 'upload' ? 'active' : ''}"
-                        @click=${() => this._switchTab('upload')}>
-                        Upload
-                    </button>
                     <button class="tab-btn ${this._activeTab === 'testdata' ? 'active' : ''}"
                         @click=${() => this._switchTab('testdata')}>
                         Testdaten
                     </button>
-                    <button class="tab-btn ${this._activeTab === 'preview' ? 'active' : ''}"
-                        @click=${() => this._switchTab('preview')}>
-                        Vorschau
-                    </button>
                 </div>
             ` : ''}
 
-            <!-- Upload Tab Content -->
-            ${this._selectedTemplate && !this._detailsView && this._activeTab === 'upload' ? html`
-                <div class="panel" style="margin-bottom: 24px;">
-                    <div class="panel-header">
-                        <h3>JSON Data</h3>
-                        <button class="refresh-btn"
-                            ?disabled=${!this._jsonValid || this._rendering}
-                            @click=${this._renderPdf}>
-                            &#8635; Vorschau generieren
-                        </button>
-                    </div>
-                    <textarea
-                        class=${this._jsonValid ? '' : 'invalid'}
-                        .value=${this._jsonText}
-                        @input=${this._onJsonInput}
-                    ></textarea>
-                    ${this._jsonValid ? '' : html`<div class="json-error">Ungültiges JSON</div>`}
-                </div>
-            ` : ''}
-
-            <!-- TestData Tab Content -->
+            <!-- TestData Tab Content (now includes preview) -->
             ${this._selectedTemplate && !this._detailsView && this._activeTab === 'testdata' ? this._renderTestDataTab() : ''}
-
-            <!-- Preview Tab Content -->
-            ${this._selectedTemplate && !this._detailsView && this._activeTab === 'preview' ? html`
-                <div class="workspace">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h3>Vorschau</h3>
-                            ${this._rendering ? html`<span class="spinner"></span>` : ''}
-                        </div>
-                        ${this._pdfUrl
-                            ? html`<iframe class="pdf-frame" src=${this._pdfUrl}></iframe>`
-                            : html`<div class="pdf-placeholder">
-                                ${this._rendering ? 'Wird gerendert...' : 'Noch keine Vorschau'}
-                              </div>`}
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h3>JSON Data</h3>
-                            <button class="refresh-btn"
-                                ?disabled=${!this._jsonValid || this._rendering}
-                                @click=${this._renderPdf}>
-                                &#8635; Aktualisieren
-                            </button>
-                        </div>
-                        <textarea
-                            class=${this._jsonValid ? '' : 'invalid'}
-                            .value=${this._jsonText}
-                            @input=${this._onJsonInput}
-                        ></textarea>
-                        ${this._jsonValid ? '' : html`<div class="json-error">Ungültiges JSON</div>`}
-                    </div>
-                </div>
-            ` : ''}
 
             ${this._error ? html`<div class="error">${this._error}</div>` : ''}
             ${this._success ? html`<div class="success">${this._success}</div>` : ''}
@@ -792,59 +745,73 @@ export class BpWorkbench extends LitElement {
         if (this._testDataMode === 'create') {
             return this._renderTestDataForm();
         }
-        return this._renderTestDataList();
+        return this._renderTestDataTabContent();
     }
 
-    _renderTestDataList() {
+    _renderTestDataTabContent() {
         return html`
-            <div class="panel" style="margin-bottom: 24px;">
-                <div class="panel-header">
-                    <h3>Test Datensätze</h3>
-                    <button class="btn-submit" @click=${() => {
-                        this._testDataMode = 'create';
-                        this._testDataName = '';
-                        this._testDataFormData = {};
-                    }}>+ Neu</button>
-                </div>
+            <div class="workspace">
+                <!-- Left panel: Test data list -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Test Datensätze</h3>
+                        <button class="btn-submit" @click=${() => {
+                            this._testDataMode = 'create';
+                            this._testDataName = '';
+                            this._testDataFormData = {};
+                        }}>+ Neu</button>
+                    </div>
 
-                ${this._testDataSets.length === 0
-                    ? html`<p style="color: #888; text-align: center; padding: 20px;">Keine Testdaten vorhanden</p>`
-                    : html`
-                        <div class="testdata-list">
-                            ${this._testDataSets.map(td => html`
-                                <div class="testdata-item">
-                                    <div class="testdata-item-info">
-                                        <div class="testdata-item-name">${td.name}</div>
-                                        <div class="testdata-item-meta">
-                                            ${td.hasExpectedPdf ? '✓ Expected PDF vorhanden' : 'Kein Expected PDF'}
-                                            | Erstellt: ${new Date(td.createdAt).toLocaleDateString('de-DE')}
+                    ${this._testDataSets.length === 0
+                        ? html`<p style="color: #888; text-align: center; padding: 20px;">Keine Testdaten vorhanden</p>`
+                        : html`
+                            <div class="testdata-list">
+                                ${this._testDataSets.map(td => html`
+                                    <div class="testdata-item ${this._selectedTestDataForPreview?.id === td.id ? 'selected' : ''}">
+                                        <div class="testdata-item-info">
+                                            <div class="testdata-item-name">${td.name}</div>
+                                            <div class="testdata-item-meta">
+                                                ${td.hasExpectedPdf ? '✓ Expected PDF' : 'Kein Expected PDF'}
+                                                | ${new Date(td.createdAt).toLocaleDateString('de-DE')}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="testdata-item-actions">
-                                        ${td.hasExpectedPdf ? html`
+                                        <div class="testdata-item-actions">
                                             <button class="testdata-btn"
-                                                @click=${() => this._renderWithTestData(td)}>
+                                                @click=${() => this._selectTestDataForPreview(td)}>
                                                 Vorschau
                                             </button>
-                                        ` : ''}
-                                        <button class="testdata-btn primary"
-                                            ?disabled=${this._savingExpectedPdf}
-                                            @click=${() => this._prepareForPdfSave(td)}>
-                                            PDF speichern
-                                        </button>
-                                        <button class="testdata-btn"
-                                            @click=${() => this._duplicateTestData(td)}>
-                                            Duplizieren
-                                        </button>
-                                        <button class="testdata-btn danger"
-                                            @click=${() => this._deleteTestDataSet(td.id)}>
-                                            Löschen
-                                        </button>
+                                            <button class="testdata-btn primary"
+                                                ?disabled=${this._savingExpectedPdf}
+                                                @click=${() => this._saveExpectedPdfForTestData(td)}>
+                                                Speichern
+                                            </button>
+                                            <button class="testdata-btn"
+                                                @click=${() => this._duplicateTestData(td)}>
+                                                Kopieren
+                                            </button>
+                                            <button class="testdata-btn danger"
+                                                @click=${() => this._deleteTestDataSet(td.id)}>
+                                                Löschen
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            `)}
-                        </div>
-                    `}
+                                `)}
+                            </div>
+                        `}
+                </div>
+
+                <!-- Right panel: PDF preview -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Vorschau</h3>
+                        ${this._rendering ? html`<span class="spinner"></span>` : ''}
+                    </div>
+                    ${this._pdfUrl
+                        ? html`<iframe class="pdf-frame" src=${this._pdfUrl}></iframe>`
+                        : html`<div class="pdf-placeholder">
+                            ${this._rendering ? 'Wird gerendert...' : 'Testfall auswählen zur Vorschau'}
+                          </div>`}
+                </div>
             </div>
         `;
     }
@@ -894,18 +861,17 @@ export class BpWorkbench extends LitElement {
         `;
     }
 
-    _prepareForPdfSave(testData) {
+    async _selectTestDataForPreview(testData) {
+        this._selectedTestDataForPreview = testData;
+        this._jsonText = JSON.stringify(testData.testData, null, 2);
+        this._jsonValid = true;
+        await this._renderPdf();
+    }
+
+    async _saveExpectedPdfForTestData(testData) {
         this._selectedTestData = testData;
         this._jsonText = JSON.stringify(testData.testData, null, 2);
         this._jsonValid = true;
-        this._activeTab = 'upload';
-        this._renderPdf();
-    }
-
-    async _renderWithTestData(testData) {
-        this._jsonText = JSON.stringify(testData.testData, null, 2);
-        this._jsonValid = true;
-        this._activeTab = 'preview';
         await this._renderPdf();
     }
 
@@ -1119,7 +1085,7 @@ export class BpWorkbench extends LitElement {
         this._showSuggestions = false;
         this._error = '';
         this._success = '';
-        this._activeTab = 'upload';
+        this._activeTab = 'testdata';
 
         // Load full template details (with validationResult) for form generation
         try {
@@ -1205,14 +1171,20 @@ export class BpWorkbench extends LitElement {
             }
 
             const result = await response.json();
-            this._success = `Template '${result.name}' gespeichert`;
             this._uploadName = '';
             this._uploadFile = null;
             this._uploadMode = false;
 
             await this._loadTemplates();
             const created = this._templates.find(t => t.id === result.id);
-            if (created) this._selectTemplate(created);
+            if (created) {
+                this._selectTemplate(created);
+
+                // Auto-create "default" test data set with generated sample JSON
+                await this._createDefaultTestDataAfterUpload();
+
+                this._success = `Template '${result.name}' gespeichert und Testfall "default" erstellt`;
+            }
         } catch (err) {
             this._error = err.message;
         } finally {
@@ -1305,6 +1277,8 @@ export class BpWorkbench extends LitElement {
 
             this._success = 'Expected PDF gespeichert';
             this._selectedTestData = null;
+            this._selectedTestDataForPreview = null;
+            this._pdfUrl = null;
             await this._loadTestDataSets();
         } catch (err) {
             this._error = err.message;
@@ -1610,7 +1584,7 @@ export class BpWorkbench extends LitElement {
 
     _switchTab(tab) {
         this._activeTab = tab;
-        if (tab === 'testdata' && this._selectedTemplate) {
+        if (this._selectedTemplate) {
             this._loadTestDataSets();
             this._generateFormFromTemplate();
         }
@@ -1822,7 +1796,39 @@ export class BpWorkbench extends LitElement {
     }
 
     /**
-     * Auto-create "default" test data set if it doesn't exist.
+     * Create "default" test data set with the generated sample JSON after upload.
+     */
+    async _createDefaultTestDataAfterUpload() {
+        if (!this._selectedTemplate || !this._jsonValid) {
+            return;
+        }
+
+        try {
+            // Parse the generated sample JSON
+            const testData = JSON.parse(this._jsonText);
+
+            await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'default',
+                        testData: testData
+                    })
+                }
+            );
+
+            // Reload test data sets
+            await this._loadTestDataSets();
+        } catch (err) {
+            console.warn('Could not create default test data:', err);
+        }
+    }
+
+    /**
+     * Auto-create "default" test data set if it doesn't exist (fallback method).
+     * Only used if _createDefaultTestDataAfterUpload was not called during upload.
      */
     async _ensureDefaultTestData() {
         if (!this._selectedTemplate?.validationResult?.schema) {
