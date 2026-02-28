@@ -78,11 +78,20 @@ public class TemplateValidator {
 
             // Step 3: Identify repetition groups (loops)
             // Note: doc.findRepeatGroups() uses emptyData and won't detect arrays from template structure alone.
-            // Use heuristic: if multiple fields share the same prefix (e.g., positions.name, positions.quantity),
-            // then the prefix is likely an array path.
-            Set<String> detectedArrayPaths = new HashSet<>();
-            Set<String> fieldPrefixes = new HashSet<>();
+            // Use conservative heuristic: only recognize known array field names with multiple fields.
 
+            Set<String> knownArrayNames = Set.of(
+                // Standard plurals
+                "positions", "items", "lines", "rows", "details", "entries",
+                // Business domain specific
+                "products", "articles", "lineItems", "orderItems", "invoiceItems",
+                "addresses", "payments", "documents", "attachments",
+                "shipments", "packages", "expenses", "transactions",
+                "members", "participants", "attendees", "employees",
+                "permissions", "roles", "connections", "relations"
+            );
+
+            Set<String> fieldPrefixes = new HashSet<>();
             for (String fieldName : fieldNames) {
                 if (fieldName.contains(".")) {
                     int lastDotIndex = fieldName.lastIndexOf(".");
@@ -91,7 +100,8 @@ public class TemplateValidator {
                 }
             }
 
-            // Count how many fields each prefix has
+            // Count how many fields each prefix has and check against known array names
+            Set<String> detectedArrayPaths = new HashSet<>();
             for (String prefix : fieldPrefixes) {
                 int count = 0;
                 for (String fieldName : fieldNames) {
@@ -99,8 +109,8 @@ public class TemplateValidator {
                         count++;
                     }
                 }
-                // If a prefix has 2+ fields, it's likely an array (e.g., positions.name, positions.quantity)
-                if (count >= 2) {
+                // Only treat as array if it's a known array name AND has 2+ fields
+                if (knownArrayNames.contains(prefix) && count >= 2) {
                     detectedArrayPaths.add(prefix);
                 }
             }
