@@ -161,17 +161,17 @@ Bausteinverwaltung und Content Search.
 | UC-20
 | Testdaten-Generator aus Template-Feldern
 | 2
-| icon:play-circle[role=blue] IN PROGRESS
+| icon:check-circle[role=green] DONE
 
 | UC-21
 | Mehrere Test-Datensaetze pro Template verwalten
 | 2
-| icon:play-circle[role=blue] IN PROGRESS
+| icon:check-circle[role=green] DONE
 
 | TF-8
 | PDF-Speicherung als "expected result" fuer Regression-Tests
 | 2
-| icon:play-circle[role=blue] IN PROGRESS
+| icon:check-circle[role=green] DONE
 
 | UC-11
 | Regression-Test durchfuehren (Ist-PDF vs. expected PDF)
@@ -324,6 +324,136 @@ der SCS-Module.
 | 2
 | icon:check-circle[role=green] DONE
 |===
+
+<<<
+[[phase-3-testdata-details]]
+== Phase 3: TestData Management — Implementierungsdetails (UC-20, UC-21, TF-8)
+
+*Status:* icon:check-circle[role=green] DONE (2026-02-28)
+
+*Beschreibung:*
+
+Umfassendes TestData-Management-System für Template-Designer zur Verwaltung mehrerer Testdatensätze pro Template,
+Auto-Generierung von Test-Formularen aus Template-Schemas und PDF-Baseline-Speicherung für Regressionstests.
+
+=== UC-20: Testdaten-Generator aus Template-Feldern
+
+**Auto-Generiertes Formular:**
+- Rekursives Tree-Rendering aus `template.validationResult.schema`
+- Automatische Input-Typ-Bestimmung (text, number, checkbox basierend auf JSON-Schema-Type)
+- Nested Objects und Arrays mit Indentation
+- Add/Remove Buttons für Array-Items
+
+**Formulargenerierung:**
+- `_renderSchemaProperty()` — Hauptrootbau für Schema-Rendering
+- `_renderObjectField()` — Verschachtelte Objekte
+- `_renderArrayField()` — Arrays mit +/- Buttons
+- `_renderLeafField()` — Text-, Number-, Checkbox-Felder
+- `_createEmptyItem()` — Generiert leere Array-Items mit Defaults
+
+**Default-Testdaten:**
+- `_createDefaultTestDataAfterUpload()` — Auto-create "default" Datensatz auf Template-Upload
+- `_generateDefaultTestData()` — Generiert Test-Daten aus Schema-Defaults
+- `_generateSampleJsonFromSchema()` — Erzeugt Sample-JSON für Preview
+
+=== UC-21: Mehrere Test-Datensaetze pro Template verwalten
+
+**REST-API Endpoints:**
+- `GET /api/workbench/templates/{templateId}/testdata` — Liste aller TestDataSets
+- `POST /api/workbench/templates/{templateId}/testdata` — Neuer Testdatensatz erstellen
+- `GET /api/workbench/templates/{templateId}/testdata/{testDataSetId}` — Einzelner Datensatz abrufen
+- `PUT /api/workbench/templates/{templateId}/testdata/{testDataSetId}` — Testdatensatz bearbeiten
+- `DELETE /api/workbench/templates/{templateId}/testdata/{testDataSetId}` — Löschen
+
+**Frontend UI:**
+- Testdaten-List mit Expand/Collapse-Buttons
+- TestDataSet-Item mit Name, Meta-Informationen (Expected PDF Status, Erstellungsdatum)
+- Tree-View Rendering der Test-Daten
+- Bearbeitungs-Modus mit vollständigem Formular
+- Duplikation von Testdaten: `_duplicateTestData()` mit Name-Prompt
+- Delete-Buttons mit Bestätigung
+
+**Features:**
+- `_expandedTestDataId` — Expand/Collapse State pro Item
+- `_editingTestDataId` — Edit-Mode Toggle
+- `_editingTestDataFormData` — Formulardaten während Bearbeitung
+- Tree-View für Daten-Inspektion
+- Duplikations-Funktion: Prompt → Fetch Full Data → Create with Same Data
+
+=== TF-8: PDF-Speicherung als Expected Result
+
+**PDF Speichern:**
+- `POST /api/workbench/templates/{templateId}/testdata/{testDataSetId}/save-expected`
+- Speichert PDF-Binärdaten + SHA256-Hash
+- Nur nach erfolgreicher Generierung verfügbar
+
+**Frontend:**
+- "PDF speichern" Button nach PDF-Generierung
+- Trigger: `_saveExpectedPdfForTestData()`
+- Flow: PDF generieren → Anzeigen → Speichern-Button klicken
+- `_finalizePdfSave()` — Finalisiert Speicherung mit Hash
+
+**Backend:**
+- TestDataSet Entity: `expectedPdf` (bytea), `pdfHash` (String)
+- `testDataSetService.saveExpectedPdf()` — Speichert Binärdaten
+- `testDataSetService.calculateHash()` — SHA256 Hash
+- `testDataSetService.getExpectedPdf()` — Abrufen für Regression-Tests
+
+**Features:**
+- Hash für schnelle PDF-Vergleiche
+- Storage Service für Binärdaten
+- Expected PDF Status anzeigen in Liste ("✓ Expected PDF" oder "○ Kein Expected PDF")
+- Abruf-Endpoint: `GET /api/workbench/templates/{templateId}/testdata/{testDataSetId}/expected-pdf`
+
+=== Implementation Details
+
+**State Management für TestData:**
+- `_testDataSets` — Liste aller Testdatensätze
+- `_selectedTestDataForPreview` — Aktuell ausgewählter Datensatz
+- `_expandedTestDataId` — Expanded Item für Tree-View
+- `_editingTestDataId` — In Bearbeitung befindlicher Datensatz
+- `_editingTestDataFormData` — Änderungen während Bearbeitung
+- `_savingTestData` — Speichern lädt
+- `_savingExpectedPdf` — PDF speichern lädt
+
+**PDF-Preview:**
+- Automatische Generierung bei Datensatz-Auswahl
+- `_selectTestDataForPreview()` — Lädt Daten und generiert Preview
+- Render via blocpress-render API
+- `_pdfUrl` — Object URL für iframe Display
+- Hash-Anzeige neben Preview für Debugging
+
+**Duplication Flow:**
+1. User klickt "Duplizieren" auf bestehendem Datensatz
+2. Prompt für neuen Namen (default: "Kopie von {original}")
+3. Fetch full TestDataSet via GET Endpoint
+4. Create new TestDataSet mit gleichen Test-Daten
+5. Neue ID zurückgeben, Liste aktualisieren
+
+**Testing:**
+- TestDataSet CRUD Operations getestet
+- Form-Rendering für komplexe Schemas
+- PDF-Speicherung und Hash-Berechnung
+- Duplication mit Data Integrity
+
+=== CSS Styling für TestData UI
+
+- `.testdata-list` — Container für Liste
+- `.testdata-item-container` — Wrapper für Item + Expanded Content
+- `.testdata-item` — Header mit Expand-Button, Name, Meta, Actions
+- `.testdata-item-info` — Clickable Info Section
+- `.testdata-item-actions` — Action Buttons (Duplicate, Delete)
+- `.testdata-edit-panel` — Expanded Edit/View Bereich
+- `.testdata-view`, `.testdata-view-header`, `.testdata-tree-view` — Read Mode
+- `.testdata-edit`, `.testdata-edit-header` — Edit Mode
+- `.expand-btn` — Expand/Collapse Toggle
+
+=== Build Status
+
+✓ All TestData operations tested and working
+✓ PDF generation and storage working
+✓ Duplication with data integrity verified
+✓ UI responsive and user-friendly
 
 <<<
 [[uc-5-details]]
