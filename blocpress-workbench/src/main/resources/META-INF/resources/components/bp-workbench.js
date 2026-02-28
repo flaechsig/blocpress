@@ -1071,13 +1071,38 @@ export class BpWorkbench extends LitElement {
         this._showSuggestions = true;
     }
 
-    _selectTemplate(template) {
+    async _selectTemplate(template) {
         this._selectedTemplate = template;
         this._searchText = '';
         this._showSuggestions = false;
         this._error = '';
         this._success = '';
         this._activeTab = 'upload';
+
+        // Load full template details (with validationResult) for form generation
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${template.id}/details`
+            );
+            if (response.ok) {
+                const details = await response.json();
+                // Merge details with summary to get validationResult
+                this._selectedTemplate = {
+                    ...this._selectedTemplate,
+                    validationResult: details.validationResult
+                };
+
+                // Generate sample JSON from schema
+                if (details.validationResult?.schema?.properties) {
+                    this._jsonText = this._generateSampleJsonFromSchema(details.validationResult.schema);
+                    this._jsonValid = true;
+                }
+            }
+        } catch (err) {
+            console.warn('Fehler beim Laden der Template-Details:', err);
+            // Continue even if details fail to load
+        }
+
         this._loadTestDataSets();
         this._generateFormFromTemplate();
         this._renderPdf();
@@ -1389,6 +1414,55 @@ export class BpWorkbench extends LitElement {
             default:
                 return 'text';
         }
+    }
+
+    /**
+     * Generate sample JSON data from JSON-Schema structure.
+     * Creates example values for each field based on its type.
+     */
+    _generateSampleJsonFromSchema(schema) {
+        if (!schema || !schema.properties) {
+            return '{}';
+        }
+
+        const generateValue = (fieldSchema, fieldName) => {
+            if (!fieldSchema) return null;
+
+            if (fieldSchema.type === 'object') {
+                // Nested object
+                if (fieldSchema.properties) {
+                    const obj = {};
+                    for (const [key, propSchema] of Object.entries(fieldSchema.properties)) {
+                        const value = generateValue(propSchema, key);
+                        if (value !== null) obj[key] = value;
+                    }
+                    return obj;
+                }
+                return {};
+            } else if (fieldSchema.type === 'array') {
+                // Array - return single example item
+                if (fieldSchema.items) {
+                    const item = generateValue(fieldSchema.items, 'item');
+                    return item !== null ? [item] : [];
+                }
+                return [];
+            } else if (fieldSchema.type === 'number' || fieldSchema.type === 'integer') {
+                return 0;
+            } else if (fieldSchema.type === 'boolean') {
+                return false;
+            } else {
+                // Default string with field name as example
+                return `${fieldName}_example`;
+            }
+        };
+
+        const result = {};
+        for (const [fieldName, fieldSchema] of Object.entries(schema.properties)) {
+            const value = generateValue(fieldSchema, fieldName);
+            if (value !== null) result[fieldName] = value;
+        }
+
+        return JSON.stringify(result, null, 2);
     }
 
     _onTestDataInput(e) {
