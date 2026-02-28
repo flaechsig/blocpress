@@ -253,16 +253,24 @@ Datenwerten ein- oder auszublenden
 hochgeladen
 * blocpress validiert das Template auf Korrektheit der
 Field-Definitionen
-* Der Designer reicht das Template zur Freigabe ein
+* Der Designer nutzt das Template Management Dashboard (UC-5) zur Übersicht
+und Verwaltung aller Templates mit Status-Filtern
+* Der Designer sieht im Dashboard sein DRAFT-Template und kann es
+aktualisieren (Re-Upload) oder zur Freigabe einreichen
+* Der Designer reicht das Template zur Freigabe ein (Status ändert sich zu SUBMITTED)
 * Ein Qualitätsprüfer überprüft das Template mit Testdaten und
 kommentiert eventuelle Probleme
-* Bei Rückfragen bearbeitet der Designer das Template und reicht es
-erneut ein
-* Ein Freigeber gibt das Template final frei, sodass es für die
+* Bei Rückfragen bearbeitet der Designer das Template (über Dashboard "Aktualisieren"
+Button für DRAFT) und reicht es erneut ein
+* Wenn das Template abgelehnt wird (Status REJECTED), kann der Designer es über
+das Dashboard zurück zu DRAFT ändern
+* Ein Freigeber gibt das Template final frei (Status APPROVED), sodass es für die
 Produktivnutzung verfügbar ist
+* Der Designer kann freigegebene (APPROVED) Templates über das Dashboard als neue
+DRAFT-Kopie erstellen und diese als Basis für neue Entwicklung verwenden
 
-_Use Cases: xref:Element_Design_Concept.adoc#edc-uc-1[UC-1: Template hochladen], xref:Element_Design_Concept.adoc#edc-uc-2[UC-2: Zur Freigabe einreichen], xref:Element_Design_Concept.adoc#edc-uc-8[UC-8: Template freigeben]_ +
-_Systemszenario: xref:System_Design_Concept.adoc#sydc-scenario-upload[Template hochladen und zur Freigabe einreichen]_
+_Use Cases: xref:Element_Design_Concept.adoc#edc-uc-1[UC-1: Template hochladen], xref:Element_Design_Concept.adoc#edc-uc-2[UC-2: Zur Freigabe einreichen], xref:Element_Design_Concept.adoc#edc-uc-5[UC-5: Template Management Dashboard], xref:Element_Design_Concept.adoc#edc-uc-8[UC-8: Template freigeben]_ +
+_Systemszenario: xref:System_Design_Concept.adoc#sydc-scenario-upload[Template hochladen und zur Freigabe einreichen], xref:System_Design_Concept.adoc#sydc-scenario-dashboard[Template-Management-Dashboard mit Status-Filter und Workflow]_
 
 [[sdc-bp-generieren]]
 === Dokument automatisiert generieren

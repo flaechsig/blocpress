@@ -54,7 +54,7 @@ Die Anwendung ist als Self-Contained Systems (SCS) strukturiert — fünf unabh�
 
 *blocpress-studio (Portal-Shell):* Quarkus-Anwendung, die statische HTML/JS-Assets ausliefert. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Dynamic Import. Kein eigenes Backend-Logik. Lädt die Web Components der fachlichen Module dynamisch von den jeweiligen SCS-Modulen.
 
-*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung. Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
+*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung, **Template Management Dashboard mit Status-Filtern und Workflow** (UC-5: Status-Übergänge, Duplikation, Re-Upload). Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
 _Use Cases: UC-1 bis UC-5, UC-19 bis UC-21_ +
 _Detaillierte Beschreibung: xref:Element_Design_Concept.adoc#edc-goals[Goals im Element Design Concept]_
 
@@ -125,8 +125,31 @@ _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-4[TI-4: JWT-Validi
 10. blocpress-workbench kopiert das Template in das Schema `proof` (Stufenübergabe workbench → proof)
 11. Das Template ist nun in blocpress-proof für den Prüfer sichtbar
 
-_Use Cases: xref:Element_Design_Concept.adoc#edc-uc-1[UC-1: Template hochladen], xref:Element_Design_Concept.adoc#edc-uc-2[UC-2: Zur Freigabe einreichen]_ +
+_Use Cases: xref:Element_Design_Concept.adoc#edc-uc-1[UC-1: Template hochladen], xref:Element_Design_Concept.adoc#edc-uc-2[UC-2: Zur Freigabe einreichen], xref:Element_Design_Concept.adoc#edc-uc-5[UC-5: Template Management Dashboard mit Workflow]_ +
 _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template erstellen und freigeben]_
+
+[[sydc-scenario-dashboard]]
+=== Szenario: Template-Management-Dashboard mit Status-Filter und Workflow (UC-5)
+
+*Ziel:* Ein Template-Designer verwaltet seine Templates über ein visuelles Dashboard mit Status-Filtern und führt Workflow-Übergänge durch.
+
+1. Der Template-Designer meldet sich über blocpress-studio an
+2. blocpress-studio lädt das Web Component `<bp-workbench>` und reicht das JWT als Property weiter
+3. Der Template-Designer öffnet blocpress-workbench und sieht das Template Management Dashboard (statt Autocomplete-Suche)
+4. Das Dashboard zeigt alle Templates als Karten in Gitteransicht mit Status-Badges (DRAFT, SUBMITTED, APPROVED, REJECTED)
+5. Der Template-Designer filtert Templates nach Status (z.B. "🧪 Test" zeigt nur SUBMITTED-Templates)
+6. Für DRAFT-Templates sieht der Designer Aktionen: Öffnen, Aktualisieren, → Test, Löschen
+7. Der Designer klickt "→ Test" um ein DRAFT-Template zur Freigabe einzureichen (Status ändert sich zu SUBMITTED)
+8. blocpress-workbench validiert die Statusübergangs-Logik und speichert den neuen Status
+9. Für APPROVED-Templates sieht der Designer "Als Kopie" Button
+10. Der Designer klickt "Als Kopie", gibt einen Namen ein, und ein neues DRAFT-Template wird erstellt (Basis für neue Entwicklung)
+11. Für DRAFT-Templates sieht der Designer "Aktualisieren" Button zum Re-Upload einer aktualisierten ODT-Datei
+12. Das Template wird neu validiert und die Validierungsergebnisse aktualisiert
+13. Der Designer klickt auf ein Template-Card "Öffnen" um den Workspace mit Testdaten und Vorschau zu öffnen
+14. Der Designer kann über "← Zurück zum Dashboard" zurück zur Übersicht gehen
+
+_Use Case: xref:Element_Design_Concept.adoc#edc-uc-5[UC-5: Template Management Dashboard mit Status-Filtern und Workflow]_ +
+_Technical Functions: Status-Übergänge mit Validierung (von TF-2), Template-Duplikation, Re-Upload (TF-1 Neu-Validierung)_
 
 [[sydc-scenario-generate]]
 === Szenario: Dokument über API generieren

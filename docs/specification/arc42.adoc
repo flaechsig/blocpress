@@ -397,7 +397,7 @@ Die Anwendung ist in fünf fachlich geschnittene Module zerlegt:
 | —
 
 | *blocpress-workbench*
-| Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Arbeitsumgebung für Template-Designer.
+| Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung, **Dashboard mit Status-Filtern und Workflow** (UC-5). Arbeitsumgebung für Template-Designer.
 | Schema `workbench`
 
 | *blocpress-proof*
@@ -1041,6 +1041,95 @@ note right of Render
   von proof aufgerufen
   (kein Zugriff auf production-Schema)
 end note
+@enduml
+----
+
+=== Template Management Dashboard — Status-Filter und Workflow (UC-5)
+
+*Szenario:* Template-Designer verwaltet Templates über Dashboard mit Status-Filtern, führt Status-Übergänge durch, dupliziert Produktiv-Templates und aktualisiert DRAFT-Templates
+
+[plantuml, laufzeit-dashboard-workflow, svg]
+----
+@startuml
+actor "Template-Designer" as Designer
+participant "bp-workbench\n(Web Component)" as WC
+participant "blocpress-workbench\nREST-API" as API
+participant "TemplateService\n(UC-5)" as UC
+participant "TemplateValidator\n(TF-1)" as Validator
+participant "Repository\n(Schema: workbench)" as Repo
+
+== Dashboard-Ansicht ==
+
+Designer -> WC : Workbench öffnen
+WC -> API : GET /api/workbench/templates
+API -> UC : listTemplates()
+UC -> Repo : find("ORDER BY name")
+Repo --> UC : List<Template>
+UC --> API : List<TemplateSummary>\n(mit isValid, status)
+API --> WC : JSON Array
+WC --> Designer : Dashboard mit\nTemplate-Cards anzeigen
+
+== Status filtern ==
+
+Designer -> WC : Klick "🧪 Test" Filter
+WC --> WC : _statusFilter = 'SUBMITTED'
+WC --> Designer : Zeige nur SUBMITTED Templates
+
+== Status-Übergang ==
+
+Designer -> WC : DRAFT-Template → "→ Test" Button
+WC -> API : PUT /api/workbench/templates/{id}/status\n{newStatus: "SUBMITTED"}
+API -> UC : updateStatus(templateId, SUBMITTED)
+UC -> UC : isValidTransition(DRAFT, SUBMITTED) ✓
+UC -> Repo : template.status = SUBMITTED\npersist()
+Repo --> UC : OK
+UC --> API : {id, status}
+API --> WC : 200 OK
+WC --> Designer : Success-Message\nTemplate-Liste neu laden
+
+== Template als DRAFT-Kopie erstellen ==
+
+Designer -> WC : APPROVED-Template → "Als Kopie" Button
+WC -> WC : Prompt: Name eingeben
+Designer -> WC : "Invoice v3"
+WC -> API : POST /api/workbench/templates/{id}/duplicate\n{name: "Invoice v3"}
+API -> UC : duplicate(sourceId, "Invoice v3")
+UC -> UC : Prüfe: Name nicht vorhanden ✓
+UC -> UC : Kopiere content (byte[])
+UC -> Validator : validate(newContent)
+Validator --> UC : ValidationResult
+UC -> Repo : persist(newTemplate)\nStatus: DRAFT
+Repo --> UC : Template (with id)
+UC --> API : {id, name, status, isValid}
+API --> WC : 201 Created
+WC --> Designer : Success-Message\n"Invoice v3" im Filter DRAFT
+
+== Template aktualisieren (Re-Upload) ==
+
+Designer -> WC : DRAFT-Template → "Aktualisieren" Button
+WC -> WC : File-Dialog öffnen
+Designer -> WC : Neue ODT-Datei auswählen
+WC -> API : PUT /api/workbench/templates/{id}/content\n(multipart/form-data, file)
+API -> UC : updateContent(templateId, newFile)
+UC -> UC : Prüfe: Status = DRAFT ✓
+UC -> UC : Kopiere newFile → content
+UC -> Validator : validate(newContent)
+Validator --> UC : ValidationResult (neu)
+UC -> Repo : template.content = newContent\ntemplate.validationResult = new\npersist()
+Repo --> UC : OK
+UC --> API : {id, name, status, isValid, errors, warnings}
+API --> WC : 200 OK
+WC --> Designer : Success-Message\n"Template aktualisiert"
+
+note right of UC
+  UC-5: Template Management Dashboard
+  - Status-Filter (ALL, DRAFT, SUBMITTED, APPROVED, REJECTED)
+  - Status-Übergänge mit Validierung
+  - Duplikation von APPROVED Templates
+  - Re-Upload für DRAFT Templates
+  - Kein User-Management (vereinachte Version)
+end note
+
 @enduml
 ----
 
