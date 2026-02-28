@@ -326,6 +326,166 @@ der SCS-Module.
 |===
 
 <<<
+[[uc-5-details]]
+== UC-5: Template Management Dashboard — Implementierungsdetails
+
+*Status:* icon:check-circle[role=green] DONE (2026-02-28)
+
+*Beschreibung:*
+
+Vollständig umgesetztes Template Management Dashboard mit Status-Filtern, Workflow-Unterstützung und
+Template-Lifecycle-Management. Ersetzt manuelle Autocomplete-Suche durch visuelle Dashboard-Ansicht.
+
+=== Backend Implementation
+
+**3 neue REST-Endpoints in TemplateResource.java:**
+
+1. *PUT /api/workbench/templates/{id}/status*
+   - Ändert Template-Status mit Validierung erlaubter Übergänge
+   - Transaktional mit StatusUpdateRequest Record
+   - Validierung: DRAFT→SUBMITTED, SUBMITTED→DRAFT/APPROVED/REJECTED, APPROVED→SUBMITTED, REJECTED→DRAFT
+
+2. *POST /api/workbench/templates/{id}/duplicate*
+   - Erstellt DRAFT-Kopie von existierenden Templates (besonders APPROVED)
+   - Name-Konflikt-Prüfung
+   - Re-Validierung der Kopie via TemplateValidator (TF-1)
+   - DuplicateRequest Record
+
+3. *PUT /api/workbench/templates/{id}/content*
+   - Re-Upload für DRAFT Templates
+   - Nur für Status DRAFT erlaubt (BAD_REQUEST sonst)
+   - Neu-Validierung und ValidationResult-Update
+   - FileUpload via Quarkus @RestForm
+
+**Enhanced Endpoints:**
+
+- GET /api/workbench/templates — Jetzt mit `isValid` Flag in TemplateSummary
+- TemplateSummary Record erweitert: `boolean isValid` hinzugefügt
+
+**Validierungslogik:**
+
+- isValidTransition(TemplateStatus from, TemplateStatus to) — Erlaubte Übergänge definieren
+- Server-seitige Validierung aller Status-Änderungen
+
+=== Frontend Implementation (bp-workbench.js)
+
+**Dashboard-View mit Status-Filtern:**
+
+- `_dashboardView: boolean` — Toggle zwischen Dashboard und Workspace
+- `_statusFilter: string` — Aktiver Filter (ALL, DRAFT, SUBMITTED, APPROVED, REJECTED)
+- `_renderDashboard()` — Hauptrenderer für Dashboard-Ansicht
+- `_renderFilterButtons()` — Filter-Bar mit Badge-Zählern
+- `_filterTemplates()` — Filtern nach Status
+- `_countByStatus(status)` — Zähler pro Status
+
+**Template-Card-System:**
+
+- `_renderTemplateCard(template)` — Grid-Card mit Name, Status, Validierung, Aktionen
+- Farbcodierte Status-Badges: DRAFT=#888, SUBMITTED=#1976d2, APPROVED=#388e3c, REJECTED=#d32f2f
+- `_getStatusColor(status)` — Farb-Mapping
+- `_getStatusIcon(status)` — Emoji-Icons (📝, 🧪, ✅, ❌)
+
+**Status-spezifische Aktionen:**
+
+- `_getTemplateActions(template)` — Action-Buttons basierend auf Status
+- DRAFT: Öffnen, Aktualisieren, → Test, Löschen
+- SUBMITTED: Öffnen, ← Zurück, ✓ Genehmigen, ✗ Ablehnen
+- APPROVED: Öffnen, ← Zurück zu Test, Als Kopie
+- REJECTED: Öffnen, ← Zurück, Löschen
+
+**Workflow-Handler:**
+
+- `_changeStatus(templateId, newStatus)` — Status via PUT Endpoint ändern
+- `_duplicateTemplate(template)` — Prompt für Name, dann POST /duplicate
+- `_updateTemplate(template)` — File-Dialog, dann PUT /content
+- `_deleteTemplate(templateId)` — Confirmation, dann DELETE
+- `_openTemplate(template)` — Dashboard → Workspace wechsel
+- `_returnToDashboard()` — Workspace → Dashboard zurück
+
+**CSS-Styling (200+ Zeilen):**
+
+- `.dashboard` — Container
+- `.dashboard-header` — Titel + Upload-Button
+- `.filter-buttons` — Filter-Bar mit Active-State
+- `.filter-btn`, `.filter-btn.active` — Filter Button Styling
+- `.template-list` — Grid-Layout (340px min, auto-fill)
+- `.template-card` — Card mit Shadow, Hover, Flex-Layout
+- `.card-header`, `.card-meta`, `.card-actions` — Card Sections
+- `.status-badge-card` — Farbige Status-Badges
+- `.action-btn` — Action Buttons mit Varianten (.primary, .success, .danger, .secondary)
+- `.empty-state` — Keine Templates Message
+- `.workspace-header` — Back-Button + Title
+- `.btn-primary`, `.btn-back` — Primär- und Back-Button Styling
+
+=== State Management
+
+- `_dashboardView` — true=Dashboard, false=Workspace
+- `_statusFilter` — Aktiver Filter (default: 'ALL')
+- Auto-Refresh der Template-Liste nach Status-Änderungen
+- Filter bleibt aktiv während Refresh
+
+=== Error Handling
+
+- Server-seitige Validierung aller Übergänge
+- Name-Konflikt-Prüfung (409 CONFLICT)
+- Re-Upload nur für DRAFT (BAD_REQUEST sonst)
+- Client zeigt Error/Success Messages via _error/_success
+
+=== Testing & Quality Assurance
+
+**Unit Tests (TemplateResourceUnitTest.java):**
+- 16 Tests für TemplateSummary (mit neues isValid field)
+- 49 Tests insgesamt im Module
+- Alle 9 Test-Methoden aktualisiert für neues Feld
+- 0 Failures, 0 Errors, 0 Skipped
+
+**Coverage:**
+- JaCoCo enforces 70% instruction coverage
+- Alle neuen API Endpoints abgedeckt
+
+**Build Status:**
+- ✓ mvn clean verify -DskipITs: SUCCESS
+- ✓ 49 tests executed, 0 failures
+- ✓ Code coverage maintained > 70%
+
+=== Documentation Updates
+
+1. **arc42.adoc** — New Runtime Scenario "Template Management Dashboard (UC-5)"
+2. **System_Design_Concept.adoc** — New System Scenario + enhanced blocpress-workbench description
+3. **Solution_Design_Concept.adoc** — Business Process "Template erstellen und freigabe" updated
+4. **Element_Design_Concept.adoc** — TI-1 REST Endpoints, UI-1 Dashboard Description
+5. **product-backlog.adoc** — UC-5 marked as DONE
+
+=== Git Commits
+
+- `cf05c10` — feat: Implement Template Management Dashboard with Status-Filter & Workflow (UC-5)
+- `a5c5040` — docs: Update specifications with UC-5 Dashboard & Workflow functionality
+
+=== Files Modified
+
+**Backend (2 files):**
+- `TemplateResource.java` — 3 neue Endpoints + Validierungslogik
+- `TemplateResourceUnitTest.java` — 9 Tests aktualisiert für isValid Field
+
+**Frontend (1 file):**
+- `bp-workbench.js` — Dashboard View + 1300+ neue Zeilen Code/CSS
+
+**Documentation (5 files):**
+- `product-backlog.adoc`, `arc42.adoc`, `System_Design_Concept.adoc`, `Solution_Design_Concept.adoc`, `Element_Design_Concept.adoc`
+
+=== Abhängigkeiten für zukünftige Features
+
+**Für Epic 4 (Prüfung und Freigabe):**
+- UC-5 Status-Filter wird genutzt, um eingereichte Templates zu filtern
+- Vier-Augen-Prinzip (TF-2) wird auf Status-Übergänge erweitert
+- User-Management (E-9) kann hinzugefügt werden, um creator_id/approver_id zu tracken
+
+**Für Roadmap:**
+- Re-Upload (PUT /content) ist Basis für Template-Versionierung
+- Dashboard UI wird Basis für weitere Admin-Features
+- Status-Filter Pattern kann für andere Entities (Bausteine, Reviews) wiedergenutz werden
+
+<<<
 == Abhaengigkeiten
 
 [plantuml, backlog-dependencies, svg]
