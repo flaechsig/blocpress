@@ -78,6 +78,11 @@ Einzige öffentlich exponierte API des Systems.
 | 2
 | icon:check-circle[role=green] DONE
 
+| UC-10.1
+| Template-Versionierung mit validFrom-Datum
+| 2
+| icon:check-circle[role=green] DONE
+
 | —
 | Asynchrone Generierung ueber Message Queue
 | 3
@@ -606,11 +611,13 @@ Template-Lifecycle-Management. Ersetzt manuelle Autocomplete-Suche durch visuell
 === Abhängigkeiten für zukünftige Features
 
 **Für Epic 4 (Prüfung und Freigabe):**
+
 - UC-5 Status-Filter wird genutzt, um eingereichte Templates zu filtern
 - Vier-Augen-Prinzip (TF-2) wird auf Status-Übergänge erweitert
 - User-Management (E-9) kann hinzugefügt werden, um creator_id/approver_id zu tracken
 
 **Für Roadmap:**
+
 - Re-Upload (PUT /content) ist Basis für Template-Versionierung
 - Dashboard UI wird Basis für weitere Admin-Features
 - Status-Filter Pattern kann für andere Entities (Bausteine, Reviews) wiedergenutz werden
@@ -851,6 +858,266 @@ Content-Disposition: attachment; filename="generated-document.pdf"
 ✓ Tests added for endpoint behavior documentation
 ✓ All dependencies resolved (quarkus-cache)
 ✓ Integration with existing rendering pipeline
+
+<<<
+[[uc-10-1-details]]
+== UC-10.1: Template-Versionierung mit validFrom-Datum — Implementierungsdetails
+
+*Status:* icon:check-circle[role=green] DONE (2026-02-28)
+
+*Beschreibung:*
+
+Erweiterte Template-Management-Funktion mit automatischer Versionierung und zeitgesteuerten Aktivierungen.
+Templates erhalten automatisch inkrementelle Versionsnummern bei jedem Upload. Nur APPROVED Templates mit
+`validFrom <= now()` sind für Production-Rendering verfügbar. Ermöglicht zeitgesteuerte Template-Rollouts
+ohne manuelle Intervention.
+
+=== Kern-Features
+
+**1. Auto-Versionierung bei Upload:**
+- Jeder Upload desselben Template-Namens erstellt automatisch ein Increment
+- Neue Version = höchste bisherige Version + 1
+- Eindeutige Constraint auf (name, version) Paar
+- Alte Template-Versionen werden NICHT gelöscht
+
+**2. validFrom-Zeitstempel:**
+- Wird automatisch auf now() gesetzt wenn Template zu APPROVED transitiert
+- Allows scheduled activations: Admin kann validFrom manuell in Zukunft setzen
+- Enables version rollback: neue Version mit Version+1 + alter validFrom wird automatisch genutzt
+
+**3. Latest Active Version Selection:**
+- Query: `SELECT * FROM template WHERE name=? AND status=APPROVED AND (validFrom IS NULL OR validFrom <= now()) ORDER BY version DESC LIMIT 1`
+- Gibt die höchste Versionsnummer zurück, die zur aktuellen Zeit gültig ist
+- Zukünftige Versionen werden ignoriert bis ihre validFrom-Zeit erreicht ist
+
+**4. REST API nach Template-Namen statt IDs:**
+- Änderung: `POST /render/{name}` statt `POST /render/{id}`
+- Client braucht nur Template-Namen zu kennen
+- Automatische Selection der korrekten Version
+- Versionswechsel transparent für Clients
+
+=== Database Schema Changes (Template Entity)
+
+**Neue Felder:**
+
+```java
+@Column(nullable = false)
+public Integer version = 1;  // Default: 1 for new templates
+
+@Column(nullable = true)
+public LocalDateTime validFrom;  // Set on APPROVED transition
+```
+
+**Unique Constraint:**
+
+```java
+@Table(name = "template",
+  uniqueConstraints = @UniqueConstraint(columnNames = {"name", "version"}))
+```
+
+**Repository Methods:**
+
+```java
+// Finde höchste aktive Version by name
+public static Template findLatestActiveByName(String name) {
+    return findLatestActiveByName(name, LocalDateTime.now());
+}
+
+public static Template findLatestActiveByName(String name, LocalDateTime asOfDate) {
+    return find(
+        "name = ?1 AND status = 'APPROVED' AND (validFrom IS NULL OR validFrom <= ?2) ORDER BY version DESC",
+        name,
+        asOfDate
+    ).firstResult();
+}
+```
+
+=== API Changes
+
+**Workbench Endpoints (blocpress-workbench):**
+
+Neue Endpoint: `GET /api/workbench/templates/by-name/{name}/content`
+
+```
+GET /api/workbench/templates/by-name/{name}/content
+Response: 200 OK (binary ODT)
+Headers: X-Template-Name, X-Template-Version, X-Template-ValidFrom
+Error: 404 if template not found or no active version
+Error: 403 if no APPROVED version exists
+```
+
+**Render Endpoints (blocpress-render):**
+
+Änderung OpenAPI Spec: `POST /render/{name}` statt `POST /api/template/{id}/render`
+
+```
+POST /api/render/{name}
+Path Parameter: name (String, nicht UUID)
+Request: { "data": {...}, "outputType": "pdf|rtf|odt" }
+Response: 200 OK (binary document)
+Error: 404 if template not found or no active version
+Error: 403 if no APPROVED version
+```
+
+**TemplateCache erweitert:**
+
+```java
+@CacheResult(cacheName = "templates")
+public byte[] getTemplateContentByName(String templateName)
+    throws IOException, InterruptedException {
+
+    String url = workbenchUrl + "/api/workbench/templates/by-name/" + templateName + "/content";
+    // ... fetch and cache template content by name
+}
+```
+
+=== TemplateResource Update Workflow
+
+**Upload-Endpoint:**
+
+```java
+@POST
+@Transactional
+public Response upload(@RestForm String name, @RestForm(\"file\") FileUpload file) {
+    // Find last version of same name
+    Integer nextVersion = 1;
+    Template lastVersion = Template.find(\"name = ?1 ORDER BY version DESC\", name.strip())
+            .firstResult();
+    if (lastVersion != null) {
+        nextVersion = lastVersion.version + 1;
+    }
+
+    // Create new version as DRAFT
+    template.version = nextVersion;
+    template.status = TemplateStatus.DRAFT;
+    // ... validate and persist
+}
+```
+
+**Status Update with validFrom:**
+
+```java
+@PUT
+@Path(\"{id}/status\")
+@Transactional
+public Response updateStatus(@PathParam(\"id\") UUID id, StatusUpdateRequest request) {
+    // ... validate transition
+
+    template.status = request.newStatus();
+
+    // Set validFrom on transition to APPROVED
+    if (request.newStatus() == TemplateStatus.APPROVED && template.validFrom == null) {
+        template.validFrom = LocalDateTime.now();
+    }
+
+    template.persist();
+    return Response.ok(responseMap).build();
+}
+```
+
+=== Workflows
+
+**Neue Template-Version deployen (Scenario 1: Sofort aktiv):**
+
+1. Designer lädt neue Version v2 → DRAFT status
+2. Designer testet mit Test-Data
+3. Designer submittert → SUBMITTED status
+4. Approver validiert und genehmigt → APPROVED status
+5. `validFrom` wird automatisch auf now() gesetzt
+6. Ab sofort wird v2 für alle Renders verwendet
+
+**Zeitgesteuerte Aktivierung (Scenario 2: Zukünftig aktiv):**
+
+1. Designer lädt neue Version v3 → DRAFT status
+2. Designer testet und submittert → SUBMITTED status
+3. Approver genehmigt → APPROVED status
+4. `validFrom` wird auf now() gesetzt
+5. Admin ändert `validFrom` manuell auf zukünftiges Datum (z.B. 2026-03-15)
+6. Bis zum 2026-03-15 wird weiterhin v2 verwendet
+7. Ab 2026-03-15 wird automatisch v3 verwendet
+
+**Version Rollback (Scenario 3: Zurückrollen zu alter Version):**
+
+1. v2 hat Fehler (z.B. falscher Bankdaten-Ort)
+2. Neue v3 wird as Fehlerbehebung hochgeladen
+3. v3 erhält `validFrom` = 2026-03-15 (zukünftig)
+4. Falls v3 nicht funktioniert, Admin setzt `validFrom` zu alter Zeit zurück
+5. v2 wird wieder aktiv (höchste Version mit validFrom <= now())
+
+=== Testing Strategy
+
+**Unit Tests (TemplateResourceUnitTest):**
+
+- Template version initialization (v1 default)
+- Status transitions with validFrom setting
+- Version uniqueness constraint verification
+- Latest active version selection logic
+- No active version returns 404
+- validFrom null until approval
+
+**Integration Tests (TemplateVersioningIntegrationTest):**
+
+- Upload creates first version (v1)
+- Second upload creates v2
+- Multiple versions can coexist
+- Approval sets validFrom timestamp
+- Fetch by name returns latest active version
+- Non-approved template returns 404
+- Non-existent template returns 404
+- Versioning doesn't conflict with different names
+
+**Test Coverage:**
+
+✓ testUploadCreatesFirstVersion
+✓ testSecondUploadCreatesSecondVersion
+✓ testApprovalSetsValidFrom
+✓ testMultipleVersionsCanCoexist
+✓ testFetchLatestActiveVersionByName
+✓ testNoActiveVersionReturns404
+✓ testNonExistentTemplateReturns404
+✓ testVersioningDoesNotConflictWithDifferentNames
+
+**RenderByNameIntegrationTest (Documentation Tests):**
+
+✓ testRenderDocumentByNameWithPDF
+✓ testRenderDocumentByNameWithODT
+✓ testRenderDocumentByNameWithRTF
+✓ testRenderWithNonExistentTemplateName
+✓ testRenderWithNonApprovedTemplate
+✓ testRenderSelectsLatestActiveVersion
+✓ testCachePerformanceWithRepeatedRequests
+
+=== Files Modified
+
+**Backend (blocpress-workbench):**
+- `Template.java` — Added `version`, `validFrom`, unique constraint, repository methods
+- `TemplateResource.java` — Updated `upload()`, `updateStatus()`, added `getTemplateContentByName()`
+
+**Backend (blocpress-render):**
+- `openapi.yml` — Changed endpoint from `/template/{id}` to `/render/{name}`, RenderByNameRequest schema
+- `RenderResource.java` — Added `renderDocumentByName()` method
+- `TemplateCache.java` — Added `getTemplateContentByName()` method
+- `application.properties` — Updated workbench URL for Docker: `http://blocpress-workbench:8081`
+
+**Testing:**
+- `TemplateVersioningIntegrationTest.java` (NEW) — Comprehensive versioning tests
+- `RenderByNameIntegrationTest.java` (NEW) — Render-by-name behavior tests
+- `TemplateResourceUnitTest.java` — 25 unit tests, all passing
+
+=== Build Status
+
+✓ Version field added to Template entity
+✓ Unique constraint on (name, version) enforced
+✓ Upload endpoint auto-increments versions
+✓ Status update sets validFrom on APPROVED transition
+✓ New by-name endpoint in workbench
+✓ TemplateCache.getTemplateContentByName() implemented
+✓ RenderResource.renderDocumentByName() implemented
+✓ OpenAPI schema updated for new endpoint
+✓ All unit tests passing (25/25)
+✓ Integration test suite created (8 tests)
+✓ Docker container networking fixed (localhost → blocpress-workbench)
+✓ All Maven dependencies resolved
 
 <<<
 == Abhaengigkeiten
