@@ -800,25 +800,42 @@ export class BpWorkbench extends LitElement {
                             @input=${e => this._testDataName = e.target.value}>
                     </div>
 
-                    ${this._generatedForm?.map(field => html`
-                        <div class="form-group">
-                            <label>${field.name}</label>
-                            ${field.type === 'Boolean'
-                                ? html`<input type="checkbox"
-                                    name="${field.name}"
-                                    @change=${this._onTestDataInput.bind(this)}>`
-                                : field.type === 'Number'
-                                ? html`<input type="number"
-                                    name="${field.name}"
-                                    placeholder="${field.name}"
-                                    @input=${this._onTestDataInput.bind(this)}>`
-                                : html`<input type="text"
-                                    name="${field.name}"
-                                    placeholder="${field.name}"
-                                    @input=${this._onTestDataInput.bind(this)}>`
-                            }
-                        </div>
-                    `) || html`<p style="color: #888;">Keine Felder definiert</p>`}
+                    ${this._generatedForm?.map(field => {
+                        if (field.inputType === 'array-info') {
+                            return html`
+                                <div class="form-group">
+                                    <label>${field.label} (${field.description})</label>
+                                    <p style="color: #888; font-size: 12px;">
+                                        Array-Felder werden als JSON eingegeben<br/>
+                                        Beispiel: [{ "description": "Item 1" }, { "description": "Item 2" }]
+                                    </p>
+                                </div>
+                            `;
+                        }
+
+                        return html`
+                            <div class="form-group">
+                                <label>
+                                    ${field.label}
+                                    ${field.required ? html`<span style="color: red;">*</span>` : ''}
+                                </label>
+                                ${field.inputType === 'checkbox'
+                                    ? html`<input type="checkbox"
+                                        name="${field.name}"
+                                        @change=${this._onTestDataInput.bind(this)}>`
+                                    : field.inputType === 'number'
+                                    ? html`<input type="number"
+                                        name="${field.name}"
+                                        placeholder="${field.label}"
+                                        @input=${this._onTestDataInput.bind(this)}>`
+                                    : html`<input type="text"
+                                        name="${field.name}"
+                                        placeholder="${field.label}"
+                                        @input=${this._onTestDataInput.bind(this)}>`
+                                }
+                            </div>
+                        `;
+                    }) || html`<p style="color: #888;">Keine Felder definiert</p>`}
 
                     <div class="form-actions">
                         <button class="btn-submit"
@@ -1308,38 +1325,70 @@ export class BpWorkbench extends LitElement {
     }
 
     _generateFormFromTemplate() {
-        if (!this._selectedTemplate?.validationResult?.userFields) {
+        if (!this._selectedTemplate?.validationResult?.schema) {
             this._generatedForm = null;
             return;
         }
 
-        const fields = this._selectedTemplate.validationResult.userFields;
-        const formElements = fields.map(field => {
-            const { name, type } = field;
-            let inputHtml = '';
-
-            switch (type) {
-                case 'String':
-                    inputHtml = `<input type="text" name="${name}" placeholder="${name}">`;
-                    break;
-                case 'Number':
-                    inputHtml = `<input type="number" name="${name}" placeholder="${name}">`;
-                    break;
-                case 'Boolean':
-                    inputHtml = `<input type="checkbox" name="${name}">`;
-                    break;
-                default:
-                    inputHtml = `<input type="text" name="${name}" placeholder="${name}">`;
-            }
-
-            return {
-                name,
-                type,
-                inputHtml
-            };
-        });
-
+        const schema = this._selectedTemplate.validationResult.schema;
+        const formElements = this._parseSchemaToFormFields(schema, schema.properties || {});
         this._generatedForm = formElements;
+    }
+
+    /**
+     * Parse JSON-Schema properties into form field definitions.
+     * Handles nested objects and arrays.
+     */
+    _parseSchemaToFormFields(schema, properties, parentPath = '') {
+        const fields = [];
+
+        for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+            const fullPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
+
+            if (fieldSchema.type === 'object') {
+                // Nested object - recursively add its properties
+                if (fieldSchema.properties) {
+                    fields.push(...this._parseSchemaToFormFields(fieldSchema, fieldSchema.properties, fullPath));
+                }
+            } else if (fieldSchema.type === 'array') {
+                // Array field - create as repeatable group (for now, show as info)
+                fields.push({
+                    name: fullPath,
+                    type: 'array',
+                    itemType: fieldSchema.items?.type || 'object',
+                    inputType: 'array-info',
+                    label: fieldName,
+                    description: `Array of ${fieldSchema.items?.type || 'items'}`
+                });
+            } else {
+                // Leaf field
+                fields.push({
+                    name: fullPath,
+                    type: fieldSchema.type || 'string',
+                    inputType: this._getInputType(fieldSchema.type),
+                    label: fieldName,
+                    required: schema.required?.includes(fieldName) || false
+                });
+            }
+        }
+
+        return fields;
+    }
+
+    /**
+     * Map JSON-Schema type to HTML input type.
+     */
+    _getInputType(schemaType) {
+        switch (schemaType) {
+            case 'number':
+            case 'integer':
+                return 'number';
+            case 'boolean':
+                return 'checkbox';
+            case 'string':
+            default:
+                return 'text';
+        }
     }
 
     _onTestDataInput(e) {
