@@ -8,6 +8,9 @@ import io.github.flaechsig.blocpress.core.RenderEngine;
 import io.github.flaechsig.blocpress.render.api.RenderApi;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
 import io.quarkus.security.Authenticated;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 import static io.github.flaechsig.blocpress.core.OutputFormat.ODT;
 import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
@@ -36,6 +40,9 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
 public class RenderResource implements RenderApi {
     private final static Logger logger = LoggerFactory.getLogger(RenderResource.class);
     private final static ObjectMapper mapper = new ObjectMapper();
+
+    @Inject
+    TemplateCache templateCache;
 
     @Override
     public File renderDocumentMultipart(String accept, InputStream templateInputStream, String data) {
@@ -85,6 +92,45 @@ public class RenderResource implements RenderApi {
         Path output = Files.createTempFile("output", format.getSuffix());
         Files.write(output, result);
         return output.toFile();
+    }
+
+    public File renderDocumentById(UUID id, Object renderByIdRequest) {
+        logger.info("Rendering document from template ID: {}", id);
+
+        try {
+            // Parse the request object (generated from OpenAPI)
+            var requestNode = mapper.valueToTree(renderByIdRequest);
+            var outputTypeStr = requestNode.get("outputType").asText().toUpperCase();
+            var dataNode = requestNode.get("data");
+
+            OutputFormat format = switch (outputTypeStr) {
+                case "PDF" -> OutputFormat.PDF;
+                case "RTF" -> RTF;
+                case "ODT" -> ODT;
+                default -> throw new IllegalArgumentException("Invalid output type: " + outputTypeStr);
+            };
+
+            // Fetch template content from cache (or workbench if cache miss)
+            byte[] templateContent = templateCache.getTemplateContent(id);
+
+            // Write to temp file
+            Path tempFile = Files.createTempFile("template-" + id, ".odt");
+            Files.write(tempFile, templateContent);
+
+            // Use existing merge and transform pipeline
+            return mergeAndTransform(tempFile, dataNode, format);
+
+        } catch (TemplateNotFoundException e) {
+            logger.warn("Template not found or not approved: {}", id);
+            if (e.getMessage().contains("not approved")) {
+                throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);
+            } else {
+                throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to fetch or render template {}: {}", id, e.getMessage());
+            throw new WebApplicationException("Failed to render document: " + e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

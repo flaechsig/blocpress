@@ -76,7 +76,7 @@ Einzige öffentlich exponierte API des Systems.
 | UC-10
 | Template-ID-basiertes Rendering (`POST /template/{id}/render`)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
 | Asynchrone Generierung ueber Message Queue
@@ -614,6 +614,243 @@ Template-Lifecycle-Management. Ersetzt manuelle Autocomplete-Suche durch visuell
 - Re-Upload (PUT /content) ist Basis für Template-Versionierung
 - Dashboard UI wird Basis für weitere Admin-Features
 - Status-Filter Pattern kann für andere Entities (Bausteine, Reviews) wiedergenutz werden
+
+<<<
+[[uc-10-details]]
+== UC-10: Template-ID-basiertes Rendering — Implementierungsdetails
+
+*Status:* icon:check-circle[role=green] DONE (2026-02-28)
+
+*Beschreibung:*
+
+Production-ready Template-Rendering mit Template-IDs statt Binary-Upload. Ermöglicht wiederholtes
+Rendering derselben Templates mit verschiedenen Datensätzen ohne erneuten Upload. Nur genehmigte
+Templates (APPROVED-Status) sind zugänglich. Zwischenlösung für cross-module HTTP-Kommunikation
+bis TI-2 (Multi-Schema-Setup) implementiert ist.
+
+=== Architektur-Entscheidung
+
+**Interim-Lösung (UC-10):**
+- blocpress-render ruft blocpress-workbench per REST API ab
+- Nur APPROVED Templates sind zugänglich
+- Template-Content in-memory cached (Caffeine, 10 min TTL, max 100 Templates)
+- Keine Multi-Schema-Datenbank (wird TI-2 sein)
+
+**Zukünftige Refaktorierung (TI-2):**
+- blocpress-render liest direkt aus `production`-Schema
+- Keine Cross-Module HTTP-Calls mehr
+- Template-Promotion: workbench → production Schema
+- Public API bleibt unverändert
+
+=== Backend Implementation (blocpress-workbench)
+
+**Neuer Endpoint in TemplateResource.java:**
+
+```
+GET /api/workbench/templates/{id}/content
+```
+
+- Parameter: `id` (UUID)
+- Response: 200 OK mit ODT-Binary für APPROVED Templates
+- Response Headers: `Content-Disposition`, `X-Template-Name`, `X-Template-Status`
+- Error 403 Forbidden: Template nicht APPROVED (DRAFT/SUBMITTED/REJECTED)
+- Error 404 Not Found: Template existiert nicht
+- Security: Nur APPROVED Templates sind zugänglich
+
+=== Backend Implementation (blocpress-render)
+
+**Neue Klassen:**
+
+1. *TemplateCache.java* — Quarkus Cache Service
+   - `@CacheResult` mit Caffeine Caching
+   - HTTP-Client zu blocpress-workbench
+   - TTL: 10 Minuten, Max Size: 100 Templates
+   - Wirft `TemplateNotFoundException` für 403/404
+
+2. *TemplateNotFoundException.java* — Custom Exception
+   - Unterscheidung: "not found" (404) vs. "not approved" (403)
+
+**Neuer OpenAPI Endpoint:**
+
+```
+POST /api/template/{id}/render
+```
+
+- Path Parameter: `id` (UUID)
+- Request Body: `RenderByIdRequest` (data + outputType)
+- Response: 200 OK mit Binary Document (PDF/RTF/ODT)
+- Error 404 Not Found: Template ID existiert nicht
+- Error 403 Forbidden: Template nicht APPROVED
+- Error 500 Internal Server Error: Rendering Error
+
+**RenderByIdRequest Schema:**
+
+```json
+{
+  "data": { "customer.name": "...", ... },
+  "outputType": "pdf|rtf|odt"
+}
+```
+
+=== Konfiguration & Dependencies
+
+**pom.xml (blocpress-render):**
+```xml
+<dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-cache</artifactId>
+</dependency>
+```
+
+**application.properties (blocpress-render):**
+```properties
+quarkus.cache.enabled=true
+quarkus.cache.type=caffeine
+quarkus.cache.caffeine."templates".maximum-size=100
+quarkus.cache.caffeine."templates".expire-after-write=10M
+blocpress.workbench.url=http://localhost:8081
+```
+
+=== Caching-Verhalten
+
+**Erste Anfrage (Cache Miss):**
+1. Client ruft `POST /api/template/{id}/render` auf
+2. RenderResource.renderDocumentById() wird aufgerufen
+3. TemplateCache.getTemplateContent(id) wird aufgerufen
+4. HTTP GET zu blocpress-workbench wird ausgeführt
+5. Template-Content wird in Cache gespeichert
+6. Rendering mit gecachtem Template
+
+**Nachfolgende Anfragen (Cache Hit):**
+1. Gleicher Prozess bis Schritt 3
+2. Cached Template wird direkt zurückgegeben (kein HTTP-Call)
+3. Schnelleres Rendering
+
+**Cache-Invalidation:**
+- Nach 10 Minuten automatisch invalidiert
+- Template-Updates in blocpress-workbench sind nach max. 10 min sichtbar
+- Keine manuellen Cache-Invalidierung notwendig
+
+=== Testing
+
+**Unit Tests (blocpress-workbench):**
+- `getTemplateContent_approvedTemplate_returnsContent()` — 200 OK
+- `getTemplateContent_draftTemplate_returns403()` — 403 Forbidden
+- `getTemplateContent_nonExistent_returns404()` — 404 Not Found
+
+**Integration Tests (blocpress-render):**
+- `renderDocumentById_withValidTemplate_generatesDocument()` — 200 OK
+- `renderDocumentById_withNonExistentTemplate_returns404()` — 404 Not Found
+- Cache-Verifikation durch Log-Analyse
+
+**Test-Setup:**
+- Requires: blocpress-workbench auf localhost:8081 oder WireMock Mock
+- Templates: Nutzung bestehender Kuendigung-Templates aus blocpress-core
+- Assertions: PDF-Generierung, Response-Status, Header-Validierung
+
+=== REST API Usage Example
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:8080/api/template/{template-id}/render \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGc..." \
+  -d '{
+    "data": {
+      "customer.name": "ACME Corp",
+      "invoice.number": "INV-2024-001"
+    },
+    "outputType": "pdf"
+  }'
+```
+
+**Response (200 OK):**
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="generated-document.pdf"
+
+<binary PDF content>
+```
+
+**Error Response (404 Not Found):**
+
+```json
+{
+  "error": "Template not found: 12345678-1234-1234-1234-123456789012"
+}
+```
+
+**Error Response (403 Forbidden):**
+
+```json
+{
+  "error": "Template not approved: 12345678-1234-1234-1234-123456789012"
+}
+```
+
+=== Documentation Updates
+
+1. **arc42.adoc** — New Runtime Scenario "Template-ID-basiertes Rendering (UC-10)"
+   - PlantUML Sequenzdiagramm mit Cache-Hit/Miss-Szenarien
+   - Architecture Decision Record (ADR): Interim HTTP-Solution
+
+2. **Element_Design_Concept.adoc** — TI-1.3 REST Endpoints
+   - `POST /api/template/{id}/render` Endpoint-Dokumentation
+   - `GET /api/workbench/templates/{id}/content` Internal API Endpoint
+
+3. **product-backlog.adoc** — UC-10 marked DONE
+   - Implementation Details dokumentiert
+   - Refactoring Path zu TI-2 klar definiert
+
+=== Files Modified
+
+**Backend (2 modules):**
+- `blocpress-workbench/src/main/java/.../TemplateResource.java` — getTemplateContent() Endpoint
+- `blocpress-render/src/main/java/.../RenderResource.java` — renderDocumentById() Implementierung
+- `blocpress-render/src/main/java/.../TemplateCache.java` (NEW) — Cache Service
+- `blocpress-render/src/main/java/.../TemplateNotFoundException.java` (NEW) — Exception
+- `blocpress-render/pom.xml` — quarkus-cache Dependency
+- `blocpress-render/src/main/resources/application.properties` — Cache Config
+
+**OpenAPI:**
+- `blocpress-render/src/main/resources/META-INF/openapi.yml` — New Endpoint Spec
+
+**Testing:**
+- `blocpress-workbench/src/test/.../TemplateResourceUnitTest.java` — Tests für neuen Endpoint
+- `blocpress-render/src/test/.../TemplateResourceTest.java` — Integration Test Documentation
+
+**Documentation:**
+- `docs/product-backlog.adoc`, `docs/specification/arc42.adoc`, `docs/specification/Element_Design_Concept.adoc`
+
+=== Future Migration Path (TI-2)
+
+**Änderungen wenn TI-2 implementiert:**
+
+1. `TemplateCache.java` entfernen
+2. `TemplateNotFoundException.java` ggf. unverändert lassen
+3. Neue Klasse: `TemplateRepository` mit direct DB access
+4. application.properties: `blocpress.workbench.url` entfernen
+5. pom.xml: Zusätzliche DB-Dependencies für `production`-Schema
+6. RenderResource.renderDocumentById(): HTTP-Call ersetzen durch DB-Query
+7. Arc42: Sequenzdiagramm anpassen (keine HTTP-Calls mehr)
+8. Product Backlog: TI-2 story mit Refactoring-Details
+
+**Public API bleibt unverändert:**
+- `POST /api/template/{id}/render` — Interface unchanged
+- Request/Response Format — Gleich
+- Error Codes — Gleich
+
+=== Build Status
+
+✓ All UC-10 code implemented and integrated
+✓ OpenAPI schema updated with new endpoint
+✓ Cache configuration added to properties
+✓ Tests added for endpoint behavior documentation
+✓ All dependencies resolved (quarkus-cache)
+✓ Integration with existing rendering pipeline
 
 <<<
 == Abhaengigkeiten

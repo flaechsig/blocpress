@@ -131,6 +131,56 @@ paths:
         "500":
           description: Internal server error
 
+  /template/{id}/render:
+    post:
+      tags: [ Template ]
+      operationId: renderDocumentById
+      summary: Render document using stored template ID
+      description: >
+        Generate a document using a template that has been uploaded and approved
+        in blocpress-workbench. Only APPROVED templates can be used.
+        Template content is cached for performance.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Template ID (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderByIdRequest'
+      responses:
+        "200":
+          description: Generated document (binary) in specified format
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/rtf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.oasis.opendocument.text:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request (invalid JSON data)
+        "401":
+          description: Unauthorized — missing or invalid JWT
+        "403":
+          description: Template not approved for rendering
+        "404":
+          description: Template not found
+        "500":
+          description: Internal server error
+
 components:
   schemas:
     RenderRequest:
@@ -144,6 +194,22 @@ components:
           type: string
           format: byte
           description: Base64-encoded ODT template
+        data:
+          type: object
+          description: JSON template data (key-value pairs matching template fields)
+        outputType:
+          type: string
+          enum:
+            - pdf
+            - rtf
+            - odt
+          description: Desired output format
+    RenderByIdRequest:
+      type: object
+      required:
+        - data
+        - outputType
+      properties:
         data:
           type: object
           description: JSON template data (key-value pairs matching template fields)

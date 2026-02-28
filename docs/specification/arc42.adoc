@@ -938,6 +938,76 @@ end note
 @enduml
 ----
 
+=== Template-ID-basiertes Rendering mit Cache
+
+*Szenario:* Produktive Anwendung generiert Dokument mit gespeicherter Template-ID statt Binary-Upload (UC-10, TF-5)
+
+[plantuml, laufzeit-template-id-rendering, svg]
+----
+@startuml
+actor "Externe\nAnwendung" as App
+participant "blocpress-render\nREST-API\n(öffentlich)" as Render
+participant "RenderResource" as Resource
+participant "TemplateCache" as Cache
+participant "blocpress-workbench\n(Internal API)" as Workbench
+participant "RenderEngine\n(TF-5)" as Engine
+participant "LibreOfficeProcessor" as LO
+participant "Repository\n(Schema: workbench)" as Repo
+
+App -> Render : POST /api/template/{id}/render\n{data, outputType: pdf}
+Render -> Resource : renderDocumentById(uuid, request)
+Resource -> Cache : getTemplateContent(templateId)
+
+alt Cache Hit
+    Cache --> Resource : byte[] (gecacht)
+    note right of Cache
+        Template im Cache vorhanden
+        TTL: 10 min, Max: 100 Templates
+    end note
+else Cache Miss
+    Cache -> Workbench : GET /api/workbench/templates/{id}/content
+    Workbench -> Repo : findById(templateId)
+    Repo --> Workbench : Template entity
+
+    alt Status = APPROVED
+        Workbench --> Cache : 200 OK (ODT binary)
+        Cache -> Cache : store in cache (Caffeine)
+        Cache --> Resource : byte[]
+    else Status ≠ APPROVED
+        Workbench --> Cache : 403 Forbidden
+        Cache --> Resource : TemplateNotFoundException
+        Resource --> App : 403 Forbidden\n"Template not approved"
+    end alt
+
+    alt Template not found
+        Workbench --> Cache : 404 Not Found
+        Cache --> Resource : TemplateNotFoundException
+        Resource --> App : 404 Not Found\n"Template not found"
+    end alt
+end alt
+
+Resource -> Engine : mergeTemplate(templatePath, jsonData)
+Engine -> Engine : Expand blocks, evaluate conditions,\nhandle loops, replace fields
+Engine --> Resource : merged ODT
+Resource -> LO : refreshAndTransform(merged, PDF)
+LO -> LO : LibreOffice: ODT → PDF
+LO --> Resource : PDF binary
+Resource --> App : 200 OK (PDF binary)
+
+note right of Cache
+    UC-10: Template-ID-basiertes Rendering
+    Interim-Lösung: HTTP-Fetch zu blocpress-workbench
+    Zukünftig (TI-2): Direct DB read aus production-Schema
+end note
+
+note right of Engine
+    TF-5: Document generation
+    Läuft in blocpress-render
+    Schema: production (zukünftig)
+end note
+@enduml
+----
+
 === Dokument über API generieren (asynchron)
 
 *Szenario:* Externe Anwendung generiert Dokument über blocpress-render (UC-10, TF-5)

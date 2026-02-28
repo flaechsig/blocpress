@@ -97,6 +97,31 @@ public class TemplateResource {
     }
 
     @GET
+    @Path("{id}/content")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response getTemplateContent(@PathParam("id") UUID id) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        // Only APPROVED templates can be used for production rendering
+        if (template.status != TemplateStatus.APPROVED) {
+            throw new WebApplicationException(
+                "Template must be APPROVED for rendering. Current status: " + template.status,
+                Response.Status.FORBIDDEN
+            );
+        }
+
+        // Return template binary content with proper headers
+        return Response.ok(template.content)
+                .header("Content-Disposition", "attachment; filename=\"" + template.name + ".odt\"")
+                .header("X-Template-Name", template.name)
+                .header("X-Template-Status", template.status.toString())
+                .build();
+    }
+
+    @GET
     @Path("{id}/details")
     public TemplateDetails getDetails(@PathParam("id") UUID id) {
         Template template = Template.findById(id);
