@@ -29,10 +29,10 @@ public class TestDataSet extends PanacheEntityBase {
     public JsonNode testData;
 
     @Lob
-    @Column(columnDefinition = "bytea")
-    public byte[] expectedPdf = new byte[0];
+    @Column(name = "expected_pdf", columnDefinition = "bytea", nullable = true)
+    public byte[] expectedPdf;
 
-    @Column(length = 64)
+    @Column(name = "pdf_hash", length = 64)
     public String pdfHash;
 
     @Column(nullable = false)
