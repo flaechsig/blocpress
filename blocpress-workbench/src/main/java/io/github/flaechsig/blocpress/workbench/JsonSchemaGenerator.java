@@ -172,30 +172,34 @@ public class JsonSchemaGenerator {
     }
 
     /**
-     * Infer JSON type from field name (heuristic - can be improved).
+     * Infer JSON type from field name (heuristic - conservative approach).
+     * Defaults to "string" for safety. Only recognizes clear numeric/boolean patterns.
+     *
      * Examples:
-     * - "amount", "price", "quantity", "paymentTermsDays" → "number"
+     * - "amount", "price", "total" → "number"
      * - "active", "enabled", "deleted" → "boolean"
+     * - "number", "id", "code" → "string" (ambiguous, safe default)
      * - everything else → "string"
      */
     private String inferType(String fieldName) {
         String lower = fieldName.toLowerCase();
 
-        // Numeric type keywords
+        // Numeric type keywords - CONSERVATIVE: only clear cases
+        // Excluded: "number", "count" (often text identifiers like invoice.number)
         if (lower.contains("price") || lower.contains("amount") || lower.contains("quantity") ||
-            lower.contains("count") || lower.contains("number") || lower.contains("total") ||
-            lower.contains("rate") || lower.contains("discount") || lower.contains("value") ||
-            lower.contains("days") || lower.contains("hours") || lower.contains("minutes") ||
-            lower.contains("seconds") || lower.contains("duration") || lower.contains("percentage") ||
+            lower.contains("total") || lower.contains("rate") || lower.contains("discount") ||
             lower.contains("tax") || lower.contains("fee") || lower.contains("cost") ||
-            lower.contains("price") || lower.contains("payment") || lower.contains("salary") ||
-            lower.contains("age") || lower.contains("year") || lower.contains("month") ||
-            lower.contains("week") || lower.contains("day") || lower.contains("hour") ||
-            lower.contains("minute") || lower.contains("second") || lower.contains("weight") ||
-            lower.contains("height") || lower.contains("width") || lower.contains("length") ||
-            lower.contains("size") || lower.contains("distance") || lower.contains("height") ||
-            lower.contains("width") || lower.contains("depth") || lower.contains("volume") ||
-            lower.contains("area") || lower.contains("temperature") || lower.contains("percent")) {
+            lower.contains("salary") || lower.contains("paymentTerms") ||
+            // Time/Duration (clear numeric context)
+            lower.contains("daysTerms") || lower.contains("daysTerm") ||
+            lower.contains("percentage") || lower.contains("percent") ||
+            // Measurements
+            lower.contains("weight") || lower.contains("height") || lower.contains("width") ||
+            lower.contains("depth") || lower.contains("volume") || lower.contains("area") ||
+            lower.contains("temperature") ||
+            // Accounting/Finance
+            lower.contains("netTotal") || lower.contains("grossTotal") || lower.contains("subtotal") ||
+            lower.contains("unitPrice") || lower.contains("listPrice")) {
             return "number";
         }
 
@@ -207,6 +211,8 @@ public class JsonSchemaGenerator {
             return "boolean";
         }
 
+        // DEFAULT: string (conservative)
+        // This includes: number, id, code, identifier, reference, name, etc.
         return "string";
     }
 }
