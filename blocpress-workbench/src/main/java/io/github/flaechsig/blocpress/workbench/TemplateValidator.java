@@ -3,6 +3,7 @@ package io.github.flaechsig.blocpress.workbench;
 import io.github.flaechsig.blocpress.core.TemplateDocument;
 import io.github.flaechsig.blocpress.core.TemplateElement;
 import io.github.flaechsig.blocpress.core.odt.JexlConditionEvaluator;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,10 +14,22 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * Validates ODT templates and generates JSON-Schema for their data structure.
+ *
+ * Process:
+ * 1. Load ODT and extract user fields (dot-notation names)
+ * 2. Identify repetition groups (arrays)
+ * 3. Generate JSON-Schema from fields + arrays
+ * 4. Validate field names and JEXL conditions
+ * 5. Return ValidationResult with schema
+ */
 @ApplicationScoped
 public class TemplateValidator {
 
@@ -26,12 +39,15 @@ public class TemplateValidator {
     @Inject
     ObjectMapper objectMapper;
 
+    @Inject
+    JsonSchemaGenerator schemaGenerator;
+
     public ValidationResult validate(byte[] templateContent) {
         List<ValidationResult.ValidationMessage> errors = new ArrayList<>();
         List<ValidationResult.ValidationMessage> warnings = new ArrayList<>();
-        List<ValidationResult.UserFieldInfo> userFields = new ArrayList<>();
-        List<ValidationResult.RepetitionGroupInfo> repetitionGroups = new ArrayList<>();
-        List<ValidationResult.ConditionInfo> conditions = new ArrayList<>();
+        List<String> fieldNames = new ArrayList<>();
+        List<String> arrayPaths = new ArrayList<>();
+        JsonNode schema = null;
 
         Path tempFile = null;
         try {
@@ -44,12 +60,11 @@ public class TemplateValidator {
 
             // Step 2: Extract and validate user fields
             List<TemplateElement> extractedFields = doc.collectUserFields();
+            Set<String> uniqueFields = new HashSet<>();
+
             for (TemplateElement field : extractedFields) {
                 String name = field.getName();
-                // Assume "user-field-get" since we don't have access to the element details
-                String type = "user-field";
-
-                userFields.add(new ValidationResult.UserFieldInfo(name, type));
+                uniqueFields.add(name);
 
                 // Check field name format
                 if (!VALID_FIELD_NAME.matcher(name).matches()) {
@@ -59,28 +74,23 @@ public class TemplateValidator {
                     ));
                 }
             }
+            fieldNames.addAll(uniqueFields);
 
             // Step 3: Identify repetition groups (loops)
             ObjectNode emptyData = objectMapper.createObjectNode();
             Map<TemplateElement, String> repeatGroups = doc.findRepeatGroups(emptyData);
             for (Map.Entry<TemplateElement, String> entry : repeatGroups.entrySet()) {
-                TemplateElement element = entry.getKey();
                 String arrayPath = entry.getValue();
-                // Assume "section" since we don't have access to the element details
-                String elementType = "section";
-
-                repetitionGroups.add(new ValidationResult.RepetitionGroupInfo(
-                    element.getName(),
-                    arrayPath,
-                    elementType
-                ));
+                arrayPaths.add(arrayPath);
             }
 
-            // Step 4: Extract and validate conditions (syntax only)
+            // Step 4: Generate JSON-Schema from fields and arrays
+            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+
+            // Step 5: Extract and validate conditions (syntax only)
             List<TemplateElement> conditionalElements = doc.collectConditionalTemplateElements();
             for (TemplateElement element : conditionalElements) {
                 String elementName = element.getName();
-                String elementType = "conditional-element";
                 boolean syntaxValid = true;
                 String errorMessage = null;
 
@@ -98,12 +108,12 @@ public class TemplateValidator {
                     // Ignore other exceptions (they might be context-related)
                 }
 
-                conditions.add(new ValidationResult.ConditionInfo(
-                    elementName,
-                    elementType,
-                    syntaxValid,
-                    errorMessage
-                ));
+                if (!syntaxValid) {
+                    warnings.add(new ValidationResult.ValidationMessage(
+                        "INVALID_CONDITION_SYNTAX",
+                        "Condition '" + elementName + "' has syntax error: " + errorMessage
+                    ));
+                }
             }
 
         } catch (Exception e) {
@@ -124,13 +134,19 @@ public class TemplateValidator {
 
         boolean isValid = errors.isEmpty();
 
+        // If schema is null due to error, create empty object schema
+        if (schema == null) {
+            ObjectNode emptySchema = objectMapper.createObjectNode();
+            emptySchema.put("type", "object");
+            emptySchema.set("properties", objectMapper.createObjectNode());
+            schema = emptySchema;
+        }
+
         return new ValidationResult(
             isValid,
+            schema,
             errors,
-            warnings,
-            userFields,
-            repetitionGroups,
-            conditions
+            warnings
         );
     }
 }

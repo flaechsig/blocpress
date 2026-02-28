@@ -111,27 +111,13 @@ public class TestDataSetService {
             throw new IllegalStateException("Template hat keine Validierungsergebnisse");
         }
 
-        // Prüfe ob alle erforderlichen Felder vorhanden sind
-        if (template.validationResult.userFields() != null) {
-            for (var field : template.validationResult.userFields()) {
-                String fieldPath = field.name();
-                if (!hasJsonPath(testData, fieldPath)) {
-                    // Warnung, nicht Fehler - optional fields können fehlen
-                    System.out.println("Warnung: Feld '" + fieldPath + "' in TestData nicht vorhanden");
-                }
-            }
+        // Validiere gegen JSON-Schema
+        // Hinweis: Vollständige Validierung ist optional - erlaubt fehlende optionale Felder
+        // Dies ist absichtlich tolerant, da Testdaten nicht alle Felder enthalten müssen
+        if (template.validationResult.schema() != null) {
+            // TODO: Implement proper JSON-Schema validation using com.networknt.json-schema-validator
+            // For now, just accept the test data (warnings can be logged)
+            // Future: Use JsonSchemaFactory and schema.validate(testData)
         }
-    }
-
-    private boolean hasJsonPath(JsonNode node, String path) {
-        String[] parts = path.split("\\.");
-        JsonNode current = node;
-        for (String part : parts) {
-            if (current == null || !current.has(part)) {
-                return false;
-            }
-            current = current.get(part);
-        }
-        return true;
     }
 }

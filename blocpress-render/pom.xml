@@ -83,6 +83,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- JSON Schema Validation -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>1.0.87</version>
+        </dependency>
 
         <dependency>
             <groupId>io.quarkus</groupId>
