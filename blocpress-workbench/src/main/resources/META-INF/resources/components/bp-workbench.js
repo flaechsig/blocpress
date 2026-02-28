@@ -45,7 +45,11 @@ export class BpWorkbench extends LitElement {
         _comparingPdf: { state: true },
         _regressionResult: { state: true },
         _testDataModeSaving: { state: true },
-        _selectedTestDataForPreview: { state: true }
+        _selectedTestDataForPreview: { state: true },
+        _expandedTestDataId: { state: true },
+        _editingTestDataId: { state: true },
+        _editingTestDataFormData: { state: true },
+        _savingTestData: { state: true }
     };
 
     static styles = css`
@@ -658,6 +662,107 @@ export class BpWorkbench extends LitElement {
         .tree-field-group {
             margin-bottom: 12px;
         }
+
+        /* Test Data Item Container */
+        .testdata-item-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .testdata-item-container.expanded {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Test Data Item */
+        .testdata-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid transparent;
+        }
+        .testdata-item:hover {
+            background: #f5f5f5;
+        }
+        .testdata-item.selected {
+            background: #e3f2fd;
+            border-color: #1e3c72;
+        }
+        .testdata-item.expanded {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        /* Expand/Collapse Button */
+        .expand-btn {
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .expand-btn:hover {
+            color: #1e3c72;
+        }
+
+        /* Info Section */
+        .testdata-item-info {
+            flex: 1;
+            cursor: pointer;
+        }
+        .testdata-item-info:hover {
+            text-decoration: underline;
+        }
+
+        /* Edit Panel */
+        .testdata-edit-panel {
+            padding: 16px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+        }
+        .testdata-view {
+            padding: 12px 0;
+        }
+        .testdata-view-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .testdata-view-header h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .testdata-tree-view {
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #555;
+            font-family: 'Courier New', monospace;
+        }
+        .testdata-edit {
+            padding: 8px 0;
+        }
+        .testdata-edit-header {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .testdata-edit-header h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
     `;
 
     constructor() {
@@ -695,6 +800,10 @@ export class BpWorkbench extends LitElement {
         this._regressionResult = null;
         this._testDataModeSaving = false;
         this._selectedTestDataForPreview = null;
+        this._expandedTestDataId = null;
+        this._editingTestDataId = null;
+        this._editingTestDataFormData = {};
+        this._savingTestData = false;
     }
 
     connectedCallback() {
@@ -749,6 +858,11 @@ export class BpWorkbench extends LitElement {
     }
 
     _renderTestDataTabContent() {
+        // If creating new test data, show form
+        if (this._testDataMode === 'create') {
+            return this._renderTestDataForm();
+        }
+
         return html`
             <div class="workspace">
                 <!-- Left panel: Test data list -->
@@ -767,33 +881,49 @@ export class BpWorkbench extends LitElement {
                         : html`
                             <div class="testdata-list">
                                 ${this._testDataSets.map(td => html`
-                                    <div class="testdata-item ${this._selectedTestDataForPreview?.id === td.id ? 'selected' : ''}">
-                                        <div class="testdata-item-info">
-                                            <div class="testdata-item-name">${td.name}</div>
-                                            <div class="testdata-item-meta">
-                                                ${td.hasExpectedPdf ? '✓ Expected PDF' : 'Kein Expected PDF'}
-                                                | ${new Date(td.createdAt).toLocaleDateString('de-DE')}
+                                    <div class="testdata-item-container">
+                                        <!-- Item Header -->
+                                        <div class="testdata-item ${this._selectedTestDataForPreview?.id === td.id ? 'selected' : ''} ${this._expandedTestDataId === td.id ? 'expanded' : ''}">
+                                            <!-- Expand/Collapse Button -->
+                                            <button class="expand-btn" @click=${() => this._toggleExpandTestData(td.id)}>
+                                                ${this._expandedTestDataId === td.id ? '▼' : '▶'}
+                                            </button>
+
+                                            <!-- Info Section (clickable for preview) -->
+                                            <div class="testdata-item-info" @click=${() => this._selectTestDataForPreview(td)}>
+                                                <div class="testdata-item-name">${td.name}</div>
+                                                <div class="testdata-item-meta">
+                                                    ${td.hasExpectedPdf ? '✓ Expected PDF' : '○ Kein Expected PDF'}
+                                                    | ${new Date(td.createdAt).toLocaleDateString('de-DE')}
+                                                </div>
+                                            </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="testdata-item-actions">
+                                                <button class="testdata-btn primary"
+                                                    @click=${() => this._selectTestDataForPreview(td)}>
+                                                    Vorschau
+                                                </button>
+                                                <button class="testdata-btn"
+                                                    @click=${() => this._duplicateTestData(td)}>
+                                                    Kopieren
+                                                </button>
+                                                <button class="testdata-btn danger"
+                                                    @click=${() => this._deleteTestDataSet(td.id)}>
+                                                    Löschen
+                                                </button>
                                             </div>
                                         </div>
-                                        <div class="testdata-item-actions">
-                                            <button class="testdata-btn"
-                                                @click=${() => this._selectTestDataForPreview(td)}>
-                                                Vorschau
-                                            </button>
-                                            <button class="testdata-btn primary"
-                                                ?disabled=${this._savingExpectedPdf}
-                                                @click=${() => this._saveExpectedPdfForTestData(td)}>
-                                                Speichern
-                                            </button>
-                                            <button class="testdata-btn"
-                                                @click=${() => this._duplicateTestData(td)}>
-                                                Kopieren
-                                            </button>
-                                            <button class="testdata-btn danger"
-                                                @click=${() => this._deleteTestDataSet(td.id)}>
-                                                Löschen
-                                            </button>
-                                        </div>
+
+                                        <!-- Expanded Content: Edit Form -->
+                                        ${this._expandedTestDataId === td.id ? html`
+                                            <div class="testdata-edit-panel">
+                                                ${this._editingTestDataId === td.id
+                                                    ? this._renderTestDataEditForm(td)
+                                                    : this._renderTestDataReadView(td)
+                                                }
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 `)}
                             </div>
@@ -812,6 +942,96 @@ export class BpWorkbench extends LitElement {
                             ${this._rendering ? 'Wird gerendert...' : 'Testfall auswählen zur Vorschau'}
                           </div>`}
                 </div>
+            </div>
+        `;
+    }
+
+    _renderTestDataReadView(testData) {
+        return html`
+            <div class="testdata-view">
+                <div class="testdata-view-header">
+                    <h4>Testdaten: ${testData.name}</h4>
+                    <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
+                        @click=${() => {
+                            this._editingTestDataId = testData.id;
+                            this._editingTestDataFormData = JSON.parse(JSON.stringify(testData.testData || {}));
+                        }}>
+                        ✎ Bearbeiten
+                    </button>
+                </div>
+                <div class="testdata-tree-view">
+                    ${this._renderTestDataAsTree(testData.testData || {}, '', 0)}
+                </div>
+            </div>
+        `;
+    }
+
+    _renderTestDataEditForm(testData) {
+        return html`
+            <div class="testdata-edit">
+                <div class="testdata-edit-header">
+                    <h4>Testdaten Bearbeitung: ${testData.name}</h4>
+                </div>
+                <div class="testdata-form">
+                    <!-- Render editable tree structure -->
+                    ${Object.entries(this._selectedTemplate?.validationResult?.schema?.properties || {}).map(([fieldName, fieldSchema]) =>
+                        this._renderSchemaProperty(fieldName, fieldSchema, fieldName, 0)
+                    )}
+                </div>
+                <div class="form-actions" style="margin-top: 16px;">
+                    <button class="btn-submit"
+                        ?disabled=${this._savingTestData}
+                        @click=${() => this._saveTestDataEdits(testData.id)}>
+                        ${this._savingTestData ? 'Speichert...' : '💾 Speichern'}
+                    </button>
+                    <button class="btn-cancel"
+                        @click=${() => this._editingTestDataId = null}>
+                        Abbrechen
+                    </button>
+                    <button class="testdata-btn primary"
+                        ?disabled=${this._savingExpectedPdf}
+                        @click=${() => this._saveExpectedPdfForTestData(testData)}>
+                        PDF speichern
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    _renderTestDataAsTree(obj, path, depth = 0) {
+        if (!obj || typeof obj !== 'object') {
+            return html`<div style="margin-left: ${depth * 20}px; padding: 4px; color: #666;">
+                ${obj === null ? '(leer)' : String(obj)}
+            </div>`;
+        }
+
+        if (Array.isArray(obj)) {
+            return html`
+                <div style="margin-left: ${depth * 20}px;">
+                    <div style="font-weight: 600; color: #555; margin: 8px 0;">📁 Array (${obj.length} Items)</div>
+                    ${obj.map((item, idx) => html`
+                        <div style="margin-left: 12px; padding: 4px; background: #f5f5f5; margin-bottom: 4px; border-radius: 3px;">
+                            <div style="font-weight: 500; color: #555;">🔲 Item ${idx + 1}</div>
+                            ${this._renderTestDataAsTree(item, `${path}[${idx}]`, depth + 2)}
+                        </div>
+                    `)}
+                </div>
+            `;
+        }
+
+        return html`
+            <div style="margin-left: ${depth * 20}px;">
+                ${Object.entries(obj).map(([key, value]) => html`
+                    <div style="margin: 4px 0; padding: 4px; background: #fafafa; border-radius: 3px;">
+                        <div style="font-weight: 500; color: #333;">${key}:</div>
+                        <div style="margin-left: 12px;">
+                            ${typeof value === 'object' && value !== null
+                                ? this._renderTestDataAsTree(value, `${path}.${key}`, depth + 1)
+                                : html`<span style="color: #666; font-family: monospace;">${value === null ? '(leer)' : String(value)}</span>`
+                            }
+                        </div>
+                    </div>
+                `)}
             </div>
         `;
     }
@@ -1631,7 +1851,8 @@ export class BpWorkbench extends LitElement {
      */
     _renderArrayField(fieldName, fieldSchema, path, depth) {
         const indent = depth * 20;
-        const currentArray = this._getNestedValue(this._testDataFormData, path) || [];
+        const targetData = this._editingTestDataId ? this._editingTestDataFormData : this._testDataFormData;
+        const currentArray = this._getNestedValue(targetData, path) || [];
 
         return html`
             <div class="tree-node" style="margin-left: ${indent}px;">
@@ -1665,7 +1886,8 @@ export class BpWorkbench extends LitElement {
      */
     _renderLeafField(fieldName, fieldSchema, path, depth) {
         const indent = depth * 20;
-        const currentValue = this._getNestedValue(this._testDataFormData, path);
+        const targetData = this._editingTestDataId ? this._editingTestDataFormData : this._testDataFormData;
+        const currentValue = this._getNestedValue(targetData, path);
         const inputType = this._getInputType(fieldSchema.type);
         const isChecked = inputType === 'checkbox' && currentValue === true;
 
@@ -1700,24 +1922,38 @@ export class BpWorkbench extends LitElement {
 
     /**
      * Add a new item to an array.
+     * Works with both _testDataFormData and _editingTestDataFormData
      */
     _addArrayItem(arrayPath, itemSchema) {
-        const currentArray = this._getNestedValue(this._testDataFormData, arrayPath) || [];
+        const targetData = this._editingTestDataId ? this._editingTestDataFormData : this._testDataFormData;
+        const currentArray = this._getNestedValue(targetData, arrayPath) || [];
         const newItem = this._createEmptyItem(itemSchema);
 
-        this._setNestedValue(this._testDataFormData, arrayPath, [...currentArray, newItem]);
-        this._testDataFormData = { ...this._testDataFormData };
+        this._setNestedValue(targetData, arrayPath, [...currentArray, newItem]);
+
+        if (this._editingTestDataId) {
+            this._editingTestDataFormData = { ...this._editingTestDataFormData };
+        } else {
+            this._testDataFormData = { ...this._testDataFormData };
+        }
     }
 
     /**
      * Remove an item from an array by index.
+     * Works with both _testDataFormData and _editingTestDataFormData
      */
     _removeArrayItem(arrayPath, index) {
-        const currentArray = this._getNestedValue(this._testDataFormData, arrayPath) || [];
+        const targetData = this._editingTestDataId ? this._editingTestDataFormData : this._testDataFormData;
+        const currentArray = this._getNestedValue(targetData, arrayPath) || [];
         const updated = currentArray.filter((_, i) => i !== index);
 
-        this._setNestedValue(this._testDataFormData, arrayPath, updated);
-        this._testDataFormData = { ...this._testDataFormData };
+        this._setNestedValue(targetData, arrayPath, updated);
+
+        if (this._editingTestDataId) {
+            this._editingTestDataFormData = { ...this._editingTestDataFormData };
+        } else {
+            this._testDataFormData = { ...this._testDataFormData };
+        }
     }
 
     /**
@@ -1751,6 +1987,7 @@ export class BpWorkbench extends LitElement {
     /**
      * Enhanced _onTestDataInput to handle both dot-notation and array index paths.
      * Examples: 'customer.firstname' or 'positions[0].name'
+     * Works with both _testDataFormData and _editingTestDataFormData
      */
     _onTestDataInput(e) {
         const name = e.target.name;
@@ -1768,8 +2005,11 @@ export class BpWorkbench extends LitElement {
             }
         }
 
+        // Determine which data object to update (editing or creating)
+        const targetData = this._editingTestDataId ? this._editingTestDataFormData : this._testDataFormData;
+
         // Navigate to the target object and set value
-        let obj = this._testDataFormData;
+        let obj = targetData;
         for (let i = 0; i < pathParts.length - 1; i++) {
             const part = pathParts[i];
             const nextPart = pathParts[i + 1];
@@ -1792,7 +2032,12 @@ export class BpWorkbench extends LitElement {
         const lastPart = pathParts[pathParts.length - 1];
         obj[lastPart] = value;
 
-        this._testDataFormData = { ...this._testDataFormData };
+        // Update the corresponding reactive property
+        if (this._editingTestDataId) {
+            this._editingTestDataFormData = { ...this._editingTestDataFormData };
+        } else {
+            this._testDataFormData = { ...this._testDataFormData };
+        }
     }
 
     /**
@@ -1911,6 +2156,61 @@ export class BpWorkbench extends LitElement {
             await this._loadTestDataSets();
         } catch (err) {
             this._error = err.message;
+        }
+    }
+
+    /**
+     * Toggle expand/collapse of a test data item.
+     */
+    _toggleExpandTestData(testDataId) {
+        if (this._expandedTestDataId === testDataId) {
+            this._expandedTestDataId = null;
+            this._editingTestDataId = null;
+        } else {
+            this._expandedTestDataId = testDataId;
+            this._editingTestDataId = null;
+        }
+    }
+
+    /**
+     * Save edited test data.
+     */
+    async _saveTestDataEdits(testDataId) {
+        if (!this._selectedTemplate) return;
+
+        this._savingTestData = true;
+        this._error = '';
+
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${testDataId}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: this._testDataSets.find(td => td.id === testDataId)?.name || 'Unnamed',
+                        testData: this._editingTestDataFormData
+                    })
+                }
+            );
+
+            if (!response.ok) throw new Error('Fehler beim Speichern');
+
+            this._success = 'Testdaten gespeichert';
+            this._editingTestDataId = null;
+            await this._loadTestDataSets();
+
+            // Re-render preview if this was the selected test data
+            if (this._selectedTestDataForPreview?.id === testDataId) {
+                const updated = this._testDataSets.find(td => td.id === testDataId);
+                if (updated) {
+                    await this._selectTestDataForPreview(updated);
+                }
+            }
+        } catch (err) {
+            this._error = err.message;
+        } finally {
+            this._savingTestData = false;
         }
     }
 }
