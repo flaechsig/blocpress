@@ -174,22 +174,36 @@ public class JsonSchemaGenerator {
     /**
      * Infer JSON type from field name (heuristic - can be improved).
      * Examples:
-     * - "amount", "price", "quantity" → "number"
+     * - "amount", "price", "quantity", "paymentTermsDays" → "number"
      * - "active", "enabled", "deleted" → "boolean"
      * - everything else → "string"
      */
     private String inferType(String fieldName) {
         String lower = fieldName.toLowerCase();
 
+        // Numeric type keywords
         if (lower.contains("price") || lower.contains("amount") || lower.contains("quantity") ||
             lower.contains("count") || lower.contains("number") || lower.contains("total") ||
-            lower.contains("rate") || lower.contains("discount")) {
+            lower.contains("rate") || lower.contains("discount") || lower.contains("value") ||
+            lower.contains("days") || lower.contains("hours") || lower.contains("minutes") ||
+            lower.contains("seconds") || lower.contains("duration") || lower.contains("percentage") ||
+            lower.contains("tax") || lower.contains("fee") || lower.contains("cost") ||
+            lower.contains("price") || lower.contains("payment") || lower.contains("salary") ||
+            lower.contains("age") || lower.contains("year") || lower.contains("month") ||
+            lower.contains("week") || lower.contains("day") || lower.contains("hour") ||
+            lower.contains("minute") || lower.contains("second") || lower.contains("weight") ||
+            lower.contains("height") || lower.contains("width") || lower.contains("length") ||
+            lower.contains("size") || lower.contains("distance") || lower.contains("height") ||
+            lower.contains("width") || lower.contains("depth") || lower.contains("volume") ||
+            lower.contains("area") || lower.contains("temperature") || lower.contains("percent")) {
             return "number";
         }
 
+        // Boolean type keywords
         if (lower.contains("active") || lower.contains("enabled") || lower.contains("deleted") ||
             lower.contains("flag") || lower.contains("checked") || lower.contains("is") ||
-            lower.contains("has")) {
+            lower.contains("has") || lower.contains("success") || lower.contains("valid") ||
+            lower.contains("approved") || lower.contains("confirmed") || lower.contains("required")) {
             return "boolean";
         }
 
