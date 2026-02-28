@@ -20,6 +20,7 @@ import org.jboss.resteasy.reactive.RestForm;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,16 +43,20 @@ public class TemplateResource {
             throw new WebApplicationException("Name is required", Response.Status.BAD_REQUEST);
         }
 
-        if (Template.find("name", name).firstResult() != null) {
-            throw new WebApplicationException("Template with name '" + name + "' already exists",
-                    Response.Status.CONFLICT);
-        }
-
         byte[] content = Files.readAllBytes(file.uploadedFile());
         ValidationResult validationResult = validator.validate(content);
 
+        // Find the next version number
+        Integer nextVersion = 1;
+        Template lastVersion = Template.find("name = ?1 ORDER BY version DESC", name.strip())
+                .firstResult();
+        if (lastVersion != null) {
+            nextVersion = lastVersion.version + 1;
+        }
+
         Template template = new Template();
         template.name = name.strip();
+        template.version = nextVersion;
         template.content = content;
         template.createdAt = Instant.now();
         template.status = TemplateStatus.DRAFT;
@@ -62,6 +67,7 @@ public class TemplateResource {
                 .entity(Map.of(
                     "id", template.id,
                     "name", template.name,
+                    "version", template.version,
                     "isValid", validationResult.isValid(),
                     "errors", validationResult.errors(),
                     "warnings", validationResult.warnings()
@@ -118,6 +124,26 @@ public class TemplateResource {
                 .header("Content-Disposition", "attachment; filename=\"" + template.name + ".odt\"")
                 .header("X-Template-Name", template.name)
                 .header("X-Template-Status", template.status.toString())
+                .header("X-Template-Version", template.version.toString())
+                .build();
+    }
+
+    @GET
+    @Path("by-name/{name}/content")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response getTemplateContentByName(@PathParam("name") String name) {
+        // Find the latest active version (validFrom <= now and APPROVED)
+        Template template = Template.findLatestActiveByName(name);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        // Return template binary content with proper headers
+        return Response.ok(template.content)
+                .header("Content-Disposition", "attachment; filename=\"" + template.name + ".odt\"")
+                .header("X-Template-Name", template.name)
+                .header("X-Template-Version", template.version.toString())
+                .header("X-Template-ValidFrom", template.validFrom != null ? template.validFrom.toString() : "N/A")
                 .build();
     }
 
@@ -200,11 +226,18 @@ public class TemplateResource {
         }
 
         template.status = request.newStatus();
+
+        // Set validFrom when transitioning to APPROVED
+        if (request.newStatus() == TemplateStatus.APPROVED && template.validFrom == null) {
+            template.validFrom = LocalDateTime.now();
+        }
+
         template.persist();
 
         return Response.ok(Map.of(
             "id", template.id,
-            "status", template.status
+            "status", template.status,
+            "validFrom", template.validFrom
         )).build();
     }
 

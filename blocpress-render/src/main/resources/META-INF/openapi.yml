@@ -131,29 +131,28 @@ paths:
         "500":
           description: Internal server error
 
-  /render/{id}:
+  /render/{name}:
     post:
       tags: [ Template ]
-      operationId: renderDocumentById
-      summary: Render document using stored template ID
+      operationId: renderDocumentByName
+      summary: Render document using template name
       description: >
         Generate a document using a template that has been uploaded and approved
-        in blocpress-workbench. Only APPROVED templates can be used.
-        Template content is cached for performance.
+        in blocpress-workbench. Uses the latest active version of the template.
+        Only APPROVED templates can be used. Template content is cached for performance.
       parameters:
-        - name: id
+        - name: name
           in: path
           required: true
           schema:
             type: string
-            format: uuid
-          description: Template ID (UUID)
+          description: Template name
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RenderByIdRequest'
+              $ref: '#/components/schemas/RenderByNameRequest'
       responses:
         "200":
           description: Generated document (binary) in specified format
@@ -205,6 +204,22 @@ components:
             - odt
           description: Desired output format
     RenderByIdRequest:
+      type: object
+      required:
+        - data
+        - outputType
+      properties:
+        data:
+          type: object
+          description: JSON template data (key-value pairs matching template fields)
+        outputType:
+          type: string
+          enum:
+            - pdf
+            - rtf
+            - odt
+          description: Desired output format
+    RenderByNameRequest:
       type: object
       required:
         - data

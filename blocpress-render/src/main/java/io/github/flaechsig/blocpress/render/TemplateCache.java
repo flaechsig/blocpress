@@ -62,4 +62,39 @@ public class TemplateCache {
         logger.info("Successfully fetched template {} (size: {} bytes)", templateId, response.body().length);
         return response.body();
     }
+
+    /**
+     * Fetches template content by name from blocpress-workbench.
+     * Retrieves the latest active version (validFrom <= now).
+     * Results are cached for performance.
+     *
+     * @param templateName Template name
+     * @return Template binary content (ODT file) of latest active version
+     * @throws TemplateNotFoundException if template does not exist or no active version is APPROVED
+     * @throws IOException if HTTP request fails
+     */
+    @CacheResult(cacheName = "templates")
+    public byte[] getTemplateContentByName(String templateName) throws IOException, InterruptedException {
+        logger.info("Fetching template {} from blocpress-workbench (cache miss)", templateName);
+
+        String url = workbenchUrl + "/api/workbench/templates/by-name/" + templateName + "/content";
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .GET()
+            .build();
+
+        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+        if (response.statusCode() == 404) {
+            throw new TemplateNotFoundException("Template not found or no active version: " + templateName);
+        } else if (response.statusCode() == 403) {
+            throw new TemplateNotFoundException("Template not approved: " + templateName);
+        } else if (response.statusCode() != 200) {
+            throw new IOException("Failed to fetch template: HTTP " + response.statusCode());
+        }
+
+        logger.info("Successfully fetched template {} (size: {} bytes)", templateName, response.body().length);
+        return response.body();
+    }
 }

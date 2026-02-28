@@ -133,4 +133,43 @@ public class RenderResource implements RenderApi {
         }
     }
 
+    public File renderDocumentByName(String name, io.github.flaechsig.blocpress.render.model.RenderByNameRequest renderByNameRequest) {
+        logger.info("Rendering document from template name: {}", name);
+
+        try {
+            // Extract output type from request
+            var outputTypeStr = renderByNameRequest.getOutputType().toString();
+            OutputFormat format = switch (outputTypeStr) {
+                case "pdf" -> OutputFormat.PDF;
+                case "rtf" -> RTF;
+                case "odt" -> ODT;
+                default -> throw new IllegalArgumentException("Invalid output type: " + outputTypeStr);
+            };
+
+            // Convert data to JsonNode
+            var dataNode = mapper.valueToTree(renderByNameRequest.getData());
+
+            // Fetch template content by name from cache (or workbench if cache miss)
+            byte[] templateContent = templateCache.getTemplateContentByName(name);
+
+            // Write to temp file
+            Path tempFile = Files.createTempFile("template-" + name, ".odt");
+            Files.write(tempFile, templateContent);
+
+            // Use existing merge and transform pipeline
+            return mergeAndTransform(tempFile, dataNode, format);
+
+        } catch (TemplateNotFoundException e) {
+            logger.warn("Template not found or not approved: {}", name);
+            if (e.getMessage().contains("not approved")) {
+                throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);
+            } else {
+                throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("Failed to fetch or render template {}: {}", name, e.getMessage(), e);
+            throw new WebApplicationException("Failed to render document: " + e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }
