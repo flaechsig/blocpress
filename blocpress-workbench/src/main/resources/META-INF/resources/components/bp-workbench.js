@@ -900,10 +900,6 @@ export class BpWorkbench extends LitElement {
 
                                             <!-- Action Buttons -->
                                             <div class="testdata-item-actions">
-                                                <button class="testdata-btn primary"
-                                                    @click=${() => this._selectTestDataForPreview(td)}>
-                                                    Vorschau
-                                                </button>
                                                 <button class="testdata-btn"
                                                     @click=${() => this._duplicateTestData(td)}>
                                                     Kopieren
@@ -951,13 +947,19 @@ export class BpWorkbench extends LitElement {
             <div class="testdata-view">
                 <div class="testdata-view-header">
                     <h4>Testdaten: ${testData.name}</h4>
-                    <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
-                        @click=${() => {
-                            this._editingTestDataId = testData.id;
-                            this._editingTestDataFormData = JSON.parse(JSON.stringify(testData.testData || {}));
-                        }}>
-                        ✎ Bearbeiten
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
+                            @click=${() => {
+                                this._editingTestDataId = testData.id;
+                                this._editingTestDataFormData = JSON.parse(JSON.stringify(testData.testData || {}));
+                            }}>
+                            ✎ Bearbeiten
+                        </button>
+                        <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
+                            @click=${() => this._duplicateTestData(testData)}>
+                            ↗ Als Testfall hinterlegen
+                        </button>
+                    </div>
                 </div>
                 <div class="testdata-tree-view">
                     ${this._renderTestDataAsTree(testData.testData || {}, '', 0)}
@@ -2199,12 +2201,10 @@ export class BpWorkbench extends LitElement {
             this._editingTestDataId = null;
             await this._loadTestDataSets();
 
-            // Re-render preview if this was the selected test data
-            if (this._selectedTestDataForPreview?.id === testDataId) {
-                const updated = this._testDataSets.find(td => td.id === testDataId);
-                if (updated) {
-                    await this._selectTestDataForPreview(updated);
-                }
+            // Auto-refresh preview with updated test data
+            const updated = this._testDataSets.find(td => td.id === testDataId);
+            if (updated) {
+                await this._selectTestDataForPreview(updated);
             }
         } catch (err) {
             this._error = err.message;
