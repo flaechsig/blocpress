@@ -128,7 +128,7 @@ public class RenderResource implements RenderApi {
                 throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
             }
         } catch (IOException | InterruptedException e) {
-            logger.error("Failed to fetch or render template {}: {}", id, e.getMessage());
+            logger.error("Failed to fetch or render template {}: {}", id, e.getMessage(), e);
             throw new WebApplicationException("Failed to render document: " + e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
