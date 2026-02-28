@@ -1617,7 +1617,6 @@ Rollenbasierte Zugriffskontrolle (RBAC) — konsolidierte Rollen:
 *Sicherheitskonzepte:*
 
 * *Vier-Augen-Prinzip:* Technisch erzwungen in TF-2 (blocpress-proof): `userId != template.erstellerId`
-* *API-Rate-Limiting:* 1.000 Requests/h pro API-Key (für blocpress-render)
 * *HTTPS/TLS:* Alle externen Verbindungen verschlüsselt
 * *JWT-Weitergabe:* Über Web Component Properties — kein LocalStorage, kein Cookie
 * *Schema-Isolation:* Jedes SCS-Modul hat nur Zugriff auf sein eigenes Datenbank-Schema
@@ -2186,11 +2185,6 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Vier-Augen-Prinzip
 | Designer versucht, sein eigenes Template freizugeben
 | TF-2 verweigert Freigabe mit Fehlermeldung "Designer darf nicht freigeben (Vier-Augen-Prinzip)"
-
-| *Sicherheit*
-| API-Rate-Limiting
-| Anwendung sendet 1.500 Requests in 1 Stunde
-| Nach 1.000 Requests: HTTP 429 Too Many Requests
 
 | *Skalierbarkeit*
 | Horizontale Skalierung
