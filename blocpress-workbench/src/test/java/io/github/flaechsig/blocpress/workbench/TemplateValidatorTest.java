@@ -84,4 +84,38 @@ class TemplateValidatorTest {
         assertEquals("INVALID_FIELD_NAME", result.warnings().get(0).code());
         assertEquals("INVALID_FIELD_NAME", result.warnings().get(1).code());
     }
+
+    @Test
+    void testValidationResultWithArrayProperty() {
+        var errors = java.util.List.<ValidationResult.ValidationMessage>of();
+        var warnings = java.util.List.<ValidationResult.ValidationMessage>of();
+
+        // Create schema with array property (for repetition groups like table rows)
+        var schema = mapper.createObjectNode();
+        schema.put("type", "object");
+
+        var properties = mapper.createObjectNode();
+
+        // Array property - positions (table rows)
+        var positionsArray = mapper.createObjectNode();
+        positionsArray.put("type", "array");
+        var items = mapper.createObjectNode();
+        items.put("type", "object");
+        var itemProps = mapper.createObjectNode();
+        var nameProp = mapper.createObjectNode();
+        nameProp.put("type", "string");
+        itemProps.set("name", nameProp);
+        items.set("properties", itemProps);
+        positionsArray.set("items", items);
+
+        properties.set("positions", positionsArray);
+        schema.set("properties", properties);
+
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+
+        assertTrue(result.isValid());
+        assertEquals("array", result.schema().get("properties").get("positions").get("type").asText());
+        assertNotNull(result.schema().get("properties").get("positions").get("items"));
+        assertEquals("object", result.schema().get("properties").get("positions").get("items").get("type").asText());
+    }
 }

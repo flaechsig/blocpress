@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,11 +19,15 @@ class TemplateValidatorMockTest {
     private TemplateValidator validator;
     private ObjectMapper objectMapper;
 
+    private JsonSchemaGenerator schemaGenerator;
+
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
         validator = new TemplateValidator();
         validator.objectMapper = objectMapper;
+        schemaGenerator = new JsonSchemaGenerator();
+        schemaGenerator.objectMapper = objectMapper;
     }
 
     @Test
@@ -228,5 +233,70 @@ class TemplateValidatorMockTest {
         assertEquals("object", result.schema().get("type").asText());
         assertTrue(result.errors().isEmpty());
         assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void testSchemaGenerationWithArrayProperty() {
+        // Test that repetition groups (arrays) are correctly recognized
+        List<String> fieldNames = Arrays.asList("positions.name", "positions.amount");
+        List<String> arrayPaths = Arrays.asList("positions");
+
+        var schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+
+        assertTrue(schema.has("properties"));
+        assertTrue(schema.get("properties").has("positions"));
+
+        var positionsField = schema.get("properties").get("positions");
+        assertEquals("array", positionsField.get("type").asText(),
+            "positions should be type array, schema: " + schema.toPrettyString());
+        assertTrue(positionsField.has("items"));
+
+        var items = positionsField.get("items");
+        assertEquals("object", items.get("type").asText());
+        if (items.has("properties")) {
+            assertTrue(items.get("properties").has("name"));
+            assertTrue(items.get("properties").has("amount"));
+        }
+    }
+
+    @Test
+    void testSchemaGenerationWithNestedArrayProperty() {
+        // Test nested array: customer.addresses is an array with street property
+        List<String> fieldNames = Arrays.asList("customer.addresses.street", "customer.addresses.city");
+        List<String> arrayPaths = Arrays.asList("customer.addresses");
+
+        var schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+
+        var customer = schema.get("properties").get("customer");
+        assertEquals("object", customer.get("type").asText());
+
+        var addresses = customer.get("properties").get("addresses");
+        assertEquals("array", addresses.get("type").asText(),
+            "addresses should be type array, schema: " + schema.toPrettyString());
+
+        var items = addresses.get("items");
+        assertEquals("object", items.get("type").asText());
+        if (items.has("properties")) {
+            assertTrue(items.get("properties").has("street"));
+            assertTrue(items.get("properties").has("city"));
+        }
+    }
+
+    @Test
+    void testSchemaGenerationWithMultipleArrays() {
+        // Test multiple independent arrays
+        List<String> fieldNames = Arrays.asList(
+            "positions.name",
+            "addresses.street"
+        );
+        List<String> arrayPaths = Arrays.asList("positions", "addresses");
+
+        var schema = schemaGenerator.generateSchema(fieldNames, arrayPaths);
+
+        var positions = schema.get("properties").get("positions");
+        assertEquals("array", positions.get("type").asText());
+
+        var addresses = schema.get("properties").get("addresses");
+        assertEquals("array", addresses.get("type").asText());
     }
 }

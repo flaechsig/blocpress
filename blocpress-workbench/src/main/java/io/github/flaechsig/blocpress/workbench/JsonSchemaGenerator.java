@@ -67,41 +67,89 @@ public class JsonSchemaGenerator {
         // Check if this is the last part
         if (depth == parts.length - 1) {
             // Leaf property
-            ObjectNode prop = objectMapper.createObjectNode();
+            var existingProp = (ObjectNode) parentProperties.get(partName);
 
-            // Infer type from field name (heuristic)
-            String type = inferType(partName);
-            prop.put("type", type);
+            ObjectNode prop;
 
-            parentProperties.set(partName, prop);
-        } else {
-            // Intermediate property - create nested object
             // Check if this path is an array
             if (arrayPaths.contains(fullPath)) {
                 // Create array of objects
-                ObjectNode prop = objectMapper.createObjectNode();
-                prop.put("type", "array");
+                if (existingProp != null && "array".equals(existingProp.get("type").asText())) {
+                    // Array already exists, don't overwrite
+                    prop = existingProp;
+                } else {
+                    prop = objectMapper.createObjectNode();
+                    prop.put("type", "array");
 
-                ObjectNode items = objectMapper.createObjectNode();
-                items.put("type", "object");
+                    ObjectNode items = objectMapper.createObjectNode();
+                    items.put("type", "object");
+                    prop.set("items", items);
 
-                ObjectNode itemProperties = objectMapper.createObjectNode();
-                items.set("properties", itemProperties);
+                    parentProperties.set(partName, prop);
+                }
+            } else {
+                // Infer type from field name (heuristic)
+                if (existingProp == null) {
+                    prop = objectMapper.createObjectNode();
+                    String type = inferType(partName);
+                    prop.put("type", type);
+                    parentProperties.set(partName, prop);
+                } else {
+                    // Property already exists, don't overwrite
+                    prop = existingProp;
+                }
+            }
+        } else {
+            // Intermediate property - create nested object
+            // Check if property already exists
+            var existingProp = (ObjectNode) parentProperties.get(partName);
 
-                prop.set("items", items);
-                parentProperties.set(partName, prop);
+            // Check if this path is an array
+            if (arrayPaths.contains(fullPath)) {
+                // Create array of objects
+                ObjectNode prop;
+                ObjectNode itemProperties;
+
+                if (existingProp != null && "array".equals(existingProp.get("type").asText())) {
+                    // Array already exists, reuse it
+                    prop = existingProp;
+                    itemProperties = (ObjectNode) prop.get("items").get("properties");
+                } else {
+                    // Create new array
+                    prop = objectMapper.createObjectNode();
+                    prop.put("type", "array");
+
+                    ObjectNode items = objectMapper.createObjectNode();
+                    items.put("type", "object");
+
+                    itemProperties = objectMapper.createObjectNode();
+                    items.set("properties", itemProperties);
+
+                    prop.set("items", items);
+                    parentProperties.set(partName, prop);
+                }
 
                 // Add remaining parts as properties of array items
                 addPropertyToSchema(itemProperties, parts, depth + 1, arrayPaths);
             } else {
                 // Regular nested object
-                ObjectNode prop = objectMapper.createObjectNode();
-                prop.put("type", "object");
+                ObjectNode prop;
+                ObjectNode nestedProperties;
 
-                ObjectNode nestedProperties = objectMapper.createObjectNode();
-                prop.set("properties", nestedProperties);
+                if (existingProp != null && "object".equals(existingProp.get("type").asText())) {
+                    // Object already exists, reuse it
+                    prop = existingProp;
+                    nestedProperties = (ObjectNode) prop.get("properties");
+                } else {
+                    // Create new object
+                    prop = objectMapper.createObjectNode();
+                    prop.put("type", "object");
 
-                parentProperties.set(partName, prop);
+                    nestedProperties = objectMapper.createObjectNode();
+                    prop.set("properties", nestedProperties);
+
+                    parentProperties.set(partName, prop);
+                }
 
                 // Recursively add remaining parts
                 addPropertyToSchema(nestedProperties, parts, depth + 1, arrayPaths);
