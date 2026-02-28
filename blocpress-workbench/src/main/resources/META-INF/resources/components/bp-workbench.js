@@ -1019,9 +1019,12 @@ export class BpWorkbench extends LitElement {
             `;
         }
 
+        // Sort entries alphabetically by key
+        const sortedEntries = Object.entries(obj).sort((a, b) => a[0].localeCompare(b[0]));
+
         return html`
             <div style="margin-left: ${depth * 20}px;">
-                ${Object.entries(obj).map(([key, value]) => html`
+                ${sortedEntries.map(([key, value]) => html`
                     <div style="margin: 4px 0; padding: 4px; background: #fafafa; border-radius: 3px;">
                         <div style="font-weight: 500; color: #333;">${key}:</div>
                         <div style="margin-left: 12px;">
@@ -2045,6 +2048,7 @@ export class BpWorkbench extends LitElement {
      */
     async _createDefaultTestDataAfterUpload() {
         if (!this._selectedTemplate || !this._jsonValid) {
+            console.warn('Cannot create default test data: template or JSON not ready');
             return;
         }
 
@@ -2052,7 +2056,7 @@ export class BpWorkbench extends LitElement {
             // Parse the generated sample JSON
             const testData = JSON.parse(this._jsonText);
 
-            await fetch(
+            const response = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
                 {
                     method: 'POST',
@@ -2064,10 +2068,17 @@ export class BpWorkbench extends LitElement {
                 }
             );
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to create default test data: ${response.status} - ${errorText}`);
+                return;
+            }
+
             // Reload test data sets
             await this._loadTestDataSets();
+            console.log('Default test data created successfully');
         } catch (err) {
-            console.warn('Could not create default test data:', err);
+            console.error('Could not create default test data:', err);
         }
     }
 
@@ -2194,7 +2205,10 @@ export class BpWorkbench extends LitElement {
                 }
             );
 
-            if (!response.ok) throw new Error('Fehler beim Speichern');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Fehler beim Speichern: ${response.status} - ${errorText || 'Unbekannter Fehler'}`);
+            }
 
             this._success = 'Testdaten gespeichert';
             this._editingTestDataId = null;
@@ -2209,6 +2223,7 @@ export class BpWorkbench extends LitElement {
             }
         } catch (err) {
             this._error = err.message;
+            console.error('Save error:', err);
         } finally {
             this._savingTestData = false;
         }
