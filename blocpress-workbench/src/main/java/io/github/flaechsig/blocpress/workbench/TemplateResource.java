@@ -164,6 +164,21 @@ public class TemplateResource {
             .toList();
     }
 
+    @GET
+    @Path("{templateId}/testdata/{testDataSetId}")
+    public TestDataSetDTO getTestDataSet(@PathParam("templateId") UUID templateId,
+                                         @PathParam("testDataSetId") UUID testDataSetId) {
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        TestDataSet testDataSet = TestDataSet.findById(testDataSetId);
+        if (testDataSet == null || !testDataSet.template.id.equals(templateId)) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return TestDataSetDTO.fromEntity(testDataSet);
+    }
+
     @POST
     @Path("{templateId}/testdata")
     @Consumes(MediaType.APPLICATION_JSON)

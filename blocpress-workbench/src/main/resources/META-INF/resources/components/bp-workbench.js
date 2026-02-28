@@ -578,6 +578,72 @@ export class BpWorkbench extends LitElement {
             gap: 8px;
             margin-top: 12px;
         }
+
+        /* Tree structure styles */
+        .tree-node {
+            margin-bottom: 12px;
+        }
+        .tree-node-header {
+            font-weight: 600;
+            margin: 12px 0 8px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tree-array-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin: 12px 0 8px 0;
+            color: #333;
+        }
+        .btn-add-item {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add-item:hover {
+            background: #45a049;
+        }
+        .array-item {
+            border-left: 2px solid #ddd;
+            padding-left: 12px;
+            margin: 8px 0;
+            padding: 8px;
+            background: #fafafa;
+            border-radius: 3px;
+        }
+        .array-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .btn-remove-item {
+            padding: 2px 8px;
+            font-size: 12px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-remove-item:hover {
+            background: #da190b;
+        }
+        .tree-field-group {
+            margin-bottom: 12px;
+        }
     `;
 
     constructor() {
@@ -766,6 +832,10 @@ export class BpWorkbench extends LitElement {
                                             @click=${() => this._prepareForPdfSave(td)}>
                                             PDF speichern
                                         </button>
+                                        <button class="testdata-btn"
+                                            @click=${() => this._duplicateTestData(td)}>
+                                            Duplizieren
+                                        </button>
                                         <button class="testdata-btn danger"
                                             @click=${() => this._deleteTestDataSet(td.id)}>
                                             Löschen
@@ -780,9 +850,13 @@ export class BpWorkbench extends LitElement {
     }
 
     _renderTestDataForm() {
-        if (!this._generatedForm) {
-            this._generateFormFromTemplate();
+        if (!this._selectedTemplate?.validationResult?.schema) {
+            return html`<div class="panel" style="margin-bottom: 24px;">
+                <p style="color: #888;">Kein Schema definiert</p>
+            </div>`;
         }
+
+        const schema = this._selectedTemplate.validationResult.schema;
 
         return html`
             <div class="panel" style="margin-bottom: 24px;">
@@ -800,54 +874,10 @@ export class BpWorkbench extends LitElement {
                             @input=${e => this._testDataName = e.target.value}>
                     </div>
 
-                    ${this._generatedForm?.map(field => {
-                        if (field.inputType === 'array-info') {
-                            const currentValue = this._getNestedValue(this._testDataFormData, field.name);
-                            const jsonValue = Array.isArray(currentValue) ? JSON.stringify(currentValue, null, 2) : '[]';
-
-                            return html`
-                                <div class="form-group">
-                                    <label>
-                                        ${field.label}
-                                        <span style="color: #666; font-size: 12px; font-weight: normal;">
-                                            (${field.description})
-                                        </span>
-                                    </label>
-                                    <textarea
-                                        name="${field.name}"
-                                        style="font-family: monospace; font-size: 12px; height: 150px;"
-                                        placeholder='[{"field": "value"}]'
-                                        @input=${(e) => this._onArrayInput(e)}>${jsonValue}</textarea>
-                                    <div style="color: #888; font-size: 11px; margin-top: 4px;">
-                                        Geben Sie ein JSON-Array ein (Beispiel: [{"name": "Artikel 1"}, {"name": "Artikel 2"}])
-                                    </div>
-                                </div>
-                            `;
-                        }
-
-                        return html`
-                            <div class="form-group">
-                                <label>
-                                    ${field.label}
-                                    ${field.required ? html`<span style="color: red;">*</span>` : ''}
-                                </label>
-                                ${field.inputType === 'checkbox'
-                                    ? html`<input type="checkbox"
-                                        name="${field.name}"
-                                        @change=${this._onTestDataInput.bind(this)}>`
-                                    : field.inputType === 'number'
-                                    ? html`<input type="number"
-                                        name="${field.name}"
-                                        placeholder="${field.label}"
-                                        @input=${this._onTestDataInput.bind(this)}>`
-                                    : html`<input type="text"
-                                        name="${field.name}"
-                                        placeholder="${field.label}"
-                                        @input=${this._onTestDataInput.bind(this)}>`
-                                }
-                            </div>
-                        `;
-                    }) || html`<p style="color: #888;">Keine Felder definiert</p>`}
+                    <!-- Render tree structure from schema -->
+                    ${Object.entries(schema.properties || {}).map(([fieldName, fieldSchema]) =>
+                        this._renderSchemaProperty(fieldName, fieldSchema, fieldName, 0)
+                    )}
 
                     <div class="form-actions">
                         <button class="btn-submit"
@@ -1120,6 +1150,7 @@ export class BpWorkbench extends LitElement {
 
         this._loadTestDataSets();
         this._generateFormFromTemplate();
+        this._ensureDefaultTestData();
         this._renderPdf();
     }
 
@@ -1365,54 +1396,8 @@ export class BpWorkbench extends LitElement {
     }
 
     _generateFormFromTemplate() {
-        if (!this._selectedTemplate?.validationResult?.schema) {
-            this._generatedForm = null;
-            return;
-        }
-
-        const schema = this._selectedTemplate.validationResult.schema;
-        const formElements = this._parseSchemaToFormFields(schema, schema.properties || {});
-        this._generatedForm = formElements;
-    }
-
-    /**
-     * Parse JSON-Schema properties into form field definitions.
-     * Handles nested objects and arrays.
-     */
-    _parseSchemaToFormFields(schema, properties, parentPath = '') {
-        const fields = [];
-
-        for (const [fieldName, fieldSchema] of Object.entries(properties)) {
-            const fullPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
-
-            if (fieldSchema.type === 'object') {
-                // Nested object - recursively add its properties
-                if (fieldSchema.properties) {
-                    fields.push(...this._parseSchemaToFormFields(fieldSchema, fieldSchema.properties, fullPath));
-                }
-            } else if (fieldSchema.type === 'array') {
-                // Array field - create as repeatable group (for now, show as info)
-                fields.push({
-                    name: fullPath,
-                    type: 'array',
-                    itemType: fieldSchema.items?.type || 'object',
-                    inputType: 'array-info',
-                    label: fieldName,
-                    description: `Array of ${fieldSchema.items?.type || 'items'}`
-                });
-            } else {
-                // Leaf field
-                fields.push({
-                    name: fullPath,
-                    type: fieldSchema.type || 'string',
-                    inputType: this._getInputType(fieldSchema.type),
-                    label: fieldName,
-                    required: schema.required?.includes(fieldName) || false
-                });
-            }
-        }
-
-        return fields;
+        // Form is now generated on-the-fly in _renderTestDataForm using schema
+        // This method is kept for backward compatibility but does nothing
     }
 
     /**
@@ -1535,24 +1520,6 @@ export class BpWorkbench extends LitElement {
         this._testDataFormData = { ...this._testDataFormData };
     }
 
-    _onArrayInput(e) {
-        const name = e.target.name;
-        const value = e.target.value;
-
-        try {
-            // Try to parse as JSON
-            const arrayValue = JSON.parse(value);
-            if (!Array.isArray(arrayValue)) {
-                throw new Error('Muss ein Array sein');
-            }
-            // Set the parsed array value
-            this._setNestedValue(this._testDataFormData, name, arrayValue);
-            this._testDataFormData = { ...this._testDataFormData };
-        } catch (err) {
-            // Show error but don't fail - user is still typing
-            console.warn(`Invalid JSON for ${name}: ${err.message}`);
-        }
-    }
 
     async _createTestDataSet() {
         if (!this._selectedTemplate || !this._testDataName.trim()) {
@@ -1646,6 +1613,298 @@ export class BpWorkbench extends LitElement {
         if (tab === 'testdata' && this._selectedTemplate) {
             this._loadTestDataSets();
             this._generateFormFromTemplate();
+        }
+    }
+
+    // --- Tree Structure Rendering ---
+
+    /**
+     * Recursively render schema property as tree node (object, array, or leaf field).
+     * @param fieldName - Display name of field
+     * @param fieldSchema - JSON Schema for this field
+     * @param path - Dot-notation path to field in data object
+     * @param depth - Nesting level for indentation
+     */
+    _renderSchemaProperty(fieldName, fieldSchema, path, depth = 0) {
+        if (!fieldSchema) return '';
+
+        if (fieldSchema.type === 'object') {
+            return this._renderObjectField(fieldName, fieldSchema, path, depth);
+        } else if (fieldSchema.type === 'array') {
+            return this._renderArrayField(fieldName, fieldSchema, path, depth);
+        } else {
+            return this._renderLeafField(fieldName, fieldSchema, path, depth);
+        }
+    }
+
+    /**
+     * Render a nested object with its child properties.
+     */
+    _renderObjectField(fieldName, fieldSchema, path, depth) {
+        const indent = depth * 20;
+        return html`
+            <div class="tree-node" style="margin-left: ${indent}px;">
+                <div class="tree-node-header">📁 ${fieldName}</div>
+                ${Object.entries(fieldSchema.properties || {}).map(([childName, childSchema]) =>
+                    this._renderSchemaProperty(childName, childSchema, `${path}.${childName}`, depth + 1)
+                )}
+            </div>
+        `;
+    }
+
+    /**
+     * Render an array field with items and add/remove buttons.
+     */
+    _renderArrayField(fieldName, fieldSchema, path, depth) {
+        const indent = depth * 20;
+        const currentArray = this._getNestedValue(this._testDataFormData, path) || [];
+
+        return html`
+            <div class="tree-node" style="margin-left: ${indent}px;">
+                <div class="tree-array-header">
+                    📁 ${fieldName}
+                    <button class="btn-add-item" @click=${() => this._addArrayItem(path, fieldSchema.items)}>
+                        + Hinzufügen
+                    </button>
+                </div>
+
+                ${Array.isArray(currentArray) ? currentArray.map((item, index) => html`
+                    <div class="array-item" style="margin-left: ${(depth + 1) * 20}px;">
+                        <div class="array-item-header">
+                            🔲 Item ${index + 1}
+                            <button class="btn-remove-item" @click=${() => this._removeArrayItem(path, index)}>
+                                ✕
+                            </button>
+                        </div>
+
+                        ${Object.entries(fieldSchema.items?.properties || {}).map(([childName, childSchema]) =>
+                            this._renderSchemaProperty(childName, childSchema, `${path}[${index}].${childName}`, depth + 2)
+                        )}
+                    </div>
+                `) : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Render a leaf field (text, number, checkbox, etc.).
+     */
+    _renderLeafField(fieldName, fieldSchema, path, depth) {
+        const indent = depth * 20;
+        const currentValue = this._getNestedValue(this._testDataFormData, path);
+        const inputType = this._getInputType(fieldSchema.type);
+        const isChecked = inputType === 'checkbox' && currentValue === true;
+
+        return html`
+            <div class="tree-field-group" style="margin-left: ${indent}px;">
+                <label style="display: block; font-size: 13px; margin-bottom: 6px;">
+                    ${fieldName}
+                    ${fieldSchema.type === 'boolean' ? '' : ''}
+                </label>
+                ${inputType === 'checkbox'
+                    ? html`<input type="checkbox"
+                        name="${path}"
+                        ?checked=${isChecked}
+                        @change=${this._onTestDataInput.bind(this)}>`
+                    : inputType === 'number'
+                    ? html`<input type="number"
+                        name="${path}"
+                        .value=${currentValue !== undefined ? currentValue : ''}
+                        placeholder="${fieldName}"
+                        @input=${this._onTestDataInput.bind(this)}
+                        style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 3px;">`
+                    : html`<input type="text"
+                        name="${path}"
+                        .value=${currentValue !== undefined ? currentValue : ''}
+                        placeholder="${fieldName}"
+                        @input=${this._onTestDataInput.bind(this)}
+                        style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 3px;">`
+                }
+            </div>
+        `;
+    }
+
+    /**
+     * Add a new item to an array.
+     */
+    _addArrayItem(arrayPath, itemSchema) {
+        const currentArray = this._getNestedValue(this._testDataFormData, arrayPath) || [];
+        const newItem = this._createEmptyItem(itemSchema);
+
+        this._setNestedValue(this._testDataFormData, arrayPath, [...currentArray, newItem]);
+        this._testDataFormData = { ...this._testDataFormData };
+    }
+
+    /**
+     * Remove an item from an array by index.
+     */
+    _removeArrayItem(arrayPath, index) {
+        const currentArray = this._getNestedValue(this._testDataFormData, arrayPath) || [];
+        const updated = currentArray.filter((_, i) => i !== index);
+
+        this._setNestedValue(this._testDataFormData, arrayPath, updated);
+        this._testDataFormData = { ...this._testDataFormData };
+    }
+
+    /**
+     * Create an empty item based on schema for array initialization.
+     */
+    _createEmptyItem(itemSchema) {
+        if (!itemSchema) return {};
+
+        if (itemSchema.type === 'object') {
+            const obj = {};
+            for (const [key, schema] of Object.entries(itemSchema.properties || {})) {
+                if (schema.default !== undefined) {
+                    obj[key] = schema.default;
+                } else if (schema.type === 'number' || schema.type === 'integer') {
+                    obj[key] = 0;
+                } else if (schema.type === 'boolean') {
+                    obj[key] = false;
+                } else if (schema.type === 'array') {
+                    obj[key] = [];
+                } else if (schema.type === 'object') {
+                    obj[key] = {};
+                } else {
+                    obj[key] = '';
+                }
+            }
+            return obj;
+        }
+        return '';
+    }
+
+    /**
+     * Enhanced _onTestDataInput to handle both dot-notation and array index paths.
+     * Examples: 'customer.firstname' or 'positions[0].name'
+     */
+    _onTestDataInput(e) {
+        const name = e.target.name;
+        const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+
+        // Parse path that may contain array indices: "positions[0].name" -> ["positions", 0, "name"]
+        const pathParts = [];
+        const regex = /(\w+)|\[(\d+)\]/g;
+        let match;
+        while ((match = regex.exec(name)) !== null) {
+            if (match[1]) {
+                pathParts.push(match[1]);
+            } else if (match[2]) {
+                pathParts.push(parseInt(match[2]));
+            }
+        }
+
+        // Navigate to the target object and set value
+        let obj = this._testDataFormData;
+        for (let i = 0; i < pathParts.length - 1; i++) {
+            const part = pathParts[i];
+            const nextPart = pathParts[i + 1];
+
+            if (typeof nextPart === 'number') {
+                // Next part is array index - ensure current part is array
+                if (!Array.isArray(obj[part])) {
+                    obj[part] = [];
+                }
+                obj = obj[part];
+            } else {
+                // Regular object property
+                if (typeof obj[part] !== 'object' || obj[part] === null) {
+                    obj[part] = {};
+                }
+                obj = obj[part];
+            }
+        }
+
+        const lastPart = pathParts[pathParts.length - 1];
+        obj[lastPart] = value;
+
+        this._testDataFormData = { ...this._testDataFormData };
+    }
+
+    /**
+     * Auto-create "default" test data set if it doesn't exist.
+     */
+    async _ensureDefaultTestData() {
+        if (!this._selectedTemplate?.validationResult?.schema) {
+            return;
+        }
+
+        // Check if "default" already exists
+        const hasDefault = this._testDataSets.some(td => td.name === 'default');
+
+        if (!hasDefault) {
+            // Create default test data from schema
+            const defaultData = this._generateDefaultTestData(this._selectedTemplate.validationResult.schema);
+
+            try {
+                await fetch(
+                    `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: 'default',
+                            testData: defaultData
+                        })
+                    }
+                );
+
+                // Reload test data sets to show the new default
+                await this._loadTestDataSets();
+            } catch (err) {
+                console.warn('Could not create default test data:', err);
+            }
+        }
+    }
+
+    /**
+     * Generate default test data object from schema.
+     * Reuses _generateSampleJsonFromSchema but returns object instead of string.
+     */
+    _generateDefaultTestData(schema) {
+        const jsonString = this._generateSampleJsonFromSchema(schema);
+        try {
+            return JSON.parse(jsonString);
+        } catch {
+            return {};
+        }
+    }
+
+    /**
+     * Duplicate an existing test data set.
+     */
+    async _duplicateTestData(testData) {
+        // Prompt for new name
+        const newName = prompt('Name für Duplikat:', `Kopie von ${testData.name}`);
+        if (!newName || !newName.trim()) return;
+
+        try {
+            // Fetch full test data
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${testData.id}`
+            );
+            if (!response.ok) throw new Error('Fehler beim Laden der Testdaten');
+            const fullTestData = await response.json();
+
+            // Create new test data with same data but different name
+            const createResponse = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: newName.trim(),
+                        testData: fullTestData.testData
+                    })
+                }
+            );
+
+            if (!createResponse.ok) throw new Error('Fehler beim Duplizieren');
+
+            this._success = `TestDataSet '${newName}' erstellt`;
+            await this._loadTestDataSets();
+        } catch (err) {
+            this._error = err.message;
         }
     }
 }
