@@ -79,11 +79,15 @@ class WorkbenchIT {
 
     @Test
     @Order(5)
-    void uploadDuplicateNameReturnsConflict() {
+    void uploadDuplicateNameCreatesNewVersion() throws Exception {
         byte[] odtContent = "other-content".getBytes(StandardCharsets.UTF_8);
         Response response = uploadMultipart("test-template", odtContent);
 
-        assertEquals(409, response.statusCode());
+        // With UC-10.1 versioning, duplicate names create new versions (v2, v3, etc.)
+        assertEquals(201, response.statusCode());
+        JsonNode body = MAPPER.readTree(response.body().asString());
+        assertEquals("test-template", body.get("name").asText());
+        assertEquals(2, body.get("version").asInt()); // Should be v2
     }
 
     @Test
@@ -103,7 +107,7 @@ class WorkbenchIT {
         assertEquals(200, response.statusCode());
         JsonNode list = MAPPER.readTree(response.body().asString());
         assertTrue(list.isArray());
-        assertEquals(1, list.size());
+        assertEquals(1, list.size()); // Only latest version per name is shown
         assertEquals("test-template", list.get(0).get("name").asText());
     }
 
@@ -179,11 +183,18 @@ class WorkbenchIT {
 
     @Test
     @Order(14)
-    void deleteTemplate() {
+    void deleteTemplate() throws Exception {
         assertNotNull(uploadedTemplateId, "Upload must have succeeded first");
         Response response = delete("/api/workbench/templates/" + uploadedTemplateId);
 
         assertEquals(204, response.statusCode());
+
+        // Store v2 ID for deletion in next test
+        Response listResponse = get("/api/workbench/templates");
+        JsonNode list = MAPPER.readTree(listResponse.body().asString());
+        if (list.size() > 0) {
+            uploadedTemplateId = list.get(0).get("id").asText(); // Get v2's ID
+        }
     }
 
     @Test
@@ -196,19 +207,42 @@ class WorkbenchIT {
 
     @Test
     @Order(16)
-    void listTemplatesAfterDelete() throws Exception {
+    void listTemplatesAfterDeleteOneVersion() throws Exception {
         Response response = get("/api/workbench/templates");
 
         assertEquals(200, response.statusCode());
         JsonNode list = MAPPER.readTree(response.body().asString());
         assertTrue(list.isArray());
+        // v2 still exists as the latest version
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    @Order(17)
+    void deleteRemainingVersion() throws Exception {
+        // Delete v2 to fully remove the template
+        if (uploadedTemplateId != null) {
+            Response response = delete("/api/workbench/templates/" + uploadedTemplateId);
+            assertEquals(204, response.statusCode());
+        }
+    }
+
+    @Test
+    @Order(18)
+    void listTemplatesAfterDeleteAllVersions() throws Exception {
+        Response response = get("/api/workbench/templates");
+
+        assertEquals(200, response.statusCode());
+        JsonNode list = MAPPER.readTree(response.body().asString());
+        assertTrue(list.isArray());
+        // All versions deleted - list should be empty
         assertEquals(0, list.size());
     }
 
     // --- Weitere Szenarien ---
 
     @Test
-    @Order(17)
+    @Order(19)
     void uploadMultipleTemplates() throws Exception {
         for (int i = 0; i < 3; i++) {
             Response response = uploadMultipart("multi-template-" + i, ("template-" + i).getBytes());
@@ -222,7 +256,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(18)
+    @Order(20)
     void validationResultStructure() throws Exception {
         Response response = uploadMultipart("validation-structure", "test-validation".getBytes());
 
@@ -268,7 +302,7 @@ class WorkbenchIT {
     private static String testDataSetId;
 
     @Test
-    @Order(19)
+    @Order(21)
     void listTestDataSetsInitiallyEmpty() throws Exception {
         // Upload a template first for TestDataSet tests
         Response uploadResp = uploadMultipart("testdata-template", "template-content".getBytes());
@@ -285,7 +319,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(20)
+    @Order(22)
     void createTestDataSet() throws Exception {
         // Get the template from previous test
         Response templatesResp = get("/api/workbench/templates");
@@ -308,7 +342,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(21)
+    @Order(23)
     void listTestDataSetsAfterCreate() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -324,7 +358,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(22)
+    @Order(24)
     void updateTestDataSet() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -343,7 +377,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(23)
+    @Order(25)
     void saveExpectedPdf() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -363,7 +397,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(24)
+    @Order(26)
     void getExpectedPdf() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -377,7 +411,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(25)
+    @Order(27)
     void deleteTestDataSet() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -389,7 +423,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(26)
+    @Order(28)
     void listTestDataSetsAfterDelete() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
