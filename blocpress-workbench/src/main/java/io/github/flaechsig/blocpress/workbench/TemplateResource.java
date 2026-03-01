@@ -254,17 +254,32 @@ public class TemplateResource {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
 
-        // Check for name conflict
-        if (Template.find("name", request.name()).firstResult() != null) {
-            throw new WebApplicationException(
-                "Template with name '" + request.name() + "' already exists",
-                Response.Status.CONFLICT
-            );
+        // Determine version for duplicate based on target name
+        String targetName = request.name();
+        Integer targetVersion = 1;
+
+        // If duplicating with same name, auto-increment version (like upload)
+        if (targetName.equals(source.name)) {
+            Template lastVersion = Template.find("name = ?1 ORDER BY version DESC", targetName)
+                    .firstResult();
+            if (lastVersion != null) {
+                targetVersion = lastVersion.version + 1;
+            }
+        } else {
+            // If using different name, check that it doesn't already exist
+            Template existing = Template.find("name = ?1", targetName).firstResult();
+            if (existing != null) {
+                throw new WebApplicationException(
+                    "Template with name '" + targetName + "' already exists",
+                    Response.Status.CONFLICT
+                );
+            }
         }
 
         // Create new template as DRAFT
         Template duplicate = new Template();
-        duplicate.name = request.name();
+        duplicate.name = targetName;
+        duplicate.version = targetVersion;
         duplicate.content = source.content.clone(); // Copy binary content
         duplicate.status = TemplateStatus.DRAFT;
         duplicate.createdAt = Instant.now();
@@ -279,6 +294,7 @@ public class TemplateResource {
             .entity(Map.of(
                 "id", duplicate.id,
                 "name", duplicate.name,
+                "version", duplicate.version,
                 "status", duplicate.status,
                 "isValid", validationResult.isValid()
             ))

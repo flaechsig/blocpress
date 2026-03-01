@@ -378,6 +378,61 @@ class TemplateResourceUnitTest {
         assertTrue(true, "Cache behavior verified in integration tests");
     }
 
+    // ===== Duplicate Request Record Tests =====
+
+    @Test
+    void testDuplicateRequestCreation() {
+        TemplateResource.DuplicateRequest request = new TemplateResource.DuplicateRequest("NewTemplateName");
+
+        assertEquals("NewTemplateName", request.name());
+    }
+
+    @Test
+    void testDuplicateRequestEquality() {
+        TemplateResource.DuplicateRequest request1 = new TemplateResource.DuplicateRequest("Test");
+        TemplateResource.DuplicateRequest request2 = new TemplateResource.DuplicateRequest("Test");
+
+        assertEquals(request1, request2);
+    }
+
+    @Test
+    void testDuplicateRequestToString() {
+        TemplateResource.DuplicateRequest request = new TemplateResource.DuplicateRequest("TestName");
+
+        assertTrue(request.toString().contains("TestName"));
+    }
+
+    @Test
+    void testDuplicateRequestWithDifferentNames() {
+        TemplateResource.DuplicateRequest request1 = new TemplateResource.DuplicateRequest("Name1");
+        TemplateResource.DuplicateRequest request2 = new TemplateResource.DuplicateRequest("Name2");
+
+        assertNotEquals(request1, request2);
+    }
+
+    @Test
+    void testDuplicateRequestWithEmptyName() {
+        TemplateResource.DuplicateRequest request = new TemplateResource.DuplicateRequest("");
+
+        assertEquals("", request.name());
+    }
+
+    @Test
+    void testDuplicateRequestWithSpecialCharacters() {
+        String specialName = "Template_With-Special.Chars@123";
+        TemplateResource.DuplicateRequest request = new TemplateResource.DuplicateRequest(specialName);
+
+        assertEquals(specialName, request.name());
+    }
+
+    @Test
+    void testDuplicateRequestWithUnicodeCharacters() {
+        String unicodeName = "Template_Ümlaute_Äöü";
+        TemplateResource.DuplicateRequest request = new TemplateResource.DuplicateRequest(unicodeName);
+
+        assertEquals(unicodeName, request.name());
+    }
+
     // ===== Helper Methods =====
 
     private ValidationResult createValidValidationResult() {
