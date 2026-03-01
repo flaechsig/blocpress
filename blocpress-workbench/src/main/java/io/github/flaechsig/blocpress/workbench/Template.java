@@ -41,10 +41,10 @@ public class Template extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     public Instant createdAt;
 
-    @Column(nullable = true)
+    @Column(name = "valid_from", nullable = true)
     public LocalDateTime validFrom;
 
     @Enumerated(EnumType.STRING)
@@ -52,7 +52,7 @@ public class Template extends PanacheEntityBase {
     public TemplateStatus status = TemplateStatus.DRAFT;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(columnDefinition = "jsonb")
+    @Column(name = "validation_result", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     public ValidationResult validationResult;
 

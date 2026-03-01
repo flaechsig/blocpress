@@ -24,21 +24,21 @@ public class TestDataSet extends PanacheEntityBase {
     public String name;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(name = "test_data", columnDefinition = "jsonb", nullable = false)
     @JdbcTypeCode(SqlTypes.JSON)
     public JsonNode testData;
 
-    @Column(columnDefinition = "bytea", nullable = true)
+    @Column(name = "expected_pdf", columnDefinition = "bytea", nullable = true)
     @JdbcTypeCode(SqlTypes.BINARY)
     public byte[] expectedPdf;
 
-    @Column(length = 64)
+    @Column(name = "pdf_hash", length = 64)
     public String pdfHash;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     public Instant createdAt;
 
-    @Column
+    @Column(name = "updated_at")
     public Instant updatedAt;
 
     public TestDataSet() {

@@ -29,6 +29,7 @@ services:
     ports:
       - "8081:8081"
     environment:
+      QUARKUS_PROFILE: dev
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/workbench
       QUARKUS_DATASOURCE_USERNAME: workbench
       QUARKUS_DATASOURCE_PASSWORD: workbench
