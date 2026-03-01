@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.entity;
 
 public enum TemplateStatus {
     DRAFT,      // Initial state after upload

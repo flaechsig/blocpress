@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;

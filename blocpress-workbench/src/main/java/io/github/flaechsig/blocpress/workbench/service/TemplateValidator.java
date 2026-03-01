@@ -1,9 +1,10 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.service;
 
 import io.github.flaechsig.blocpress.core.TemplateDocument;
 import io.github.flaechsig.blocpress.core.TemplateElement;
 import io.github.flaechsig.blocpress.core.odt.JexlConditionEvaluator;
 import io.github.flaechsig.blocpress.core.odt.OdtTemplateElement;
+import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,10 +40,10 @@ public class TemplateValidator {
         Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$");
 
     @Inject
-    ObjectMapper objectMapper;
+    public ObjectMapper objectMapper;
 
     @Inject
-    JsonSchemaGenerator schemaGenerator;
+    public JsonSchemaGenerator schemaGenerator;
 
     public ValidationResult validate(byte[] templateContent) {
         List<ValidationResult.ValidationMessage> errors = new ArrayList<>();

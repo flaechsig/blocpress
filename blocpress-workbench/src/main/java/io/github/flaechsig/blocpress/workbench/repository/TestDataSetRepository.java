@@ -1,5 +1,6 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.repository;
 
+import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 

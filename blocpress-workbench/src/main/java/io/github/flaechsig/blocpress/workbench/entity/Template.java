@@ -1,5 +1,8 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.entity;
 
+import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
+import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
+import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;

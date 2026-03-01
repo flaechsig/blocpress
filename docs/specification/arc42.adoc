@@ -29,7 +29,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 - Wiederholungsgruppen für Arrays (Sections und Tables)
 - IF-Bedingungen für dynamische Inhalte
 - Export in ODT, PDF und RTF
-* *Workflow-gesteuerte Freigabe:* Mehrstufiger Freigabeprozess mit Vier-Augen-Prinzip (Designer ≠ Freigeber)
+* *Workflow-gesteuerte Freigabe:* Mehrstufiger Freigabeprozess mit Reviewer-Genehmigung (organisatorisch durchgesetzt)
 * *Compliance-Management:* Automatische Überwachung turnusmäßiger Reviews (1, 3 oder 5 Jahre)
 * *Test-Framework:* Verwaltung von Testdaten, Baseline-PDFs und automatisierte Regressionstests
 * *Content Search:* Performante Volltextsuche nach fachlichen Konstrukten über alle Templates
@@ -70,7 +70,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 | 4
 | *Sicherheit*
-| Vier-Augen-Prinzip (Designer ≠ Freigeber) technisch erzwungen. RBAC für alle Funktionen. API-Rate-Limiting.
+| Reviewer-Freigabe (organisatorisch durchgesetzt). RBAC für alle Funktionen. API-Rate-Limiting.
 | 2.3, 10.4
 
 | 5
@@ -153,8 +153,8 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 |===
 | Randbedingung | Erläuterung
 
-| Vier-Augen-Prinzip
-| Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen durch TF-2.
+| Reviewer-Freigabe erforderlich
+| Templates müssen von Reviewer-Rolle freigegeben werden. Organisatorisch sicherzustellen, dass nicht der Designer sein Template selbst freigibt.
 
 | Compliance-Reviews
 | Templates mit rechtlicher/regulatorischer Relevanz müssen nach 1, 3 oder 5 Jahren zur Review vorgelegt werden.
@@ -275,7 +275,7 @@ node "Docker Host / Kubernetes" as Docker {
     component "blocpress-admin\n(Quarkus)" as Admin
     component "blocpress-render\n(Quarkus)" as Render
   }
-  database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproof, production, admin)" as DB
+  database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproduction)" as DB
   queue "RabbitMQ/Kafka" as MQ
   component "Elasticsearch ≥ 7.x" as ES
 }
@@ -291,9 +291,7 @@ Studio -down-> Admin : REST (intern)
 ExtApp -down-> Render : REST-API\nJSON over HTTPS
 
 Workbench -down-> DB : JDBC (Schema: workbench)
-Proof -down-> DB : JDBC (Schema: proof)
 Render -down-> DB : JDBC (Schema: production)
-Admin -down-> DB : JDBC (Schema: admin)
 Workbench -down-> ES : REST-API\nHTTP/JSON
 Render -down-> MQ : AMQP / Kafka Protocol
 ScsModules --> Monitor
@@ -320,7 +318,7 @@ ScsModules --> Monitor
 
 | SCS-Module → PostgreSQL
 | JDBC, PostgreSQL Wire Protocol
-| Jedes Modul nutzt eigenes Schema (workbench, proof, production, admin)
+| blocpress-workbench nutzt Schema `workbench`, blocpress-render nutzt Schema `production`
 
 | Render → RabbitMQ/Kafka
 | AMQP (RabbitMQ) / Kafka Protocol
@@ -362,8 +360,8 @@ ScsModules --> Monitor
 | Funktionale Eignung, Kosteneffizienz
 
 | *PostgreSQL ≥ 18 — Multi-Schema*
-| Reife relationale DB. Jedes SCS-Modul nutzt ein eigenes Schema (workbench, proof, production, admin) in derselben Datenbank. Identische Tabellenstrukturen für Templates in workbench/proof/production ermöglichen kopie-basierte Stufenübergabe.
-| Zuverlässigkeit, Wartbarkeit
+| Reife relationale DB mit zwei Schemata: `workbench` für Entwicklung/Test und `production` für freigegebene Templates. Identische Tabellenstrukturen ermöglichen physische, kopie-basierte Stufenübergabe — nur freigegebene Templates werden nach production kopiert, um nachzuweisen, dass nur validierte Versionen in Produktion verwendet werden.
+| Zuverlässigkeit, Wartbarkeit, Compliance
 
 | *Storage Abstraction Layer*
 | Ermöglicht zukünftigen Wechsel zu S3 ohne Code-Änderungen in Business-Logik
@@ -1353,7 +1351,7 @@ node "Docker Host" {
   }
 
   node "postgresql Container" {
-    database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproof, production, admin)" as DB
+    database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproduction)" as DB
   }
 
   node "rabbitmq Container" {
@@ -2669,8 +2667,8 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | *User-Field*
 | Platzhalter in einem Template, der durch JSON-Daten befüllt wird. Name in Punkt-Notation (z.B. `kunde.name`).
 
-| *Vier-Augen-Prinzip*
-| Sicherheitskonzept: Template-Designer darf nicht gleichzeitig Freigeber sein. Technisch erzwungen in TF-2 (blocpress-proof).
+| *Reviewer-Freigabe*
+| Sicherheitskonzept: Templates müssen von Reviewer-Rolle freigegeben werden. Organisatorisch durchgesetzt (nicht technisch erzwungen). Bei Personen mit Developer + Reviewer Rollen: organisatorisches Qualitätssicherungs-Problem.
 
 | *Web Component*
 | Browser-Standard (Custom Elements + Shadow DOM) für wiederverwendbare UI-Komponenten. Jedes SCS-Modul liefert seine UI als Web Component (z.B. `<bp-workbench>`), die von blocpress-studio geladen wird.

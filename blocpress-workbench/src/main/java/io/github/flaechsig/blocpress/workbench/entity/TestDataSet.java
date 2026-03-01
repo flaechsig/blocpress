@@ -1,6 +1,7 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.github.flaechsig.blocpress.workbench.entity.Template;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;

@@ -1,5 +1,8 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.service;
 
+import io.github.flaechsig.blocpress.workbench.entity.Template;
+import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
+import io.github.flaechsig.blocpress.workbench.repository.TestDataSetRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

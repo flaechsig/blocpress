@@ -1,4 +1,4 @@
-package io.github.flaechsig.blocpress.workbench;
+package io.github.flaechsig.blocpress.workbench.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +26,7 @@ import java.util.Set;
 public class JsonSchemaGenerator {
 
     @Inject
-    ObjectMapper objectMapper;
+    public ObjectMapper objectMapper;
 
     /**
      * Generate JSON-Schema from template fields and repetition groups.
