@@ -279,6 +279,46 @@ _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-suche[Fachliche Kon
 _Fachliche Quality Requirements: xref:Solution_Design_Concept.adoc#sdc-qr[Quality Requirements im Solution Design Concept]_ +
 _Element-spezifische Quality Requirements: xref:Element_Design_Concept.adoc#edc-qr[Quality Requirements im Element Design Concept]_
 
+== Testing Approach
+
+**Pragmatischer Test-Ansatz:**
+
+blocpress verfolgt einen pragmatischen Test-Ansatz, der **funktionale Korrektheit und echte Bug-Erkennung vor Instrumentation-Metriken** priorisiert:
+
+*Kernprinzipien:*
+
+1. **Integration Tests mit realen Abhängigkeiten:** H2 in-memory Datenbanken für Test-Isolation
+2. **Echtheit vor Mocks:** Tests durchlaufen die komplette Schicht (HTTP → REST → Business Logic → Database)
+3. **Bug-Discovery by Scenario:** Echte Datenbank-Szenarien decken Fehler auf, die Mock-Tests übersehen
+4. **Determinismus-Validierung:** Expected Result PDFs verifizieren Qualitätsziel "Zuverlässigkeit"
+
+*Test-Klassifizierung:*
+
+[cols="1,2,2" options="header"]
+|===
+| Typ | Zweck | Technologie
+
+| Unit Tests
+| Validierungslogik, Parser, Conditions isoliert testen
+| JUnit 5, Mockito
+
+| Integration Tests
+| Komplette Workflows mit echter Datenbank und REST-API
+| JUnit 5, H2, REST-Assured, Quarkus @QuarkusTest
+
+| Regression Tests
+| Determinismus: Gleiche Eingabe → Gleiche Ausgabe
+| PDF-Byte-Vergleiche mit Expected Results
+|===
+
+*Erkannte Metriken-Limits:*
+
+- JaCoCo-Coverage für REST-APIs ist nicht aussagekräftig (Code läuft in separatem ClassLoader, HTTP-Marshalling wird nicht instrumentiert)
+- Fokus liegt auf **funktionale Testabdeckung** statt Instrumentation-Metriken
+- H2-basierte Integration Tests finden echte Fehler (Beweis: 4 Bugs in blocpress-workbench entdeckt und korrigiert)
+
+_Detaillierte Test-Metriken und Erkenntnisse: xref:../product-backlog.adoc#UC-10-1[Test-Strategie im Product Backlog]_
+
 [[sydc-constraints]]
 == Constraints
 

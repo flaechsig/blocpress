@@ -775,25 +775,29 @@ Jedes SCS-Modul stellt eigene REST-Endpoints bereit. Nur blocpress-render ist ö
 
 *Öffentliche API (blocpress-render):*
 
-- `POST /api/render/template/merge` - Template mit JSON-Daten zusammenführen und als ODT/PDF/RTF zurückgeben
-- Parameter: file (multipart/form-data), data (JSON), outputFormat (String)
-- `POST /api/render/{id}` - Dokument mit gespeichertem Template (ID) und JSON-Daten generieren (UC-10)
-- Parameter: id (UUID path), requestBody (data: JSON, outputType: pdf|rtf|odt)
+- `POST /api/render/template/upload` - Template mit JSON-Daten zusammenführen und als ODT/PDF/RTF zurückgeben (Multipart)
+- Parameter: template (binary), data (JSON)
+- `POST /api/render/template` - Template mit JSON-Daten zusammenführen (Base64-kodiert) und als ODT/PDF/RTF zurückgeben
+- Parameter: requestBody (template: base64, data: JSON, outputType: pdf|rtf|odt)
+- `POST /api/render/{name}` - Dokument mit gespeichertem Template (Name) und JSON-Daten generieren (UC-10.1)
+- Parameter: name (String path), requestBody (data: JSON, outputType: pdf|rtf|odt)
 - Nur APPROVED Templates zugänglich
 - Template-Content wird gecacht (10 min TTL)
+- Automatische Selektion der neuesten aktiven Version basierend auf validFrom-Datum
 - Response: Binary Dokument im gewünschten Format
 
 *Interne API (blocpress-workbench, Port 8081):*
 
 Template-Management:
 
-- `POST /api/workbench/templates` - Template hochladen
-- `GET /api/workbench/templates/{id}` - Template-Binärdaten abrufen
-- `GET /api/workbench/templates` - Template-Liste mit Status und Validierung abrufen
+- `POST /api/workbench/templates` - Template hochladen (auto-versioning nach Name, UC-10.1)
+- `GET /api/workbench/templates/{id}` - Template-Binärdaten abrufen (Download)
+- `GET /api/workbench/templates` - Template-Liste mit Status und Validierung abrufen (nur neueste Version pro Name)
 - `GET /api/workbench/templates/{id}/details` - Template-Details mit Validierungsergebnis
 - `GET /api/workbench/templates/{id}/content` - Template-Content für blocpress-render abrufen (nur APPROVED, UC-10)
+- `GET /api/workbench/templates/by-name/{name}/content` - Template-Content nach Name abrufen (nur neueste APPROVED Version, UC-10.1)
 - `POST /api/workbench/templates/{id}/submit` - Template zur Freigabe einreichen (löst Stufenübergabe an proof aus)
-- `PUT /api/workbench/templates/{id}/status` - Template-Status ändern (DRAFT→SUBMITTED, etc., UC-5)
+- `PUT /api/workbench/templates/{id}/status` - Template-Status ändern (DRAFT→SUBMITTED, etc., UC-5); setzt validFrom=now() bei APPROVED Transition (UC-10.1)
 - `POST /api/workbench/templates/{id}/duplicate` - Produktives Template als DRAFT-Kopie erstellen (UC-5)
 - `PUT /api/workbench/templates/{id}/content` - Template-Inhalt aktualisieren/neu hochladen (UC-5)
 - `DELETE /api/workbench/templates/{id}` - Template löschen
@@ -839,6 +843,36 @@ Jedes SCS-Modul ruft seine eigenen Technical Functions auf:
 - blocpress-proof: TF-2 (Workflow-Status ändern), TF-4 (Review-Datum), TF-6 (PDF vergleichen), TF-7 (Reviews prüfen)
 - blocpress-render: TF-5 (Dokument generieren)
 - blocpress-admin: CRUD auf E-9 (Benutzer), E-10 (Konfiguration)
+
+====== UC-10.1: Template-Versionierung mit validFrom-Datum
+
+*Implementierungsdetails:*
+
+Template-Versionierung ermöglicht es, mehrere Versionen desselben Templates (gleicher Name) parallel zu verwenden und geplante Rollouts über ein `validFrom`-Feld zu unterstützen.
+
+*Funktionsweise:*
+
+1. **Auto-Versioning beim Upload:** Jedes Mal, wenn ein Template mit einem bereits existierenden Namen hochgeladen wird, erhält es automatisch die nächste Versionsnummer. Beispiel: Erstes Upload → v1, zweites Upload → v2, drittes Upload → v3.
+
+2. **Unique Constraint:** Die Kombination (name, version) ist eindeutig in der Datenbank. Dies verhindert doppelte Versionen desselben Namens.
+
+3. **validFrom-Feld:** Wird automatisch auf `now()` gesetzt, wenn ein Template den Status APPROVED erhält. Dies ermöglicht geplante Aktivierungen: Administratoren können das Feld auf ein zukünftiges Datum setzen, um die Aktivierung zu verschieben.
+
+4. **Neueste aktive Version auswählen:** Beim Rendern wird automatisch die höchste Versionsnummer gewählt, deren `validFrom` ≤ now() ist. Beispiel: Wenn v1, v2, v3 alle APPROVED sind, aber v3 mit einem zukünftigen validFrom-Datum versehen wurde, wird v2 verwendet.
+
+5. **Keine Löschung:** Alte Template-Versionen bleiben in der Datenbank erhalten. Dies ermöglicht ein Rollback auf frühere Versionen, falls nötig.
+
+*API-Auswirkungen:*
+
+- `POST /api/workbench/templates` — Auto-Versioning basierend auf Name
+- `GET /api/workbench/templates` — Zeigt nur die neueste Version pro Template-Name an
+- `GET /api/workbench/templates/by-name/{name}/content` — Ruft die neueste aktive APPROVED Version ab
+- `POST /api/render/{name}` — Rendert mit der neuesten aktiven Version
+- `PUT /api/workbench/templates/{id}/status` — Setzt `validFrom` bei Transition zu APPROVED
+
+*Cache-Strategie:*
+
+blocpress-render nutzt einen Cache (Caffeine, 10 min TTL, 100 Template max) für Template-Content, um HTTP-Requests an blocpress-workbench zu minimieren. Der Cache wird invalidiert, wenn Administratoren ein zukünftiges validFrom-Datum setzen (manueller Invalidierungsmechanismus empfohlen).
 
 [[edc-ti-2]]
 === TI-2: Datenbank-Interface (PostgreSQL, Multi-Schema)
@@ -964,19 +998,16 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template 
 | ID | Name | Data Type | Description
 
 | 1 | id | UUID | Eindeutige Template-ID (Primary Key, auto-generiert)
-| 2 | name | String(255) | Name des Templates
+| 2 | name | String(255) | Name des Templates (nicht eindeutig, da versioniert)
 | 3 | description | String(2000) | Beschreibung des Templates
-| 4 | version | Integer | Versionsnummer (1, 2, 3, ...)
-| 5 | status | String(50) | Status: "Entwurf", "Eingereicht", "In Prüfung", "Freigegeben", "Abgelehnt", "Archiviert"
-| 6 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
-| 7 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
-| 8 | freigeber_id | UUID | Foreign Key zu E-9 (Benutzer), nullable
-| 9 | freigabedatum | Timestamp | Freigabezeitpunkt, nullable
-| 10 | template_binary | bytea | ODT-Datei als Binärdaten (PostgreSQL BLOB)
-| 11 | user_fields | JSONB | Extrahierte User-Fields aus Validierung
-| 12 | wiederholungsgruppen | JSONB | Extrahierte Wiederholungsgruppen
-| 13 | bedingungen | JSONB | Extrahierte IF-Bedingungen
-| 14 | review_zyklus | Integer | Review-Zyklus in Jahren (1, 3 oder 5)
+| 4 | version | Integer | Versionsnummer (1, 2, 3, ...; UC-10.1: Auto-Versioning nach Name)
+| 5 | status | String(50) | Status: "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"
+| 6 | validFrom | Timestamp | Aktivierungsdatum (UC-10.1); NULL bis APPROVED; wird auf now() gesetzt bei APPROVED Transition; kann von Admin auf zukünftiges Datum geändert werden für geplante Rollouts
+| 7 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
+| 8 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
+| 9 | content | bytea | ODT-Datei als Binärdaten (PostgreSQL BLOB)
+| 10 | validation_result | JSONB | Validierungsergebnis: {errors: [...], warnings: [...], userFields: [...], repetitionGroups: [...], conditions: [...]}
+| 11 | review_zyklus | Integer | Review-Zyklus in Jahren (1, 3 oder 5)
 |===
 
 [[edc-e-2]]

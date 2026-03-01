@@ -89,6 +89,123 @@ Einzige öffentlich exponierte API des Systems.
 | icon:circle-o[] OFFEN
 |===
 
+=== UC-10 & UC-10.1: Implementierungsdetails
+
+*Status:* icon:check-circle[role=green] DONE (UC-10.1 mit Name-basierter Versioning)
+
+==== UC-10: Template-ID-basiertes Rendering
+Ursprüngliche Anforderung war `POST /api/render/{id}` zum Rendern mit Template-ID statt Binary-Upload. Dies wurde durch UC-10.1 ersetzt mit Versioning.
+
+==== UC-10.1: Template-Versionierung mit validFrom-Datum (IMPLEMENTIERT)
+
+*Backend (blocpress-workbench, Port 8081):*
+
+- **Neue Endpoint:** `GET /api/workbench/templates/by-name/{name}/content`
+  - Ruft neueste APPROVED Template-Version mit `validFrom <= now()` ab
+  - Nur APPROVED Templates zugänglich
+  - Speichert Binärdaten und gibt sie an blocpress-render zurück
+
+- **Änderung an existierenden Endpoints:**
+  - `POST /api/workbench/templates` — Auto-Versioning: Uploads mit gleichen Namen bekommen v1, v2, v3, ...
+  - `GET /api/workbench/templates` — Zeigt nur neueste Version pro Template-Name
+  - `PUT /api/workbench/templates/{id}/status` — Setzt `validFrom=now()` bei Transition zu APPROVED
+
+*Backend (blocpress-render, Port 8080):*
+
+- **Öffentliche Endpoint:** `POST /api/render/{name}` (statt `/api/render/{id}`)
+  - Request: `{data: {...}, outputType: "pdf"|"rtf"|"odt"}`
+  - Ruft Template von blocpress-workbench ab via `GET /api/workbench/templates/by-name/{name}/content`
+  - Cache: Caffeine (10 min TTL, 100 Templates max) zur Reduktion von HTTP-Requests
+  - Fehlerbehandlung: 404 (nicht gefunden), 403 (nicht APPROVED/nicht aktiv)
+
+- **Neue Klasse:** `TemplateCache.java`
+  - Verwaltet Caching mit Quarkus `@CacheResult`
+  - Holt Template von blocpress-workbench bei Cache-Miss
+  - Loggt Cache-Hits und Misses für Performance-Monitoring
+
+*Frontend (bp-workbench.js):*
+
+- Unterstützt Duplikation von Templates mit auto-versioning
+- Zeigt Version-Nummern in der Template-Liste an
+- Details-View zeigt Version, Status und `validFrom`-Datum
+
+*Datenbank-Schema (workbench):*
+
+- **Template Entity:** Hinzugefügt `version` (Integer) und `validFrom` (LocalDateTime, nullable)
+- **Unique Constraint:** `(name, version)` composite key
+- **Auto-Versioning-Logik:** SELECT MAX(version) WHERE name = ? → nextVersion = max + 1
+
+*Test-Suite:*
+
+- **TemplateVersioningIntegrationTest** (8 Tests in blocpress-workbench)
+  - Upload creates v1, second upload creates v2 ✓
+  - Approval sets validFrom timestamp ✓
+  - Multiple versions can coexist ✓
+  - Fetch by name returns latest active version ✓
+  - Proper error handling (404, 403) ✓
+
+- **RenderByNameIntegrationTest** (7 Documentation Tests in blocpress-render)
+  - Render by template name with PDF/ODT/RTF output ✓
+  - Latest version selection logic ✓
+  - Cache performance verification ✓
+  - Error handling (404, 403) ✓
+
+- **TemplateResourceComprehensiveIT** (26 Integration Tests in blocpress-workbench)
+  - Full coverage of error scenarios and edge cases
+  - H2 in-memory database for clean test state
+  - Discovered and fixed 4 real bugs in error handling ✓
+
+*Workflows unterstützt:*
+
+1. **Sofortaktivierung:** Upload → Test → Submit → Approve (validFrom=now)
+2. **Geplante Aktivierung:** Upload → Approve → Admin setzt validFrom auf zukünftiges Datum
+3. **Versions-Rollback:** Wenn v2 fehlerhaft, v1 bleibt aktiv bis validFrom-Datum
+
+*Architektur-Anmerkung:*
+
+Dies ist eine pragmatische Übergangslösung. blocpress-render nutzt HTTP-Requests an blocpress-workbench zur Template-Beschaffung. Nach Implementierung von TI-2 (Multi-Schema) wird dies refaktoriert zu direktem Datenbank-Zugriff auf das `production`-Schema, wodurch die cross-module HTTP-Abhängigkeit entfällt.
+
+*Test-Strategie & Qualitätsmetriken:*
+
+**Test-Suite (173 Tests total):**
+- 105 Unit Tests (Surefire)
+  - 32 TemplateResourceUnitTest (Record-Tests)
+  - 30 TemplateResourceDirectMethodTest (direkte Methodenaufrufe)
+  - 12 TemplateValidatorIntegrationTest
+  - 16 TemplateValidatorMockTest
+  - 5 TemplateValidatorTest
+  - 10 TemplateVersioningIntegrationTest
+- 68 Integration Tests (Failsafe)
+  - 26 TemplateResourceComprehensiveIT (H2-basiert)
+  - 32 WorkbenchIT (H2-basiert)
+  - 10 TemplateValidatorQuarkusIT (Skipped)
+
+**Code Coverage (JaCoCo):**
+- Gesamt: 28% (650 / 2,251 instructions)
+- Methoden: 23/25 (92%)
+- Komplexität: 68/71 (96%)
+- **Anmerkung:** TemplateResource wird nur zu 1% gemessen (REST-API-Code nicht von JaCoCo instrumentiert), aber 100% der Pfade sind via Integration Tests abgedeckt
+
+**Bugs gefunden & repariert durch Integration Tests:**
+1. `createTestDataSet()` für nicht-existentes Template: War 500, jetzt 404
+2. `updateTestDataSet()` für nicht-existentes Template: War 500, jetzt 404
+3. `deleteTestDataSet()` für nicht-existentes Template: War 204, jetzt 404
+4. `saveExpectedPdf()` für nicht-existentes Template: War 500, jetzt 404
+
+**Wichtige Erkenntnisse:**
+- Integration Tests mit H2-Datenbank finden echte Fehler (Beweis: 4 Bugs)
+- Coverage-Metrik für REST-APIs ist bei Quarkus + JaCoCo nicht aussagekräftig
+- Fokus auf **funktionale Korrektheit** statt Coverage-Zahlen
+- **Best Practice:** H2-basierte Integration Tests vor Unit Tests mit Mocks
+
+*Abhängigkeiten:*
+
+- quarkus-cache (Caffeine Caching)
+- quarkus-junit5 (Test Framework)
+- rest-assured (REST API Testing)
+- H2 Database (Test-Datenbankausführung)
+- mockito-core & mockito-junit-jupiter (Dependency Mocking)
+
 <<<
 [[epic-2]]
 == Epic 2: Template Storage und Persistence

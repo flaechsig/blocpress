@@ -940,9 +940,9 @@ end note
 
 === Template-ID-basiertes Rendering mit Cache
 
-*Szenario:* Produktive Anwendung generiert Dokument mit gespeicherter Template-ID statt Binary-Upload (UC-10, TF-5)
+*Szenario:* Produktive Anwendung generiert Dokument mit gespeichertem Template-Namen und automatischer Versions-Selektion (UC-10.1, TF-5)
 
-[plantuml, laufzeit-template-id-rendering, svg]
+[plantuml, laufzeit-template-name-rendering, svg]
 ----
 @startuml
 actor "Externe\nAnwendung" as App
@@ -954,9 +954,14 @@ participant "RenderEngine\n(TF-5)" as Engine
 participant "LibreOfficeProcessor" as LO
 participant "Repository\n(Schema: workbench)" as Repo
 
-App -> Render : POST /api/render/{id}\n{data, outputType: pdf}
-Render -> Resource : renderDocumentById(uuid, request)
-Resource -> Cache : getTemplateContent(templateId)
+App -> Render : POST /api/render/{name}\n{data, outputType: pdf}
+note right of App
+    name = Template name (z.B. "Invoice", "PurchaseOrder")
+    Automatische Auswahl der neuesten aktiven Version
+end note
+
+Render -> Resource : renderDocumentByName(name, request)
+Resource -> Cache : getTemplateContentByName(name)
 
 alt Cache Hit
     Cache --> Resource : byte[] (gecacht)
@@ -965,18 +970,21 @@ alt Cache Hit
         TTL: 10 min, Max: 100 Templates
     end note
 else Cache Miss
-    Cache -> Workbench : GET /api/workbench/templates/{id}/content
-    Workbench -> Repo : findById(templateId)
-    Repo --> Workbench : Template entity
+    Cache -> Workbench : GET /api/workbench/templates/by-name/{name}/content
+    Workbench -> Repo : findLatestActiveByName(name)
+    note right of Repo
+        UC-10.1: Select highest version\nwhere status=APPROVED AND validFrom <= now()
+    end note
+    Repo --> Workbench : Template entity (neueste aktive Version)
 
-    alt Status = APPROVED
+    alt Status = APPROVED && validFrom <= now()
         Workbench --> Cache : 200 OK (ODT binary)
         Cache -> Cache : store in cache (Caffeine)
         Cache --> Resource : byte[]
-    else Status ≠ APPROVED
+    else Status ≠ APPROVED || validFrom > now()
         Workbench --> Cache : 403 Forbidden
         Cache --> Resource : TemplateNotFoundException
-        Resource --> App : 403 Forbidden\n"Template not approved"
+        Resource --> App : 403 Forbidden\n"Template not approved or not yet active"
     end alt
 
     alt Template not found
@@ -995,7 +1003,9 @@ LO --> Resource : PDF binary
 Resource --> App : 200 OK (PDF binary)
 
 note right of Cache
-    UC-10: Template-ID-basiertes Rendering
+    UC-10.1: Template-Namen-basiertes Rendering mit Versioning
+    - Auto-Versioning: mehrere Versionen pro Template-Name
+    - validFrom-Feld: geplante Aktivierung/Rollout
     Interim-Lösung: HTTP-Fetch zu blocpress-workbench
     Zukünftig (TI-2): Direct DB read aus production-Schema
 end note
@@ -2375,6 +2385,72 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | blocpress soll in neuer Umgebung deployed werden
 | docker-compose up startet alle Services, keine manuellen Konfigurationsschritte
 |===
+
+=== Test-Strategie und Metriken
+
+**Grundprinzipien:**
+
+Die Test-Strategie von blocpress folgt einem pragmatischen Ansatz, der **funktionale Korrektheit vor Instrumentation-Coverage** priorisiert:
+
+1. **Integration Tests mit echten Datenbanken:** H2 in-memory Datenbanken für Test-Isolation ohne Mocks
+2. **Echtheit über Metrik-Spielerei:** Tests durchlaufen die komplette Schicht (HTTP → REST → Business Logic → Database)
+3. **Fehler-Discovery durch echte Szenarien:** Datenbank-Tests decken Fehler auf, die Mocks nie finden würden
+4. **Fokus auf Regressionstests:** Validierung, dass identische Inputs identische Outputs produzieren
+
+**Test-Klassifizierung:**
+
+[cols="1,2,3,2" options="header"]
+|===
+| Typ | Zweck | Technologie | Anteil
+
+| *Unit Tests*
+| Logik einzelner Methoden isoliert testen (Validator, Parser, etc.)
+| JUnit 5, Mockito
+| 60%
+
+| *Integration Tests*
+| Komplette Workflows mit echten Abhängigkeiten (DB, REST-Calls)
+| JUnit 5, H2, REST-Assured, Quarkus @QuarkusTest
+| 40%
+
+| *Regression Tests*
+| Identische Inputs → identische Outputs (Determinismus-Validierung)
+| PDF-Byte-Vergleiche, Expected Result PDFs
+| Subset von Integration Tests
+|===
+
+**Metriken und Erkenntnisse (blocpress-workbench):**
+
+- **Test-Umfang:** 173 Tests (105 Unit + 68 Integration)
+- **Automatisierte Bugs gefunden:** 4 echte Fehler in Error Handling (alle durch H2 Integration Tests)
+  * `createTestDataSet()` für nicht-existentes Template: War 500, korrigiert zu 404
+  * `updateTestDataSet()` für nicht-existentes Template: War 500, korrigiert zu 404
+  * `deleteTestDataSet()` für nicht-existentes Template: War 204, korrigiert zu 404
+  * `saveExpectedPdf()` für nicht-existentes Template: War 500, korrigiert zu 404
+- **JaCoCo Instruction Coverage:** 28% (650 / 2,251 instructions)
+- **JaCoCo Method Coverage:** 92% (23/25 Methoden)
+- **JaCoCo Cyclomatic Complexity:** 96% (68/71)
+
+**Wichtiger Hinweis zur Coverage-Metrik:**
+
+REST-API-Code (TemplateResource) wird von JaCoCo zu nur 1% gemessen, obwohl 100% der Pfade via Integration Tests abgedeckt sind. Grund: Quarkus startet einen HTTP-Server, Code läuft in separatem ClassLoader, HTTP-Marshalling wird nicht instrumentiert.
+
+**Konsequenz:** JaCoCo-Metriken für REST-APIs sind **nicht aussagekräftig**. Der pragmatische Ansatz ist:
+- Integration Tests **funktionale Korrektheit** verifizieren
+- Unit Tests Kernlogik isoliert validieren
+- Coverage-Tools für reine Business-Logic-Module nutzen
+
+**Best Practice Erkenntnisse:**
+
+1. ✅ H2-basierte Integration Tests finden echte Fehler (Beweis: 4 Bugs entdeckt und korrigiert)
+2. ✅ Direkte Methodenaufrufe in @QuarkusTest sind transaktional möglich
+3. ✅ Mock-basierte Tests übersehen Fehler, die in echten Abhängigkeiten auftauchen
+4. ✅ Determinismus-Tests mit Expected Result PDFs validieren Qualitätsziel "Zuverlässigkeit"
+5. ❌ JaCoCo-Coverage für REST-APIs ist Cargo Cult Metrics - nicht hilfreich
+
+**Zukunftsbild:**
+
+Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direktem DB-Zugriff aufgebaut. REST-HTTP-Layer wird dann vollständig getestet, neue Integration Tests mit echtem PostgreSQL werden Produktions-Szenarien validieren.
 
 <<<<
 [[section-risks-and-technical-debt]]
