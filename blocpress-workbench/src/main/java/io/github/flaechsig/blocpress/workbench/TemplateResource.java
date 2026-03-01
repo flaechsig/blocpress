@@ -78,14 +78,17 @@ public class TemplateResource {
     @GET
     public List<TemplateSummary> list() {
         // For each template name, get only the latest version (highest version number)
-        // Group by name, then select the template with max(version)
-        return Template.<Template>find(
-                "SELECT t FROM Template t " +
-                "WHERE (t.name, t.version) IN " +
-                "(SELECT t2.name, MAX(t2.version) FROM Template t2 GROUP BY t2.name) " +
-                "ORDER BY t.name"
-        ).list()
+        // Fetch all templates and group by name in Java to get latest version
+        return Template.<Template>findAll().list()
                 .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    t -> t.name,
+                    t -> t,
+                    (existing, newer) -> existing.version > newer.version ? existing : newer
+                ))
+                .values()
+                .stream()
+                .sorted((a, b) -> a.name.compareTo(b.name))
                 .map(t -> new TemplateSummary(
                     t.id,
                     t.name,

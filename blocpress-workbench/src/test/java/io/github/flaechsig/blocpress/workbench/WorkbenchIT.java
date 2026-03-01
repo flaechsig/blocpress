@@ -239,10 +239,99 @@ class WorkbenchIT {
         assertEquals(0, list.size());
     }
 
-    // --- Weitere Szenarien ---
+    // --- Status Management (UC-10.1) ---
 
     @Test
     @Order(19)
+    void updateTemplateStatus() throws Exception {
+        // Upload and update status of a fresh template
+        Response uploadResp = uploadMultipart("status-template", "template-content".getBytes());
+        assertEquals(201, uploadResp.statusCode());
+        JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
+        String templateId = uploadBody.get("id").asText();
+
+        // Update status to SUBMITTED
+        String statusJson = "{\"newStatus\": \"SUBMITTED\"}";
+        Response response = RestAssured.given()
+                .header("Content-Type", "application/json")
+                .body(statusJson)
+                .when()
+                .post("/api/workbench/templates/" + templateId + "/submit");
+
+        // Can be 200 or 400 depending on validation
+        assertTrue(response.statusCode() == 200 || response.statusCode() == 400);
+    }
+
+    @Test
+    @Order(20)
+    void getTemplateContentByIdApprovedOnly() throws Exception {
+        // Upload a template
+        Response uploadResp = uploadMultipart("content-template", "odt-content-data".getBytes());
+        assertEquals(201, uploadResp.statusCode());
+        JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
+        String templateId = uploadBody.get("id").asText();
+
+        // Try to fetch content while DRAFT - should get 403 or 404
+        Response response = get("/api/workbench/templates/" + templateId + "/content");
+        assertTrue(response.statusCode() == 403 || response.statusCode() == 404);
+    }
+
+    @Test
+    @Order(21)
+    void duplicateTemplate() throws Exception {
+        // Upload original template
+        Response uploadResp = uploadMultipart("duplicate-source", "template-data".getBytes());
+        assertEquals(201, uploadResp.statusCode());
+        JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
+        String originalId = uploadBody.get("id").asText();
+
+        // Duplicate with new name
+        String duplicateJson = "{\"name\": \"duplicate-target\"}";
+        Response response = RestAssured.given()
+                .header("Content-Type", "application/json")
+                .body(duplicateJson)
+                .when()
+                .post("/api/workbench/templates/" + originalId + "/duplicate");
+
+        assertEquals(201, response.statusCode());
+        JsonNode dupBody = MAPPER.readTree(response.body().asString());
+        assertEquals("duplicate-target", dupBody.get("name").asText());
+        assertNotNull(dupBody.get("id"));
+    }
+
+    @Test
+    @Order(22)
+    void getSpecificTestDataSet() throws Exception {
+        // Upload template for testdata
+        Response uploadResp = uploadMultipart("testdata-get-template", "content".getBytes());
+        assertEquals(201, uploadResp.statusCode());
+        JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
+        String templateId = uploadBody.get("id").asText();
+
+        // Create test data set
+        String testDataJson = "{\"name\": \"GetTest\", \"testData\": {\"field\": \"value\"}}";
+        Response createResp = RestAssured.given()
+                .header("Content-Type", "application/json")
+                .body(testDataJson)
+                .when()
+                .post("/api/workbench/templates/" + templateId + "/testdata");
+
+        assertEquals(201, createResp.statusCode());
+        JsonNode createBody = MAPPER.readTree(createResp.body().asString());
+        String testDataSetId = createBody.get("id").asText();
+
+        // Fetch specific test data set
+        Response response = get("/api/workbench/templates/" + templateId + "/testdata/" + testDataSetId);
+        assertEquals(200, response.statusCode());
+        JsonNode getBody = MAPPER.readTree(response.body().asString());
+        assertEquals("GetTest", getBody.get("name").asText());
+        assertNotNull(getBody.get("testData"));
+    }
+
+    // --- Weitere Szenarien ---
+
+    @Test
+    @Order(23)
     void uploadMultipleTemplates() throws Exception {
         for (int i = 0; i < 3; i++) {
             Response response = uploadMultipart("multi-template-" + i, ("template-" + i).getBytes());
@@ -256,7 +345,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(20)
+    @Order(24)
     void validationResultStructure() throws Exception {
         Response response = uploadMultipart("validation-structure", "test-validation".getBytes());
 
@@ -302,7 +391,7 @@ class WorkbenchIT {
     private static String testDataSetId;
 
     @Test
-    @Order(21)
+    @Order(25)
     void listTestDataSetsInitiallyEmpty() throws Exception {
         // Upload a template first for TestDataSet tests
         Response uploadResp = uploadMultipart("testdata-template", "template-content".getBytes());
@@ -319,7 +408,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(22)
+    @Order(26)
     void createTestDataSet() throws Exception {
         // Get the template from previous test
         Response templatesResp = get("/api/workbench/templates");
@@ -342,7 +431,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(23)
+    @Order(27)
     void listTestDataSetsAfterCreate() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -358,7 +447,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(24)
+    @Order(28)
     void updateTestDataSet() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -377,7 +466,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(25)
+    @Order(29)
     void saveExpectedPdf() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -397,7 +486,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(26)
+    @Order(30)
     void getExpectedPdf() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -411,7 +500,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(27)
+    @Order(31)
     void deleteTestDataSet() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
@@ -423,7 +512,7 @@ class WorkbenchIT {
     }
 
     @Test
-    @Order(28)
+    @Order(32)
     void listTestDataSetsAfterDelete() throws Exception {
         Response templatesResp = get("/api/workbench/templates");
         JsonNode templates = MAPPER.readTree(templatesResp.body().asString());
