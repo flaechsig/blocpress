@@ -1,0 +1,12 @@
+databaseChangeLog:
+  # Master changelog for blocpress-workbench
+  # All schema changes managed by Liquibase
+
+  - include:
+      file: db/changelog/001-initial-template-table.yaml
+
+  - include:
+      file: db/changelog/002-add-testdata-set-table.yaml
+
+  - include:
+      file: db/changelog/003-template-versioning-uc-10-1.yaml
