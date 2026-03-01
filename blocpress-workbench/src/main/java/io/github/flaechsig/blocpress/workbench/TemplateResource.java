@@ -392,6 +392,11 @@ public class TemplateResource {
     @Transactional
     public Response createTestDataSet(@PathParam("templateId") UUID templateId,
                                       CreateTestDataSetRequest request) {
+        // Validate template exists first
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
         TestDataSet tds = testDataSetService.createTestDataSet(templateId, request.name(), request.testData());
         return Response.status(Response.Status.CREATED)
             .entity(TestDataSetDTO.fromEntity(tds))
@@ -405,6 +410,11 @@ public class TemplateResource {
     public Response updateTestDataSet(@PathParam("templateId") UUID templateId,
                                       @PathParam("testDataSetId") UUID testDataSetId,
                                       CreateTestDataSetRequest request) {
+        // Validate template exists first
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
         TestDataSet tds = testDataSetService.updateTestDataSet(testDataSetId, request.name(), request.testData());
         return Response.ok(TestDataSetDTO.fromEntity(tds)).build();
     }
@@ -414,6 +424,11 @@ public class TemplateResource {
     @Transactional
     public Response deleteTestDataSet(@PathParam("templateId") UUID templateId,
                                       @PathParam("testDataSetId") UUID testDataSetId) {
+        // Validate template exists first
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
         testDataSetService.deleteTestDataSet(testDataSetId);
         return Response.noContent().build();
     }
@@ -425,6 +440,11 @@ public class TemplateResource {
     public Response saveExpectedPdf(@PathParam("templateId") UUID templateId,
                                     @PathParam("testDataSetId") UUID testDataSetId,
                                     byte[] pdfContent) {
+        // Validate template exists first
+        Template template = Template.findById(templateId);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
         testDataSetService.saveExpectedPdf(testDataSetId, pdfContent);
         return Response.ok(Map.of(
             "message", "Expected PDF saved successfully",
