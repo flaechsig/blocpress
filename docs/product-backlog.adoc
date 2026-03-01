@@ -107,7 +107,7 @@ NOTE: Voraussetzung fuer Epics 3-6.
 | TI-2
 | PostgreSQL Multi-Schema Setup (workbench, production mit physischer Stufenübergabe)
 | 1
-| icon:circle-o[] OFFEN
+| icon:play-circle[role=blue] IN PROGRESS
 
 | —
 | Storage Abstraction Layer (`StorageService` Interface)

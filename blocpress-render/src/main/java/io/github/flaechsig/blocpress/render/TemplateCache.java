@@ -2,99 +2,65 @@ package io.github.flaechsig.blocpress.render;
 
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.UUID;
 
 /**
- * Cache for template content fetched from blocpress-workbench.
+ * Cache for template content fetched from the production schema.
  *
- * Uses Quarkus Cache with configurable TTL to minimize cross-module API calls.
- * When TI-2 (multi-schema) is implemented, this will be replaced with direct
- * database access to the 'production' schema.
+ * With TI-2 (multi-schema), templates are imported from blocpress-workbench
+ * into the production schema via TemplateImportResource. This cache provides
+ * fast access to the local production database.
+ *
+ * Uses Quarkus Cache with configurable TTL (10 minutes) to minimize database access.
  */
 @ApplicationScoped
 public class TemplateCache {
     private static final Logger logger = LoggerFactory.getLogger(TemplateCache.class);
 
-    @ConfigProperty(name = "blocpress.workbench.url", defaultValue = "http://localhost:8081")
-    String workbenchUrl;
-
-    private final HttpClient httpClient = HttpClient.newHttpClient();
-
     /**
-     * Fetches template content by ID from blocpress-workbench.
-     * Results are cached for performance.
+     * Fetches template content by ID from the production schema.
+     * Results are cached for performance (10 minutes TTL).
      *
      * @param templateId Template UUID
      * @return Template binary content (ODT file)
-     * @throws TemplateNotFoundException if template does not exist or is not APPROVED
-     * @throws IOException if HTTP request fails
+     * @throws TemplateNotFoundException if template does not exist in production
      */
     @CacheResult(cacheName = "templates")
-    public byte[] getTemplateContent(UUID templateId) throws IOException, InterruptedException {
-        logger.info("Fetching template {} from blocpress-workbench (cache miss)", templateId);
+    public byte[] getTemplateContent(UUID templateId) {
+        logger.info("Fetching template {} from production schema (cache miss)", templateId);
 
-        String url = workbenchUrl + "/api/workbench/templates/" + templateId + "/content";
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .GET()
-            .build();
-
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-        if (response.statusCode() == 404) {
-            throw new TemplateNotFoundException("Template not found: " + templateId);
-        } else if (response.statusCode() == 403) {
-            throw new TemplateNotFoundException("Template not approved: " + templateId);
-        } else if (response.statusCode() != 200) {
-            throw new IOException("Failed to fetch template: HTTP " + response.statusCode());
+        ProductionTemplate template = ProductionTemplate.findById(templateId);
+        if (template == null) {
+            throw new TemplateNotFoundException("Template not found in production: " + templateId);
         }
 
-        logger.info("Successfully fetched template {} (size: {} bytes)", templateId, response.body().length);
-        return response.body();
+        logger.info("Successfully fetched template {} (size: {} bytes)", templateId, template.content.length);
+        return template.content;
     }
 
     /**
-     * Fetches template content by name from blocpress-workbench.
-     * Retrieves the latest active version (validFrom <= now).
-     * Results are cached for performance.
+     * Fetches template content by name from the production schema.
+     * Retrieves the latest version (highest version number for the given name).
+     * Results are cached for performance (10 minutes TTL).
      *
      * @param templateName Template name
-     * @return Template binary content (ODT file) of latest active version
-     * @throws TemplateNotFoundException if template does not exist or no active version is APPROVED
-     * @throws IOException if HTTP request fails
+     * @return Template binary content (ODT file) of latest version
+     * @throws TemplateNotFoundException if template does not exist in production
      */
     @CacheResult(cacheName = "templates")
-    public byte[] getTemplateContentByName(String templateName) throws IOException, InterruptedException {
-        logger.info("Fetching template {} from blocpress-workbench (cache miss)", templateName);
+    public byte[] getTemplateContentByName(String templateName) {
+        logger.info("Fetching template {} from production schema (cache miss)", templateName);
 
-        String url = workbenchUrl + "/api/workbench/templates/by-name/" + templateName + "/content";
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .GET()
-            .build();
-
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-        if (response.statusCode() == 404) {
-            throw new TemplateNotFoundException("Template not found or no active version: " + templateName);
-        } else if (response.statusCode() == 403) {
-            throw new TemplateNotFoundException("Template not approved: " + templateName);
-        } else if (response.statusCode() != 200) {
-            throw new IOException("Failed to fetch template: HTTP " + response.statusCode());
+        ProductionTemplate template = ProductionTemplate.findLatestActiveByName(templateName);
+        if (template == null) {
+            throw new TemplateNotFoundException("Template not found in production: " + templateName);
         }
 
-        logger.info("Successfully fetched template {} (size: {} bytes)", templateName, response.body().length);
-        return response.body();
+        logger.info("Successfully fetched template {} v{} (size: {} bytes)",
+            templateName, template.version, template.content.length);
+        return template.content;
     }
 }

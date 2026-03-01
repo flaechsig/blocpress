@@ -316,6 +316,10 @@ ScsModules --> Monitor
 | HTTPS, REST-API, JSON
 | Dokumentengenerierung: `POST /api/documents/generate` (einzige öffentliche API)
 
+| blocpress-workbench → blocpress-render
+| HTTPS, REST-API, JSON (intern)
+| Template-Deploy: `POST /api/render/templates/import` — automatisch bei APPROVED-Status, kopiert Template in production-Schema
+
 | SCS-Module → PostgreSQL
 | JDBC, PostgreSQL Wire Protocol
 | blocpress-workbench nutzt Schema `workbench`, blocpress-render nutzt Schema `production`

@@ -23,10 +23,13 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 import org.jboss.resteasy.reactive.RestForm;
 
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,6 +43,10 @@ public class TemplateResource {
 
     @Inject
     TestDataSetService testDataSetService;
+
+    @Inject
+    @RestClient
+    RenderImportClient renderImportClient;
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -249,6 +256,26 @@ public class TemplateResource {
         }
 
         template.persist();
+
+        // TI-2: Auto-deploy to production when transitioning to APPROVED
+        if (request.newStatus() == TemplateStatus.APPROVED) {
+            try {
+                RenderImportClient.ImportRequest importRequest = new RenderImportClient.ImportRequest(
+                    template.id,
+                    template.name,
+                    template.version,
+                    Base64.getEncoder().encodeToString(template.content),
+                    template.validFrom
+                );
+                renderImportClient.importTemplate(importRequest);
+            } catch (Exception e) {
+                // Rollback the status change since deploy failed
+                throw new WebApplicationException(
+                    "Template approved but deploy to production failed: " + e.getMessage(),
+                    Response.Status.SERVICE_UNAVAILABLE
+                );
+            }
+        }
 
         var responseMap = new java.util.HashMap<String, Object>();
         responseMap.put("id", template.id);
