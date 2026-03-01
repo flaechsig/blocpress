@@ -29,32 +29,32 @@ databaseChangeLog:
                     nullable: false
 
               - column:
-                  name: test_data
+                  name: testData
                   type: jsonb
                   constraints:
                     nullable: false
 
               - column:
-                  name: expected_pdf
+                  name: expectedPdf
                   type: BYTEA
                   constraints:
                     nullable: true
 
               - column:
-                  name: pdf_hash
+                  name: pdfHash
                   type: VARCHAR(64)
                   constraints:
                     nullable: true
 
               - column:
-                  name: created_at
+                  name: createdAt
                   type: TIMESTAMP
                   defaultValueComputed: CURRENT_TIMESTAMP
                   constraints:
                     nullable: false
 
               - column:
-                  name: updated_at
+                  name: updatedAt
                   type: TIMESTAMP
                   constraints:
                     nullable: true

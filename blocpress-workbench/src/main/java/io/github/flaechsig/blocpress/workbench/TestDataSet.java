@@ -28,11 +28,11 @@ public class TestDataSet extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     public JsonNode testData;
 
-    @Column(name = "expected_pdf", columnDefinition = "bytea", nullable = true)
+    @Column(columnDefinition = "bytea", nullable = true)
     @JdbcTypeCode(SqlTypes.BINARY)
     public byte[] expectedPdf;
 
-    @Column(name = "pdf_hash", length = 64)
+    @Column(length = 64)
     public String pdfHash;
 
     @Column(nullable = false)

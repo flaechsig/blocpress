@@ -33,13 +33,13 @@ databaseChangeLog:
                     nullable: false
 
               - column:
-                  name: created_at
+                  name: createdAt
                   type: TIMESTAMP
                   constraints:
                     nullable: false
 
               - column:
-                  name: valid_from
+                  name: validFrom
                   type: TIMESTAMP
                   constraints:
                     nullable: true
@@ -52,7 +52,7 @@ databaseChangeLog:
                     nullable: false
 
               - column:
-                  name: validation_result
+                  name: validationResult
                   type: jsonb
                   constraints:
                     nullable: true

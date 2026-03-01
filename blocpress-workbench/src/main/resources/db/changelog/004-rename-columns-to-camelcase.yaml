@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: "004-rename-columns-to-camelcase"
+      author: "blocpress"
+      comment: "Rename database columns from snake_case to camelCase for Hibernate compatibility"
+      changes:
+        # Template table
+        - renameColumn:
+            tableName: template
+            oldColumnName: created_at
+            newColumnName: createdAt
+            columnDataType: TIMESTAMP
+
+        - renameColumn:
+            tableName: template
+            oldColumnName: valid_from
+            newColumnName: validFrom
+            columnDataType: TIMESTAMP
+
+        - renameColumn:
+            tableName: template
+            oldColumnName: validation_result
+            newColumnName: validationResult
+            columnDataType: jsonb
+
+        # Test data set table
+        - renameColumn:
+            tableName: test_data_set
+            oldColumnName: test_data
+            newColumnName: testData
+            columnDataType: jsonb
+
+        - renameColumn:
+            tableName: test_data_set
+            oldColumnName: expected_pdf
+            newColumnName: expectedPdf
+            columnDataType: bytea
+
+        - renameColumn:
+            tableName: test_data_set
+            oldColumnName: pdf_hash
+            newColumnName: pdfHash
+            columnDataType: VARCHAR(64)
+
+        - renameColumn:
+            tableName: test_data_set
+            oldColumnName: created_at
+            newColumnName: createdAt
+            columnDataType: TIMESTAMP
+
+        - renameColumn:
+            tableName: test_data_set
+            oldColumnName: updated_at
+            newColumnName: updatedAt
+            columnDataType: TIMESTAMP
+
+        # Update indexes to reference camelCase column names
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS idx_template_name_version;
+              CREATE INDEX idx_template_name_version
+                ON template(name, version DESC);
+
+              DROP INDEX IF EXISTS idx_template_status_valid_from;
+              CREATE INDEX idx_template_status_valid_from
+                ON template(status, validFrom DESC NULLS FIRST);
+            dbms: postgresql
+            comment: "Recreate indexes with correct column names"
