@@ -5,20 +5,6 @@ databaseChangeLog:
       comment: "Ensure template table has proper versioning schema (UC-10.1)"
       # This changeset is idempotent - safe to run even if schema already exists
       changes:
-        # Columns are already created in 001, but ensure they exist with correct constraints
-        - addNotNullConstraint:
-            tableName: template
-            columnName: version
-            columnDataType: INTEGER
-            defaultValue: "1"
-            failIfExists: false
-
-        - addNotNullConstraint:
-            tableName: template
-            columnName: name
-            columnDataType: VARCHAR(255)
-            failIfExists: false
-
         - sql:
             sql: |
               -- Ensure proper indexes exist for versioning queries
@@ -29,8 +15,3 @@ databaseChangeLog:
                 ON template(status, valid_from DESC NULLS FIRST);
             dbms: postgresql
             comment: "Create performance indexes for template versioning queries"
-
-        - sql:
-            sql: "UPDATE template_databasechangelog SET ORDEREXECUTED = ORDEREXECUTED WHERE description = '003-ensure-template-versioning-schema';"
-            comment: "Idempotent marker"
-            failOnError: false
