@@ -248,7 +248,7 @@ class TemplateResourceDirectMethodTest {
         template.version = 1;
         template.content = "test".getBytes();
         template.status = TemplateStatus.DRAFT;
-        template.createdAt = Instant.now();
+        template.createdAt = LocalDateTime.now();
         template.validationResult = new ValidationResult(false, null, java.util.List.of(), java.util.List.of());
         template.persist();
 
@@ -462,7 +462,7 @@ class TemplateResourceDirectMethodTest {
         template.version = version;
         template.content = "test-content".getBytes();
         template.status = status;
-        template.createdAt = Instant.now();
+        template.createdAt = LocalDateTime.now();
         template.validationResult = new ValidationResult(
             true,
             null,

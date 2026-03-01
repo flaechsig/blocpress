@@ -28,6 +28,9 @@ public class ProductionTemplate extends PanacheEntityBase {
     @Column(nullable = false)
     public String name;
 
+    @Column(name = "valid_from", nullable = false)
+    public LocalDateTime validFrom;
+
     @Column(nullable = false)
     public Integer version;
 
@@ -36,17 +39,16 @@ public class ProductionTemplate extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
 
-    @Column(name = "valid_from")
-    public LocalDateTime validFrom;
-
     /**
-     * Finds the latest active (highest version) template by name.
-     * Used for /api/render/{name} endpoint.
+     * Finds the currently active template by name.
+     * Returns the template with the highest version for the most recent valid_from <= now().
+     * Supports scheduled activations (valid_from in the future returns null until that time).
      *
      * @param name Template name
-     * @return Latest version of template, or null if not found
+     * @return Currently active template, or null if not found
      */
     public static ProductionTemplate findLatestActiveByName(String name) {
-        return find("name = ?1 ORDER BY version DESC", name).firstResult();
+        return find("name = ?1 AND valid_from <= CURRENT_TIMESTAMP ORDER BY valid_from DESC, version DESC", name)
+                .firstResult();
     }
 }

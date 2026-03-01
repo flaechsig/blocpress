@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "template", uniqueConstraints = @UniqueConstraint(columnNames = {"name", "version"}))
+@Table(name = "template", uniqueConstraints = @UniqueConstraint(columnNames = {"name", "valid_from", "version"}))
 public class Template extends PanacheEntityBase {
 
     @Id
@@ -35,6 +35,9 @@ public class Template extends PanacheEntityBase {
 
     @Column(nullable = false)
     public String name;
+
+    @Column(name = "valid_from", nullable = false)
+    public LocalDateTime validFrom = LocalDateTime.now();
 
     @Column(nullable = false)
     public Integer version = 1;
@@ -45,10 +48,7 @@ public class Template extends PanacheEntityBase {
     public byte[] content;
 
     @Column(name = "created_at", nullable = false)
-    public Instant createdAt;
-
-    @Column(name = "valid_from", nullable = true)
-    public LocalDateTime validFrom;
+    public LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

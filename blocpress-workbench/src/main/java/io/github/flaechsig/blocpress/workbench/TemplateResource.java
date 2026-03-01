@@ -71,7 +71,7 @@ public class TemplateResource {
         template.name = name.strip();
         template.version = nextVersion;
         template.content = content;
-        template.createdAt = Instant.now();
+        template.createdAt = LocalDateTime.now();
         template.status = TemplateStatus.DRAFT;
         template.validationResult = validationResult;
         template.persist();
@@ -325,7 +325,7 @@ public class TemplateResource {
         duplicate.version = targetVersion;
         duplicate.content = source.content.clone(); // Copy binary content
         duplicate.status = TemplateStatus.DRAFT;
-        duplicate.createdAt = Instant.now();
+        duplicate.createdAt = LocalDateTime.now();
 
         // Re-validate (might have different results due to changes in validator)
         ValidationResult validationResult = validator.validate(duplicate.content);
@@ -499,12 +499,12 @@ public class TemplateResource {
             .build();
     }
 
-    public record TemplateSummary(UUID id, String name, Instant createdAt, TemplateStatus status, boolean isValid) {}
+    public record TemplateSummary(UUID id, String name, LocalDateTime createdAt, TemplateStatus status, boolean isValid) {}
 
     public record TemplateDetails(
         UUID id,
         String name,
-        Instant createdAt,
+        LocalDateTime createdAt,
         TemplateStatus status,
         ValidationResult validationResult
     ) {}

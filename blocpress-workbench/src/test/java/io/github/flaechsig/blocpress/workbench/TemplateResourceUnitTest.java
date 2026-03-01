@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,7 +48,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryCreation() {
         UUID id = UUID.randomUUID();
         String name = "Test Template";
-        Instant createdAt = Instant.now();
+        LocalDateTime createdAt = LocalDateTime.now();
         TemplateStatus status = TemplateStatus.DRAFT;
 
         TemplateResource.TemplateSummary summary =
@@ -63,7 +65,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryEquality() {
         UUID id = UUID.randomUUID();
         String name = "Test";
-        Instant instant = Instant.now();
+        LocalDateTime instant = LocalDateTime.now();
         TemplateStatus status = TemplateStatus.SUBMITTED;
 
         TemplateResource.TemplateSummary summary1 =
@@ -78,7 +80,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryWithDifferentStatuses() {
         UUID id = UUID.randomUUID();
         String name = "Template";
-        Instant instant = Instant.now();
+        LocalDateTime instant = LocalDateTime.now();
 
         TemplateResource.TemplateSummary draft =
             new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.DRAFT, true);
@@ -99,7 +101,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryHashCode() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary1 =
-            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true);
         TemplateResource.TemplateSummary summary2 =
             new TemplateResource.TemplateSummary(id, "Test", summary1.createdAt(), TemplateStatus.DRAFT, true);
 
@@ -112,7 +114,7 @@ class TemplateResourceUnitTest {
     void testTemplateDetailsCreation() {
         UUID id = UUID.randomUUID();
         String name = "Test Template";
-        Instant createdAt = Instant.now();
+        LocalDateTime createdAt = LocalDateTime.now();
         TemplateStatus status = TemplateStatus.DRAFT;
         ValidationResult validationResult = createValidValidationResult();
 
@@ -130,7 +132,7 @@ class TemplateResourceUnitTest {
     void testTemplateDetailsWithValidationErrors() {
         UUID id = UUID.randomUUID();
         String name = "Invalid Template";
-        Instant createdAt = Instant.now();
+        LocalDateTime createdAt = LocalDateTime.now();
         TemplateStatus status = TemplateStatus.DRAFT;
 
         var errors = java.util.List.of(
@@ -156,7 +158,7 @@ class TemplateResourceUnitTest {
     void testTemplateDetailsEquality() {
         UUID id = UUID.randomUUID();
         String name = "Test";
-        Instant instant = Instant.now();
+        LocalDateTime instant = LocalDateTime.now();
         TemplateStatus status = TemplateStatus.SUBMITTED;
         ValidationResult vr = createValidValidationResult();
 
@@ -171,7 +173,7 @@ class TemplateResourceUnitTest {
     @Test
     void testTemplateDetailsWithDifferentStatuses() {
         UUID id = UUID.randomUUID();
-        Instant instant = Instant.now();
+        LocalDateTime instant = LocalDateTime.now();
         ValidationResult vr = createValidValidationResult();
 
         TemplateResource.TemplateDetails draft =
@@ -242,7 +244,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryToString() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary =
-            new TemplateResource.TemplateSummary(id, "Test", Instant.now(), TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true);
         String str = summary.toString();
         assertNotNull(str);
         assertTrue(str.contains("Test") || str.contains("DRAFT"));
@@ -253,7 +255,7 @@ class TemplateResourceUnitTest {
         UUID id = UUID.randomUUID();
         ValidationResult vr = createValidValidationResult();
         TemplateResource.TemplateDetails details =
-            new TemplateResource.TemplateDetails(id, "Test", Instant.now(), TemplateStatus.DRAFT, vr);
+            new TemplateResource.TemplateDetails(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, vr);
         String str = details.toString();
         assertNotNull(str);
         assertTrue(str.contains("Test") || str.contains("DRAFT"));
@@ -268,7 +270,7 @@ class TemplateResourceUnitTest {
             new TemplateResource.TemplateSummary(
                 UUID.randomUUID(),
                 "Invoice",
-                Instant.now(),
+                LocalDateTime.now(),
                 TemplateStatus.DRAFT,
                 true
             );
