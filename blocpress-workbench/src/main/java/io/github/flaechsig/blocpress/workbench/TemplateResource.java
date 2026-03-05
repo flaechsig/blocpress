@@ -260,6 +260,7 @@ public class TemplateResource {
         // TI-2: Auto-deploy to production when transitioning to APPROVED
         if (request.newStatus() == TemplateStatus.APPROVED) {
             try {
+                // Push template to production schema via internal API
                 RenderImportClient.ImportRequest importRequest = new RenderImportClient.ImportRequest(
                     template.id,
                     template.name,

@@ -7,7 +7,7 @@ import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
 import io.github.flaechsig.blocpress.render.api.RenderApi;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
-import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -36,7 +36,7 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
  *   <li>EDC: <a href="docs/Element_Design_Concept.adoc#edc-uc-1">UC-1: Template hochladen</a></li>
  * </ul>
  */
-@Authenticated
+@PermitAll
 public class RenderResource implements RenderApi {
     private final static Logger logger = LoggerFactory.getLogger(RenderResource.class);
     private final static ObjectMapper mapper = new ObjectMapper();

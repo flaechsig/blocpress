@@ -1,22 +1,15 @@
 #!/bin/bash
 # Initialize both workbench and production databases for blocpress
+# This script is called by PostgreSQL entrypoint
 
 set -e
 
-# Use the POSTGRES_USER and POSTGRES_PASSWORD passed by PostgreSQL
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
-    -- Create production database if not exists
-    CREATE DATABASE production OWNER $POSTGRES_USER;
-EOSQL
+# Create production database if not exists
+# Note: workbench DB is created automatically via POSTGRES_DB env var
+PGPASSWORD="$POSTGRES_PASSWORD" psql -v ON_ERROR_STOP=1 \
+    -h localhost \
+    -U "$POSTGRES_USER" \
+    -d postgres \
+    -c "CREATE DATABASE production OWNER $POSTGRES_USER;"
 
-# Initialize workbench database (default)
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "workbench" <<-EOSQL
-    $(cat /docker-entrypoint-initdb.d/01-init-schemas.sql)
-EOSQL
-
-# Initialize production database
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "production" <<-EOSQL
-    $(cat /docker-entrypoint-initdb.d/02-init-production.sql)
-EOSQL
-
-echo "✓ Both blocpress databases initialized"
+echo "✓ Both blocpress databases created"

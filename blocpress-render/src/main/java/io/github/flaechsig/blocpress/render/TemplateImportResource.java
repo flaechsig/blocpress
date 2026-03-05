@@ -1,5 +1,7 @@
 package io.github.flaechsig.blocpress.render;
 
+import jakarta.annotation.security.PermitAll;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -16,10 +18,13 @@ import java.util.UUID;
  * into the production schema. This endpoint is called automatically by
  * blocpress-workbench when a template transitions to APPROVED status.
  *
+ * Endpoint: POST /api/render/templates/import
+ *
  * No authentication required — this is an internal endpoint only accessible
  * within the deployment infrastructure.
  */
-@Path("/api/render/templates")
+@ApplicationScoped
+@Path("render/templates/import")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class TemplateImportResource {
@@ -32,7 +37,7 @@ public class TemplateImportResource {
      * @return 200 OK on success
      */
     @POST
-    @Path("/import")
+    @PermitAll
     @Transactional
     public Response importTemplate(ImportRequest request) {
         // Delete existing template with same ID if present (upsert)

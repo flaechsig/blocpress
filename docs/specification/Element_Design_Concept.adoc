@@ -25,7 +25,7 @@ _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Zentrale Template-Verwal
 === G-3: Workflow-gesteuerte Qualitätssicherung
 
 *Description:*
-blocpress-proof soll einen mehrstufigen Freigabeprozess mit definiertem Vier-Augen-Prinzip (Template-Designer ≠ Prüfer) implementieren. Templates dürfen nur nach erfolgreicher Prüfung in das production-Schema übernommen werden. +
+blocpress-proof soll einen mehrstufigen Freigabeprozess mit Reviewer-Freigabe implementieren (organisatorisch durchgesetzt: Template-Designer ≠ Prüfer). Templates dürfen nur nach erfolgreicher Prüfung in das production-Schema übernommen werden. +
 _Systemziel: xref:System_Design_Concept.adoc#sydc-goals[Workflow-gesteuerte Qualitätssicherung]_ | _Geschäftsprozess: xref:Solution_Design_Concept.adoc#sdc-bp-erstellen[Template erstellen und freigeben]_
 
 [[edc-g-4]]
@@ -224,22 +224,22 @@ G-3: Workflow-gesteuerte Qualitätssicherung
 - Template-Designer (User Type aus System Design)
 - `<bp-workbench>` Web Component (geladen in blocpress-studio)
 - blocpress-workbench (SCS-Modul)
-- blocpress-proof (SCS-Modul, Ziel der Stufenübergabe)
+- _blocpress-proof (geplant, noch nicht implementiert)_
 
 *Main Scenario:*
 
 1. Template-Designer wählt Template auf UI-1 aus
 2. Template-Designer wählt Aktion "Zur Freigabe einreichen"
-3. `<bp-workbench>` sendet Anfrage über REST-API (POST /api/workbench/templates/{id}/submit) an blocpress-workbench
-4. blocpress-workbench kopiert Template-Daten via interner REST-API an blocpress-proof (Stufenübergabe workbench → proof)
-5. blocpress-proof erstellt Eintrag in E-4 (Freigabeprozess, Schema: proof) mit Status "Eingereicht"
-6. blocpress-proof prüft, ob Benutzer berechtigt ist (Designer ≠ Prüfer)
-7. blocpress-workbench bestätigt erfolgreiche Einreichung an `<bp-workbench>`
-8. `<bp-workbench>` zeigt Bestätigung auf UI-1 an
-9. Eingereichte Templates sind für Prüfer auf UI-2 sichtbar
+3. `<bp-workbench>` sendet Anfrage über REST-API (PUT /api/workbench/templates/{id}/status?status=APPROVED) an blocpress-workbench
+4. blocpress-workbench ändert Template-Status auf APPROVED (Stufenübergabe innerhalb workbench)
+5. _[Zielzustand mit blocpress-proof] blocpress-proof wird Template empfangen und Freigabeprozess starten — noch nicht implementiert_
+6. blocpress-workbench bestätigt erfolgreiche Einreichung an `<bp-workbench>`
+7. `<bp-workbench>` zeigt Bestätigung auf UI-1 an
+8. Template-Status ist für Designer auf UI-1 als APPROVED sichtbar
 
 *Alternative Scenarios:*
 
+_[Geplant für blocpress-proof]_
 6a. Benutzer ist auch Prüfer (Vier-Augen-Prinzip verletzt)
 7a. blocpress-proof gibt Fehlermeldung zurück
 8a. `<bp-workbench>` zeigt Fehlermeldung auf UI-1 an
@@ -828,8 +828,8 @@ TestDataSet-Management (UC-20, UC-21, TF-8, UC-11):
 
 *Stufenübergabe-APIs (intern, nicht öffentlich):*
 
-- `POST /api/proof/stage/receive` - Template von workbench empfangen
-- `POST /api/render/stage/receive` - Template von proof empfangen
+- `POST /api/render/templates/import` - Template von workbench in production-DB importieren (TI-2 implementiert)
+- _[geplant] `POST /api/proof/stage/receive` - Template von workbench empfangen_
 
 *Output:*
 
@@ -878,14 +878,19 @@ blocpress-render nutzt einen Cache (Caffeine, 10 min TTL, 100 Template max) für
 === TI-2: Datenbank-Interface (PostgreSQL, Multi-Schema)
 
 *Description:*
-Zugriff auf eine gemeinsame PostgreSQL-Instanz mit getrennten Schemata pro SCS-Modul. Jedes Modul greift ausschließlich auf sein eigenes Schema zu; Cross-Schema-Zugriff erfolgt über REST-APIs (Stufenübergabe), nicht über SQL.
+Zugriff auf zwei separate PostgreSQL-Datenbanken: `workbench` (Entwicklung/Test) und `production` (freigegebene Templates). Cross-DB-Zugriff erfolgt über REST-APIs (Stufenübergabe), nicht über SQL. TI-2 Option A ist implementiert.
 
-*Schema-Zuordnung:*
+*Schema-Zuordnung (TI-2 implementiert):*
 
-- blocpress-workbench → Schema `workbench` (E-1, E-2, E-8)
-- blocpress-proof → Schema `proof` (E-1, E-3, E-4, E-5, E-6, E-7)
-- blocpress-render → Schema `production` (E-1, E-3)
-- blocpress-admin → Schema `admin` (E-9, E-10)
+- blocpress-workbench → Datenbank `workbench` (E-1, E-11)
+- blocpress-render → Datenbank `production` (E-1 vereinfacht: nur id, name, version, content, validFrom)
+- _[geplant] blocpress-proof → Schema `proof` (E-1, E-3, E-4, E-5, E-6, E-7)_
+- _[geplant] blocpress-admin → Schema `admin` (E-9, E-10)_
+
+*Stufenübergabe-Mechanismus (TI-2 Option A):*
+
+Cross-Datenbank-Zugriff erfolgt via REST-API, nicht via SQL:
+`POST /api/render/templates/import` — blocpress-workbench sendet Template als Base64 an blocpress-render bei APPROVED-Status.
 
 *Input:*
 

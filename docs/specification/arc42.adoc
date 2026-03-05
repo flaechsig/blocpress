@@ -502,34 +502,27 @@ package "blocpress Gesamtsystem" {
   component "blocpress-studio\n(Portal-Shell)" as Studio
 
   component "blocpress-workbench\n(Quarkus)" as Workbench
-  component "blocpress-proof\n(Quarkus)" as Proof
+  component "blocpress-proof\n(Quarkus) [geplant]" as Proof
   component "blocpress-render\n(Quarkus)" as Render
-  component "blocpress-admin\n(Quarkus)" as Admin
+  component "blocpress-admin\n(Quarkus) [geplant]" as Admin
 
   component "blocpress-core\n(Shared Library)" as Core
 
-  database "PostgreSQL\n(workbench | proof |\nproduction | admin)" as DB
+  database "PostgreSQL\n(workbench | production)" as DB
   queue "Message Queue\n(RabbitMQ)" as MQ
   component "Content Search\n(Elasticsearch)" as Search
 }
 
 Studio -down-> Workbench : Web Component\n+ REST (intern)
-Studio -down-> Proof : Web Component\n+ REST (intern)
-Studio -down-> Admin : Web Component\n+ REST (intern)
 
-Workbench -down-> DB : JDBC\n(Schema: workbench)
-Proof -down-> DB : JDBC\n(Schema: proof)
-Render -down-> DB : JDBC\n(Schema: production)
-Render -right-> MQ : AMQP
-Admin -down-> DB : JDBC\n(Schema: admin)
+Workbench -down-> DB : JDBC\n(Datenbank: workbench)
+Render -down-> DB : JDBC\n(Datenbank: production)
 
 Workbench -down-> Search : HTTP
-Workbench ..> Render : REST (intern)\n(Vorschau)
-Proof ..> Render : REST (intern)\n(Test-Generierung)
+Workbench ..> Render : REST (intern)\n(Template-Deploy)
 
 Workbench ..> Core : Maven-\nAbhängigkeit
 Render ..> Core : Maven-\nAbhängigkeit
-Proof ..> Core : Maven-\nAbhängigkeit
 
 note right of Studio
   Portal-Shell (Quarkus):
@@ -556,7 +549,7 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 * *blocpress-proof* enthält die Logik für Prüfung, Freigabe und Compliance (Test/QA-Stufe)
 * *blocpress-render* ist die einzige öffentliche API für Dokumentengenerierung (Production-Stufe)
 * *blocpress-admin* verwaltet Benutzer, Rollen und Systemkonfiguration
-* *PostgreSQL* nutzt getrennte Schemata pro Modul — identische Tabellenstrukturen für Templates ermöglichen kopie-basierte Stufenübergabe
+* *PostgreSQL* nutzt getrennte Datenbanken für workbench und production — identische Template-Tabellenstrukturen ermöglichen kopie-basierte Stufenübergabe via REST
 * *Message Queue* ermöglicht asynchrone Verarbeitung
 * *Elasticsearch* ist spezialisiert auf Volltextsuche (genutzt von blocpress-workbench)
 
@@ -582,7 +575,7 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 | Administration: Benutzerverwaltung (UC-22 bis UC-24), Rollenzuweisung, Systemkonfiguration, Audit-Logs.
 
 | PostgreSQL Datenbank
-| Persistente Speicherung mit getrennten Schemata: `workbench`, `proof`, `production`, `admin`. Identische Template-Tabellenstrukturen in workbench/proof/production.
+| Persistente Speicherung mit zwei Datenbanken: `workbench` (Entwicklung/Test) und `production` (freigegebene Templates). Identische Template-Tabellenstruktur in beiden Datenbanken. Übergabe via REST-API (TI-2 Option A).
 
 | Message Queue
 | Asynchrone Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests). Entkopplung.
@@ -951,10 +944,9 @@ actor "Externe\nAnwendung" as App
 participant "blocpress-render\nREST-API\n(öffentlich)" as Render
 participant "RenderResource" as Resource
 participant "TemplateCache" as Cache
-participant "blocpress-workbench\n(Internal API)" as Workbench
 participant "RenderEngine\n(TF-5)" as Engine
 participant "LibreOfficeProcessor" as LO
-participant "Repository\n(Schema: workbench)" as Repo
+participant "Repository\n(production DB)" as Repo
 
 App -> Render : POST /api/render/{name}\n{data, outputType: pdf}
 note right of App
@@ -972,25 +964,17 @@ alt Cache Hit
         TTL: 10 min, Max: 100 Templates
     end note
 else Cache Miss
-    Cache -> Workbench : GET /api/workbench/templates/by-name/{name}/content
-    Workbench -> Repo : findLatestActiveByName(name)
+    Cache -> Repo : findLatestActiveByName(name)
     note right of Repo
-        UC-10.1: Select highest version\nwhere status=APPROVED AND validFrom <= now()
+        TI-2: Direct DB read aus production-Datenbank
+        Select highest version where validFrom <= now()
     end note
-    Repo --> Workbench : Template entity (neueste aktive Version)
-
-    alt Status = APPROVED && validFrom <= now()
-        Workbench --> Cache : 200 OK (ODT binary)
+    alt Template found
+        Repo --> Cache : Template (ODT binary)
         Cache -> Cache : store in cache (Caffeine)
         Cache --> Resource : byte[]
-    else Status ≠ APPROVED || validFrom > now()
-        Workbench --> Cache : 403 Forbidden
-        Cache --> Resource : TemplateNotFoundException
-        Resource --> App : 403 Forbidden\n"Template not approved or not yet active"
-    end alt
-
-    alt Template not found
-        Workbench --> Cache : 404 Not Found
+    else Template not found
+        Repo --> Cache : TemplateNotFoundException
         Cache --> Resource : TemplateNotFoundException
         Resource --> App : 404 Not Found\n"Template not found"
     end alt
@@ -1008,14 +992,14 @@ note right of Cache
     UC-10.1: Template-Namen-basiertes Rendering mit Versioning
     - Auto-Versioning: mehrere Versionen pro Template-Name
     - validFrom-Feld: geplante Aktivierung/Rollout
-    Interim-Lösung: HTTP-Fetch zu blocpress-workbench
-    Zukünftig (TI-2): Direct DB read aus production-Schema
+    TI-2 DONE: Direct DB read aus production-Datenbank
+    (kein HTTP-Fetch zu blocpress-workbench mehr)
 end note
 
 note right of Engine
     TF-5: Document generation
     Läuft in blocpress-render
-    Schema: production (zukünftig)
+    Liest aus production-Datenbank (TI-2 DONE)
 end note
 @enduml
 ----
@@ -1215,58 +1199,43 @@ end note
 @enduml
 ----
 
-=== Stufenübergabe (workbench → proof → production)
+=== Stufenübergabe (workbench → production, Option A)
 
-*Szenario:* Template durchläuft den kompletten Lebenszyklus von Entwicklung über Prüfung bis zur Produktionsfreigabe
+*Szenario:* Template durchläuft den Lebenszyklus von Entwicklung bis zur Produktionsfreigabe. TI-2 (Option A) implementiert: Direktes physisches Kopieren via REST-API. Kein blocpress-proof Modul in dieser Phase.
 
 [plantuml, laufzeit-stufenuebergabe, svg]
 ----
 @startuml
 actor "Template-Designer" as Designer
-actor "Prüfer" as Pruefer
-participant "blocpress-workbench\n(Schema: workbench)" as WB
-participant "blocpress-proof\n(Schema: proof)" as PR
-participant "blocpress-render\n(Schema: production)" as RD
+participant "blocpress-workbench\n(Datenbank: workbench)" as WB
+participant "blocpress-render\n(Datenbank: production)" as RD
 
-== 1. Entwicklung (workbench) ==
+== 1. Entwicklung und Test (workbench) ==
 
-Designer -> WB : Template erstellen\nund bearbeiten
-WB -> WB : TF-1: Validierung\nEinträge in Schema: workbench
-Designer -> WB : "Zur Prüfung einreichen"
+Designer -> WB : Template erstellen, bearbeiten\n(Status: DRAFT)
+WB -> WB : TF-1: Validierung\nSpeichern in workbench.template
+Designer -> WB : Status → SUBMITTED\n(PUT /api/workbench/templates/{id}/status)
 
-== 2. Übergabe workbench → proof (Kopie) ==
+== 2. Freigabe in workbench (Interim-Freigabeprozess) ==
 
-WB -> PR : POST /internal/staging/submit\n(Template-Daten als Kopie)
-PR -> PR : INSERT INTO proof.templates\n(Kopie der Daten)
-PR --> WB : 201 Created
+Designer -> WB : Status → APPROVED\n(PUT /api/workbench/templates/{id}/status)
+WB -> WB : template.validFrom = now()\npersist()
 
-== 3. Prüfung und Freigabe (proof) ==
+== 3. Automatisches Deploy: workbench → production (Kopie via REST) ==
 
-Pruefer -> PR : Template prüfen\n(Tests, Review, Freigabe)
-PR -> PR : TF-2: Workflow-Prüfung\nVier-Augen-Prinzip
-PR -> PR : TF-6: Regressionstests
-Pruefer -> PR : "Template freigeben"
+WB -> RD : POST /api/render/templates/import\n{id, name, version, contentBase64, validFrom}
+RD -> RD : Upsert in production.template\n(physische Kopie der ODT-Binärdaten)
+RD --> WB : 200 OK
 
-== 4. Übergabe proof → production (Kopie) ==
-
-PR -> RD : POST /internal/staging/release\n(Template-Daten als Kopie)
-RD -> RD : INSERT INTO production.templates\n(Kopie der Daten, Status: Freigegeben)
-RD --> PR : 201 Created
-
-== 5. Produktion ==
+== 4. Produktion ==
 
 note over RD
-  Template steht über die
-  öffentliche API zur
+  Template steht ueber die
+  oeffentliche API zur
   Dokumentengenerierung bereit
+  (render liest aus production-DB,
+   nicht mehr von workbench)
 end note
-
-== Optional: Baseline aus production holen ==
-
-Pruefer -> PR : "Baseline aktualisieren"
-PR -> RD : GET /internal/staging/baseline/{id}
-RD --> PR : Template-Daten aus production
-PR -> PR : UPDATE proof.templates\n(aktuelle Baseline)
 
 @enduml
 ----
@@ -1671,7 +1640,7 @@ package "Schema: workbench" #LightBlue {
   }
 }
 
-package "Schema: proof" #LightGreen {
+package "Schema: proof [geplant - blocpress-proof]" #LightGreen {
   ENTITY "Template\n(Prüfung)" as TPR {
     + id: Long
     + name: String
@@ -1720,7 +1689,7 @@ package "Schema: production" #LightYellow {
   }
 }
 
-package "Schema: admin" #LightCoral {
+package "Schema: admin [geplant - blocpress-admin]" #LightCoral {
   ENTITY Benutzer {
     + id: Long
     + name: String
@@ -1747,7 +1716,7 @@ TPR -right[dashed]-> TPROD : Kopie\n(Freigabe)
 @enduml
 ----
 
-NOTE: Die Template-Tabelle existiert mit identischer Struktur in allen drei fachlichen Schemata (workbench, proof, production). Die Stufenübergabe erfolgt als Datenkopie zwischen den Schemata.
+NOTE: Die Template-Tabelle existiert mit identischer Struktur in den Datenbanken `workbench` und `production`. TI-2 (Option A) ist implementiert: Direktes physisches Kopieren via REST-API (`POST /api/render/templates/import`). Die Schemata `proof` und `admin` sind für zukünftige Module geplant.
 
 === Benutzerverwaltung und Sicherheit
 
@@ -1787,7 +1756,7 @@ Rollenbasierte Zugriffskontrolle (RBAC) — konsolidierte Rollen:
 
 *Sicherheitskonzepte:*
 
-* *Vier-Augen-Prinzip:* Technisch erzwungen in TF-2 (blocpress-proof): `userId != template.erstellerId`
+* *Reviewer-Freigabe:* Organisatorisch durchgesetzt. In der Interim-Implementierung (TI-2 Phase 1) findet die Freigabe in blocpress-workbench statt; technische Rollenprüfung ist geplant für blocpress-proof.
 * *HTTPS/TLS:* Alle externen Verbindungen verschlüsselt
 * *JWT-Weitergabe:* Über Web Component Properties — kein LocalStorage, kein Cookie
 * *Schema-Isolation:* Jedes SCS-Modul hat nur Zugriff auf sein eigenes Datenbank-Schema
@@ -1898,7 +1867,7 @@ blocpress-studio ist die Portal-Shell, die Micro-Frontends der SCS-Module als We
 ----
 // Studio lädt Web Components per Dynamic Import von den SCS-Modulen
 async function loadWorkbench() {
-  const workbenchUrl = 'http://localhost:8081'; // konfigurierbar
+  const workbenchUrl = 'http://workbench:8081'; // konfigurierbar
   await import(`${workbenchUrl}/components/bp-workbench.js`);
 }
 ----
@@ -2298,7 +2267,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 *** OpenTelemetry\n(Traces, Metriken, Logs)
 
 ** Sicherheit
-*** Vier-Augen-Prinzip\n(technisch erzwungen)
+*** Reviewer-Freigabe\n(organisatorisch durchgesetzt)
 *** RBAC\n(rollenbasiert)
 *** Rate Limiting\n(1.000 req/h)
 *** HTTPS/TLS\n(verschlüsselt)
@@ -2353,9 +2322,9 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Neue Version wird erstellt, alte Version bleibt verfügbar, Änderungen nachvollziehbar
 
 | *Sicherheit*
-| Vier-Augen-Prinzip
+| Reviewer-Freigabe
 | Designer versucht, sein eigenes Template freizugeben
-| TF-2 verweigert Freigabe mit Fehlermeldung "Designer darf nicht freigeben (Vier-Augen-Prinzip)"
+| Organisatorisch sichergestellt durch Rollentrennung. Technisch: kein automatischer Schutz in der Interim-Implementierung (TI-2 Phase 1). Geplant: blocpress-proof mit Rollenprüfung.
 
 | *Skalierbarkeit*
 | Horizontale Skalierung
@@ -2657,10 +2626,10 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | Interface (`StorageService`) zur Entkopplung von Binärdaten-Speicherung. Ermöglicht Wechsel von PostgreSQL bytea zu S3. Wird in jedem SCS-Modul eingesetzt.
 
 | *Stufenübergabe*
-| Kopie-basierte Überführung von Templates zwischen Datenstufen: workbench → proof (zur Prüfung) → production (nach Freigabe). Optional: Baseline-Pull von production → proof für turnusmäßige Erneuerung.
+| Kopie-basierte Überführung von Templates zwischen Datenstufen. Implementiert (TI-2 Option A): workbench → production via `POST /api/render/templates/import` (automatisch bei APPROVED-Status). Geplant: workbench → proof (Reviewer-Prüfung) → production.
 
 | *Template*
-| LibreOffice-Dokument (ODT) mit Platzhaltern (User-Fields), Wiederholungsgruppen und Bedingungen. Existiert in drei Stufen (workbench/proof/production). Entity E-1.
+| LibreOffice-Dokument (ODT) mit Platzhaltern (User-Fields), Wiederholungsgruppen und Bedingungen. Existiert in zwei Datenbanken (workbench/production, TI-2 implementiert). Ziel: drei Stufen (workbench/proof/production). Entity E-1.
 
 | *Test Case*
 | Testfall für ein Template mit JSON-Testdaten und Baseline-PDF. Verwaltet in blocpress-proof. Entity E-6.

@@ -100,14 +100,16 @@ Template-Verwaltung und Stufenuebergabe.
 
 NOTE: Voraussetzung fuer Epics 3-6.
 
+NOTE: TI-2 (Datenbankinfrastruktur) ist implementiert. StorageService-Abstraktion und formale Repository-Schicht sind noch offen (werden inkrementell gebaut).
+
 [cols="1,3,1,1" options="header"]
 |===
 | Ref | Story | Prio | Status
 
 | TI-2
-| PostgreSQL Multi-Schema Setup (workbench, production mit physischer Stufenübergabe)
+| Zwei PostgreSQL-Datenbanken (workbench, production) mit automatischem Template-Deploy via REST
 | 1
-| icon:play-circle[role=blue] IN PROGRESS
+| icon:check-circle[role=green] DONE
 
 | —
 | Storage Abstraction Layer (`StorageService` Interface)
@@ -154,7 +156,7 @@ Bausteinverwaltung und Content Search.
 | icon:check-circle[role=green] DONE
 
 | UC-2
-| Template zur Freigabe einreichen (Stufenuebergabe workbench -> proof)
+| Template zur Freigabe einreichen und Workflow-Status aendern (workbench intern, Stufenuebergabe workbench -> production bei APPROVED)
 | 2
 | icon:check-circle[role=green] DONE
 
@@ -207,6 +209,8 @@ _Modul: blocpress-proof_
 
 Workflow-gesteuerte Qualitaetssicherung mit Reviewer-Freigabe,
 Regressionstests und Compliance-Reviews. (Vier-Augen-Prinzip organisatorisch durchgesetzt.)
+
+NOTE: Interim-Implementierung (TI-2): Die Freigabe (UC-8, TF-2) findet derzeit im Rahmen von blocpress-workbench statt — Template-Status wird via `PUT /api/workbench/templates/{id}/status` auf APPROVED gesetzt, was automatisch das Template in die production-Datenbank deployt. Ein separates blocpress-proof Modul existiert noch nicht. Die Stories dieses Epics beschreiben den Zielzustand.
 
 [cols="1,3,1,1" options="header"]
 |===
@@ -330,6 +334,47 @@ der SCS-Module.
 | icon:check-circle[role=green] DONE
 |===
 
+<<<
+[[tech-debt]]
+== Technische Schulden (Implementierung TI-2)
+
+Folgende Probleme wurden bei der Code-Review der TI-2-Implementierung identifiziert:
+
+[cols="1,3,1,2" options="header"]
+|===
+| ID | Problem | Kritikalitaet | Behebung
+
+| TD-8
+| *RenderImportClient URL-Doppelpfad*: `application.properties` konfiguriert Basis-URL als `${RENDER_URL}/api`, waehrend `@Path("/api/render/templates/import")` erneut `/api` enthaelt. Effektive URL: `.../api/api/render/...` → 404.
+| KRITISCH
+| `@Path` in `RenderImportClient.java` auf `/render/templates/import` aendern (ohne `/api`-Praefix)
+
+| TD-9
+| *renderDocumentById/ByName ohne JAX-RS-Annotationen*: Methoden in `RenderResource.java` haben keine `@POST`, `@Path`, `@Produces`, `@Consumes` Annotationen und sind nicht als HTTP-Endpoints exponiert.
+| KRITISCH
+| JAX-RS-Annotationen hinzufuegen oder in die OpenAPI-generierte Schnittstelle integrieren
+
+| TD-10
+| *Cache-Invalidierung fehlt*: `TemplateCache` verwendet `@CacheResult` (10 min TTL), aber `TemplateImportResource` hat kein `@CacheInvalidate`. Bei Re-Import eines Templates wird veralteter Inhalt bis zu 10 Minuten ausgeliefert.
+| HOCH
+| `@CacheInvalidate(cacheName="templates")` in `TemplateImportResource.importTemplate()` hinzufuegen
+
+| TD-11
+| *Kein Timeout fuer RenderImportClient*: `RenderImportClient` hat kein konfigurierbares Timeout. Bei nicht erreichbarem render-Service blockiert der HTTP-Client unbegrenzt.
+| HOCH
+| MicroProfile Timeout-Annotation oder `quarkus.rest-client."render-import".connect-timeout=5000` konfigurieren
+
+| TD-12
+| *Case-Sensitivity-Bug bei OutputType*: `outputTypeStr` wird gegen Kleinbuchstaben ("pdf", "rtf", "odt") verglichen, aber `enum.toString()` liefert ggf. Grossbuchstaben (abhaengig von Enum-Definition).
+| HOCH
+| `outputTypeStr.toLowerCase()` oder `equalsIgnoreCase()` verwenden
+
+| TD-13
+| *Falscher Default-JDBC-URL in render*: `application.properties` verwendet `localhost:5432/workbench` als Default, sollte `localhost:5432/production` sein.
+| MITTEL
+| Default in `blocpress-render/src/main/resources/application.properties` auf `jdbc:postgresql://localhost:5432/production` aendern
+
+|===
 
 <<<
 == Abhaengigkeiten
