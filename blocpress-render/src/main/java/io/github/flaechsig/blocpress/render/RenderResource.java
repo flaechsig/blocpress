@@ -45,6 +45,7 @@ public class RenderResource implements RenderApi {
     TemplateCache templateCache;
 
     @Override
+    @PermitAll
     public File renderDocumentMultipart(String accept, InputStream templateInputStream, String data) {
         logger.info("Generating document from template");
         OutputFormat format = switch (accept) {
@@ -64,6 +65,7 @@ public class RenderResource implements RenderApi {
     }
 
     @Override
+    @PermitAll
     public File renderDocumentJson(RenderRequest renderRequest) {
         logger.info("Rendering document from base64-encoded template");
         OutputFormat format = switch (renderRequest.getOutputType()) {
