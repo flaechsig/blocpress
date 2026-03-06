@@ -991,10 +991,10 @@ Kommuniziert mit Elasticsearch über REST-API:
 == Entities
 
 [[edc-e-1]]
-=== E-1: Template
+=== E-1: Template / Baustein
 
 *Description:*
-Speichert Metadaten und Binärdaten von LibreOffice-Templates sowie deren Versionen und Status. Existiert mit identischer Struktur in drei Schemata: `workbench` (Entwurf), `proof` (Prüfung), `production` (Freigegeben). +
+Speichert Metadaten und Binärdaten von LibreOffice-Templates und Bausteinen. Das `type`-Feld unterscheidet zwischen Templates (druckbar) und Bausteinen (wiederverwendbare ODT-Fragmente, eingebunden via `text:section-source`). Beide Typen durchlaufen denselben Workflow (DRAFT → SUBMITTED → APPROVED). Schema: `workbench`. Freigegebene Templates werden bei APPROVED physisch in das Schema `production` kopiert (blocpress-render-Datenbank). Bausteine bleiben in `workbench` und werden zur Renderzeit via WebDAV-URL (`/api/webdav/released/bausteine/{name}.odt`) eingebunden. +
 _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template in der Information Architecture]_
 
 *Attributes:*
@@ -1002,40 +1002,23 @@ _Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-template[Template 
 |===
 | ID | Name | Data Type | Description
 
-| 1 | id | UUID | Eindeutige Template-ID (Primary Key, auto-generiert)
-| 2 | name | String(255) | Name des Templates (nicht eindeutig, da versioniert)
-| 3 | description | String(2000) | Beschreibung des Templates
-| 4 | version | Integer | Versionsnummer (1, 2, 3, ...; UC-10.1: Auto-Versioning nach Name)
-| 5 | status | String(50) | Status: "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"
-| 6 | validFrom | Timestamp | Aktivierungsdatum (UC-10.1); NULL bis APPROVED; wird auf now() gesetzt bei APPROVED Transition; kann von Admin auf zukünftiges Datum geändert werden für geplante Rollouts
-| 7 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
-| 8 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
-| 9 | content | bytea | ODT-Datei als Binärdaten (PostgreSQL BLOB)
-| 10 | validation_result | JSONB | Validierungsergebnis: {errors: [...], warnings: [...], userFields: [...], repetitionGroups: [...], conditions: [...]}
-| 11 | review_zyklus | Integer | Review-Zyklus in Jahren (1, 3 oder 5)
+| 1 | id | UUID | Eindeutige ID (Primary Key, auto-generiert via gen_random_uuid())
+| 2 | name | String(255) | Name (nicht eindeutig, da versioniert; UNIQUE auf name+valid_from+version)
+| 3 | type | String(20) | Typ: "TEMPLATE" (Standard) oder "BAUSTEIN"
+| 4 | version | Integer | Versionsnummer (1, 2, 3, ...; Auto-Versioning nach Name, UC-10.1)
+| 5 | status | String(50) | Workflow-Status: "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"
+| 6 | valid_from | Timestamp | Aktivierungsdatum; wird auf now() gesetzt bei APPROVED-Transition
+| 7 | created_at | Timestamp | Erstellungszeitpunkt (NOT NULL)
+| 8 | content | bytea | ODT-Datei als Binärdaten (lazy-loaded)
+| 9 | validation_result | JSONB | Validierungsergebnis: {errors, warnings, userFields, repetitionGroups, conditions}
 |===
+
+*Indizes:* `idx_template_name`, `idx_template_valid_from`, `idx_template_status`, `idx_template_type`
 
 [[edc-e-2]]
 === E-2: Baustein
 
-*Description:*
-Speichert wiederverwendbare Dokumentfragmente, die in mehreren Templates verwendet werden können. Schema: `workbench`. +
-_Geschäftsentität: xref:Solution_Design_Concept.adoc#sdc-ia-baustein[Baustein in der Information Architecture]_
-
-*Attributes:*
-
-|===
-| ID | Name | Data Type | Description
-
-| 1 | id | UUID | Eindeutige Baustein-ID (Primary Key, auto-generiert)
-| 2 | name | String(255) | Name des Bausteins
-| 3 | description | String(2000) | Beschreibung
-| 4 | typ | String(50) | Typ: "Kopfzeile", "Fußzeile", "Klausel", "Abschnitt"
-| 5 | inhalt | bytea | ODT-Fragment als Binärdaten
-| 6 | version | Integer | Versionsnummer
-| 7 | ersteller_id | UUID | Foreign Key zu E-9 (Benutzer)
-| 8 | erstellungsdatum | Timestamp | Erstellungszeitpunkt
-|===
+NOTE: E-2 ist nicht als separate Datenbanktabelle implementiert. Bausteine werden in der E-1-Tabelle (`template`) mit `type = 'BAUSTEIN'` gespeichert. Der Workflow (DRAFT → SUBMITTED → APPROVED) ist identisch mit Templates. Bausteine sind über den WebDAV-Endpoint unter `/api/webdav/bausteine/{name}.odt` (DRAFT) und `/api/webdav/released/bausteine/{name}.odt` (APPROVED) erreichbar.
 
 [[edc-e-3]]
 === E-3: Dokumentengenerierung

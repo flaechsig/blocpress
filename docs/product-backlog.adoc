@@ -340,48 +340,6 @@ der SCS-Module.
 |===
 
 <<<
-[[tech-debt]]
-== Technische Schulden (Implementierung TI-2)
-
-Folgende Probleme wurden bei der Code-Review der TI-2-Implementierung identifiziert:
-
-[cols="1,3,1,2" options="header"]
-|===
-| ID | Problem | Kritikalitaet | Behebung
-
-| TD-8
-| *RenderImportClient URL-Doppelpfad*: `application.properties` konfiguriert Basis-URL als `${RENDER_URL}/api`, waehrend `@Path("/api/render/templates/import")` erneut `/api` enthaelt. Effektive URL: `.../api/api/render/...` → 404.
-| KRITISCH
-| `@Path` in `RenderImportClient.java` auf `/render/templates/import` aendern (ohne `/api`-Praefix)
-
-| TD-9
-| *renderDocumentById/ByName ohne JAX-RS-Annotationen*: Methoden in `RenderResource.java` haben keine `@POST`, `@Path`, `@Produces`, `@Consumes` Annotationen und sind nicht als HTTP-Endpoints exponiert.
-| KRITISCH
-| JAX-RS-Annotationen hinzufuegen oder in die OpenAPI-generierte Schnittstelle integrieren
-
-| TD-10
-| *Cache-Invalidierung fehlt*: `TemplateCache` verwendet `@CacheResult` (10 min TTL), aber `TemplateImportResource` hat kein `@CacheInvalidate`. Bei Re-Import eines Templates wird veralteter Inhalt bis zu 10 Minuten ausgeliefert.
-| HOCH
-| icon:check-circle[role=green] DONE — `@CacheInvalidateAll(cacheName="templates")` in `TemplateImportResource.importTemplate()` hinzugefuegt (v2.1.0)
-
-| TD-11
-| *Kein Timeout fuer RenderImportClient*: `RenderImportClient` hat kein konfigurierbares Timeout. Bei nicht erreichbarem render-Service blockiert der HTTP-Client unbegrenzt.
-| HOCH
-| icon:check-circle[role=green] DONE — `connectTimeout(5s)` und `timeout(30s/60s)` an beiden HttpClient-Aufrufen in `TemplateResource.java` gesetzt (v2.1.0)
-
-| TD-12
-| *Case-Sensitivity-Bug bei OutputType*: `outputTypeStr` wird gegen Kleinbuchstaben ("pdf", "rtf", "odt") verglichen, aber `enum.toString()` liefert ggf. Grossbuchstaben (abhaengig von Enum-Definition).
-| HOCH
-| `outputTypeStr.toLowerCase()` oder `equalsIgnoreCase()` verwenden
-
-| TD-13
-| *Falscher Default-JDBC-URL in render*: `application.properties` verwendet `localhost:5432/workbench` als Default, sollte `localhost:5432/production` sein.
-| MITTEL
-| Default in `blocpress-render/src/main/resources/application.properties` auf `jdbc:postgresql://localhost:5432/production` aendern
-
-|===
-
-<<<
 == Abhaengigkeiten
 
 [plantuml, backlog-dependencies, svg]

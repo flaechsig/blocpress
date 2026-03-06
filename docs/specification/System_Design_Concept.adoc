@@ -74,7 +74,7 @@ _Use Cases: UC-22 bis UC-24_
 
 *Gemeinsame Infrastruktur:*
 
-*PostgreSQL-Datenbank (Version ≥ 18):* Eine Datenbankinstanz mit vier getrennten Schemata (`workbench`, `proof`, `production`, `admin`). Template-Tabellen haben in workbench/proof/production identische Struktur für kopie-basierte Stufenübergabe. Binärdaten als bytea (< 5.000 Dokumente). Storage Abstraction Layer für zukünftigen S3-Wechsel. +
+*PostgreSQL-Datenbank (Version ≥ 18):* Zwei PostgreSQL-Instanzen: `workbench` (Entwicklung und Prüfung, Schema für blocpress-workbench) und `production` (nur freigegebene Templates, Schema für blocpress-render). Freigegebene Templates werden bei APPROVED physisch in die production-Datenbank kopiert (REST-basierter Deploy via `POST /api/render/templates/import`). Binärdaten als bytea. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-2[TI-2: Datenbank-Interface]_ +
 _Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities im Element Design Concept]_
 
@@ -89,7 +89,7 @@ _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-5[TI-5: Message Qu
 
 *Container Platform:* Docker-Host oder Kubernetes-Cluster zum Betrieb aller SCS-Container (studio, workbench, proof, render, admin). Mindestens 16 GB RAM und 4 CPU-Cores für produktive Umgebung.
 
-*Datenbank-Server:* Dedizierter Server oder Container für PostgreSQL (Version ≥ 18) mit persistentem Storage. Eine Instanz mit vier Schemata (workbench, proof, production, admin). Mindestens 8 GB RAM, 100 GB SSD-Storage.
+*Datenbank-Server:* Dedizierter Server oder Container für PostgreSQL (Version ≥ 18) mit persistentem Storage. Zwei Datenbankinstanzen: `workbench` (für blocpress-workbench) und `production` (für blocpress-render). Mindestens 8 GB RAM, 100 GB SSD-Storage.
 
 *Load Balancer:* Hardware- oder Software-Load-Balancer zur Verteilung von Last auf mehrere blocpress-render-Instanzen (horizontal skalierbar für Dokumentengenerierung).
 
