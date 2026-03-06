@@ -3,8 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <title>Blocpress – ODT to PDF Document Rendering Engine</title>
-    <meta name="description" content="Blocpress is an open-source Java document template engine that renders LibreOffice ODT templates to PDF and RTF via REST API. Designed for enterprise document workflows.">
+    <meta name="description" content="Blocpress is an open-source Java library and REST API that renders LibreOffice ODT templates to PDF, RTF, and ODT. Built on Quarkus and Java 21. Free, self-hosted, Docker-ready.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://flaechsig.github.io/blocpress/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://flaechsig.github.io/blocpress/">
+    <meta property="og:title" content="Blocpress – ODT to PDF Document Rendering Engine">
+    <meta property="og:description" content="Open-source Java REST API that renders LibreOffice ODT templates to PDF and RTF. Self-hosted, Docker-ready, JWT-secured.">
+    <meta property="og:image" content="https://flaechsig.github.io/blocpress/images/blocpress-logo-large.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Blocpress – ODT to PDF Document Rendering Engine">
+    <meta name="twitter:description" content="Open-source Java REST API that renders LibreOffice ODT templates to PDF and RTF. Self-hosted, Docker-ready, JWT-secured.">
+    <meta name="twitter:image" content="https://flaechsig.github.io/blocpress/images/blocpress-logo-large.png">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Blocpress",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux, Windows, macOS",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Open-source Java document rendering engine that converts LibreOffice ODT templates to PDF, RTF, and ODT via REST API. Built on Quarkus and Java 21.",
+      "url": "https://flaechsig.github.io/blocpress/",
+      "softwareVersion": "2.0.0",
+      "license": "https://github.com/flaechsig/blocpress/blob/main/LICENSE",
+      "codeRepository": "https://github.com/flaechsig/blocpress",
+      "programmingLanguage": "Java"
+    }
+    </script>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -12,9 +50,82 @@
         .hero {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
             color: white;
-            padding: 80px 20px;
-            border-radius: 16px;
+            padding: 60px 48px;
+            border-radius: 16px 16px 0 0;
         }
+
+        .badge-strip {
+            background: #1a3266;
+            border-radius: 0 0 16px 16px;
+            padding: 14px 48px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 3rem;
+        }
+
+        .badge-strip span {
+            background: rgba(255,255,255,0.12);
+            color: #c8d8ff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* Terminal window */
+        .terminal {
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.82rem;
+        }
+
+        .terminal-bar {
+            background: #21262d;
+            padding: 10px 14px;
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .terminal-bar .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-bar .dot.red    { background: #ff5f57; }
+        .terminal-bar .dot.yellow { background: #febc2e; }
+        .terminal-bar .dot.green  { background: #28c840; }
+
+        .terminal-bar .title {
+            flex: 1;
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.75rem;
+        }
+
+        .terminal-body {
+            margin: 0;
+            padding: 20px 22px;
+            color: #e6edf3;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .t-prompt  { color: #3fb950; }
+        .t-method  { color: #79c0ff; }
+        .t-url     { color: #e6edf3; }
+        .t-flag    { color: #d2a8ff; }
+        .t-value   { color: #a5d6ff; }
+        .t-comment { color: #8b949e; font-style: italic; }
+        .t-success { color: #3fb950; }
 
         .feature-card {
             border: none;
@@ -56,52 +167,137 @@
 <div class="container py-5">
 
     <!-- HERO -->
-    <div class="hero text-center d-flex flex-column align-items-center justify-content-center mb-5"
-         style="min-height: 420px;">
+    <div class="hero">
+        <div class="row align-items-center g-5">
 
-        <!-- Großes zentriertes Logo -->
-        <img src="images/blocpress-logo-large.svg"
-             alt="Blocpress – ODT to PDF Document Rendering Engine"
-             style="max-width:600px; width:100%;"
-             class="mb-4">
+            <!-- Left: Logo + Text + Buttons -->
+            <div class="col-lg-5 text-center text-lg-start">
+                <img src="images/blocpress-logo-large.png"
+                     alt="Blocpress – ODT to PDF Document Rendering Engine"
+                     style="max-width: 280px; width: 100%;"
+                     class="mb-4">
 
-        <!-- SEO H1 (für Google, visuell dezent) -->
-        <h1 class="fw-bold fs-6 mt-2 opacity-75">
-            ODT to PDF Document Rendering Engine (Java + LibreOffice)
-        </h1>
+                <h1 class="fw-bold" style="font-size: 1.4rem; line-height: 1.4;">
+                    ODT to PDF Document Rendering Engine
+                </h1>
 
-        <p class="lead mt-3 px-3">
-            Open-source Java template engine for rendering LibreOffice ODT templates
-            into PDF and RTF via REST API.
-        </p>
+                <p class="mt-3 mb-4" style="color: rgba(255,255,255,0.85); font-size: 1.05rem;">
+                    Turn LibreOffice Writer templates into PDF, RTF, or ODT
+                    via a single HTTP call — self-hosted, open source, Docker-ready.
+                </p>
 
-        <a href="https://github.com/flaechsig/blocpress"
-           class="btn btn-light btn-lg mt-3">
-            View on GitHub
-        </a>
+                <div class="d-flex gap-3 align-items-center flex-wrap justify-content-center justify-content-lg-start">
+                    <a href="https://github.com/flaechsig/blocpress"
+                       class="btn btn-light btn-lg fw-semibold">
+                        &#9654;&nbsp; View on GitHub
+                    </a>
+                    <a href="https://github.com/flaechsig/blocpress/releases"
+                       class="btn btn-outline-light btn-lg">
+                        Release Notes
+                    </a>
+                    <span class="badge bg-light text-dark fs-6 fw-semibold px-3 py-2"
+                          style="border-radius: 8px;">v2.0.0</span>
+                </div>
+            </div>
 
+            <!-- Right: Terminal window -->
+            <div class="col-lg-7">
+                <div class="terminal">
+                    <div class="terminal-bar">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="title">blocpress — render</span>
+                    </div>
+                    <pre class="terminal-body"><span class="t-comment"># Generate a PDF from an ODT template</span>
+<span class="t-prompt">$</span> <span class="t-method">curl</span> -X POST \
+    <span class="t-value">http://localhost:8080/api/render/template</span> \
+    <span class="t-flag">-H</span> <span class="t-value">"Accept: application/pdf"</span> \
+    <span class="t-flag">-F</span> <span class="t-value">"template=@invoice.odt"</span> \
+    <span class="t-flag">-F</span> <span class="t-value">"data=@invoice.json"</span> \
+    <span class="t-flag">-o</span> <span class="t-value">invoice.pdf</span>
+
+<span class="t-success">✓  invoice.pdf  (52 KB)  200 OK</span></pre>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- BADGE STRIP -->
+    <div class="badge-strip">
+        <span>✓ Open Source</span>
+        <span>✓ Self-hosted</span>
+        <span>✓ Docker</span>
+        <span>✓ Java 21</span>
+        <span>✓ MIT License</span>
+        <span>✓ No Vendor Lock-in</span>
+    </div>
+
+    <!-- INTRO TEXT (crawlable content) -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <p class="fs-5">
+                <strong>Blocpress</strong> is a free, self-hosted document generation service that turns
+                <strong>LibreOffice Writer templates (ODT)</strong> into production-ready
+                <strong>PDF, RTF, or ODT</strong> documents — fully automated via a simple HTTP API.
+            </p>
+            <p>
+                Designed for enterprise document workflows, Blocpress is ideal for generating contracts,
+                invoices, letters, and reports from structured JSON data. Templates are authored in
+                LibreOffice Writer using standard User Fields, conditional sections, and repeat groups —
+                no proprietary markup language required.
+            </p>
+            <p>
+                The server runs as a <strong>Docker container</strong> and exposes a clean
+                <strong>OpenAPI/REST interface</strong>. A built-in template workbench lets template
+                designers upload, validate, and approve templates through a browser-based UI with a
+                full review workflow.
+            </p>
+        </div>
     </div>
 
     <!-- FEATURES -->
     <div class="row text-center mb-5">
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
-                <h4 class="accent">ODT → PDF</h4>
-                <p>Render LibreOffice templates into production-ready PDF documents.</p>
+                <h2 class="h4 accent">ODT → PDF / RTF</h2>
+                <p>Render LibreOffice ODT templates into production-ready PDF or RTF documents using headless LibreOffice — no proprietary rendering engine.</p>
             </div>
         </div>
 
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
-                <h4 class="accent">REST API</h4>
-                <p>Trigger document generation via HTTP for automated workflows.</p>
+                <h2 class="h4 accent">REST API</h2>
+                <p>Generate documents via <code>POST /api/render/template</code>. No authentication required for stateless rendering — just send your template and JSON data.</p>
             </div>
         </div>
 
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
-                <h4 class="accent">Enterprise Ready</h4>
-                <p>Designed for enterprise-grade document rendering.</p>
+                <h2 class="h4 accent">Template Workbench</h2>
+                <p>Browser-based UI for template designers: upload ODT templates, run validation, manage versions, and publish approved templates to production.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h2 class="h4 accent">LibreOffice Templates</h2>
+                <p>Use standard LibreOffice Writer to author templates. Fields, conditional sections, and repeat groups map directly to JSON data — no custom syntax to learn.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h2 class="h4 accent">Docker Ready</h2>
+                <p>Single Docker image with built-in LibreOffice, health check, and JWT authentication. Deploy on-premise in minutes — no cloud dependency.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h2 class="h4 accent">Open Source</h2>
+                <p>Free to use, self-hosted, and fully open source under MIT license. No vendor lock-in, no usage fees, no data leaves your infrastructure.</p>
             </div>
         </div>
     </div>
@@ -110,7 +306,7 @@
     <h2 class="mb-3 accent">Quickstart</h2>
     <p>
         Start the server, download a sample template with matching JSON data, and
-        generate your first PDF in seconds.
+        generate your first PDF in three steps — no configuration required.
     </p>
 
     <p><strong>1. Run the container</strong></p>
@@ -119,7 +315,9 @@
         <pre class="bg-white p-3 rounded shadow-sm">docker run --name blocpress-render -d -p 8080:8080 flaechsig/blocpress-render</pre>
     </div>
     <p class="text-muted small mt-2">
-        The image ships with a built-in dev key and issuer. To use your own JWT configuration, override via
+        The stateless render endpoint (<code>POST /api/render/template</code>) requires no authentication.
+        For name-based rendering (<code>POST /api/render/{name}</code>), a JWT Bearer token is required.
+        The image ships with a built-in dev key and issuer. To use your own identity provider, override via
         environment variables: <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
         <code>-e MP_JWT_VERIFY_ISSUER="..."</code>
     </p>
@@ -128,7 +326,7 @@
     <div class="row mb-3">
         <div class="col-md-6 mb-3">
             <div class="card feature-card p-3 h-100">
-                <h5 class="accent">Welcome Letter</h5>
+                <h3 class="h5 accent">Welcome Letter</h3>
                 <p class="mb-2">Simple template with field replacement.</p>
                 <a href="samples/quickstart/welcome.odt" class="btn btn-outline-primary btn-sm me-2">welcome.odt</a>
                 <a href="samples/quickstart/welcome.json" class="btn btn-outline-secondary btn-sm me-2">welcome.json</a>
@@ -136,7 +334,7 @@
         </div>
         <div class="col-md-6 mb-3">
             <div class="card feature-card p-3 h-100">
-                <h5 class="accent">Invoice</h5>
+                <h3 class="h5 accent">Invoice</h3>
                 <p class="mb-2">Template with loops and calculated fields.</p>
                 <a href="samples/quickstart/invoice.odt" class="btn btn-outline-primary btn-sm me-2">invoice.odt</a>
                 <a href="samples/quickstart/invoice.json" class="btn btn-outline-secondary btn-sm me-2">invoice.json</a>
@@ -145,41 +343,60 @@
     </div>
 
     <p><strong>3. Generate a PDF</strong></p>
-    <div class="code-block" data-copy="curl -X POST http://localhost:8080/api/render/template/upload \
-  -H &quot;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2Jsb2NwcmVzcy5kZXYiLCJzdWIiOiJkZXYtdXNlciIsImdyb3VwcyI6WyJhcGktY29uc3VtZXIiXSwiaWF0IjoxNzcxMTA1OTE0LCJleHAiOjIwODI3NTQ4MDB9.JJHUcBWHHfH_MF5OV0L_Wqeg3DaCZTx1bkgoqGety6E-HIhF-_9ov-pJd1D4BLltc97BXtOEN7TiPdlvb6uwL0MGuITU0K6F3tLlIJJLtDqa6z7uh278kucZ0C5r80Hs6postgIqDlwi8kRIDq3wRhO3F4_Mmi6TtiK-59lQH5UIl1awX0hLWQz6uzEiY7pWVC4w-oQB1UJ6Sxa8PZkRhA2xC_yEJX4bBpeVS6MB6lUfinZj5Cpsw-mTJiF_hQ5QV9qr7kFvfm1idAOqDw_EZoS3LF3Qs-y-dFg1FnSYrzXHPlykDwSgXNUCFJx-Vj9H4Fpy5pDtIgE6e6jQR37F6g&quot; \
+    <div class="code-block" data-copy="curl -X POST http://localhost:8080/api/render/template \
   -H &quot;Accept: application/pdf&quot; \
   -F &quot;template=@welcome.odt&quot; \
   -F &quot;data=@welcome.json&quot; \
   -o welcome.pdf">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template/upload \ <b>&#x2460;</b>
-  -H "Authorization: Bearer eyJhbG...R37F6g" \ <b>&#x2461;</b>
-  -H "Accept: application/pdf" \ <b>&#x2462;</b>
-  -F "template=@welcome.odt" \ <b>&#x2463;</b>
-  -F "data=@welcome.json" \ <b>&#x2464;</b>
-  -o welcome.pdf <b>&#x2465;</b></pre>
+        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template \ <b>&#x2460;</b>
+  -H "Accept: application/pdf" \ <b>&#x2461;</b>
+  -F "template=@welcome.odt" \ <b>&#x2462;</b>
+  -F "data=@welcome.json" \ <b>&#x2463;</b>
+  -o welcome.pdf <b>&#x2464;</b></pre>
     </div>
     <ol class="small text-muted mt-2">
-        <li>API endpoint for multipart template upload</li>
-        <li>Dev JWT token (included for quick testing). <a href="samples/quickstart/token.txt">Get the token</a></li>
-        <li>Desired output format (application/pdf → PDF, application/rtf → RTF, or application/vnd.oasis.opendocument.text → ODT)</li>
-        <li>ODT template file — see the <a href="/README.adoc">README</a> for authoring details.</li>
+        <li>Stateless render endpoint — no authentication required</li>
+        <li>Desired output format (<code>application/pdf</code>, <code>application/rtf</code>, or <code>application/vnd.oasis.opendocument.text</code>)</li>
+        <li>ODT template file — see the <a href="/README.adoc">README</a> for authoring details</li>
         <li>JSON data file with template values</li>
         <li>Save generated document to file</li>
     </ol>
 
+    <!-- HOW IT WORKS -->
+    <h2 class="mt-5 mb-3 accent">How It Works</h2>
+    <div class="col-lg-8">
+        <p>
+            Blocpress processes ODT templates through a four-stage merge pipeline:
+        </p>
+        <ol>
+            <li><strong>Text block expansion</strong> — External ODT sections referenced via <code>text:section-source</code> are inlined, enabling reusable content blocks (e.g. terms &amp; conditions).</li>
+            <li><strong>Condition evaluation</strong> — Conditional sections and fields are resolved against your JSON data using JEXL expressions.</li>
+            <li><strong>Loop handling</strong> — Sections and table rows containing array fields are duplicated per array element automatically.</li>
+            <li><strong>Field replacement</strong> — LibreOffice User Fields with dot-notation names (e.g. <code>customer.name</code>) are replaced with values from your JSON payload.</li>
+        </ol>
+        <p>
+            The merged document is then passed to headless LibreOffice for export to PDF or RTF.
+            The entire process is stateless — no data is stored between requests.
+        </p>
+    </div>
+
     <!-- TECH -->
     <h2 class="mt-5 mb-3 accent">Technology Stack</h2>
     <ul>
-        <li>Java 21</li>
-        <li>Quarkus</li>
-        <li>LibreOffice headless</li>
-        <li>OpenAPI / REST API</li>
-        <li>ODT template engine</li>
+        <li><strong>Java 21</strong> — modern LTS runtime</li>
+        <li><strong>Quarkus</strong> — fast startup, low memory footprint, native-ready</li>
+        <li><strong>LibreOffice headless</strong> — battle-tested ODT processing and PDF export</li>
+        <li><strong>OpenAPI / REST</strong> — standard HTTP interface with Swagger UI at <code>/q/swagger-ui</code></li>
+        <li><strong>PostgreSQL</strong> — template storage and versioning in the workbench</li>
     </ul>
 
     <footer class="text-center mt-5 pt-4 border-top">
-        <p>© 2026 Blocpress – Open Source ODT to PDF Rendering Engine</p>
+        <p>© 2026 Blocpress – Open Source ODT to PDF Rendering Engine &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress">GitHub</a> &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress/releases">Release Notes</a> &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress/blob/main/CHANGELOG.md">Changelog</a>
+        </p>
     </footer>
 
 </div>
