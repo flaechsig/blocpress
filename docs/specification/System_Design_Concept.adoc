@@ -54,7 +54,7 @@ Die Anwendung ist als Self-Contained Systems (SCS) strukturiert — fünf unabh�
 
 *blocpress-studio (Portal-Shell):* Quarkus-Anwendung, die statische HTML/JS-Assets ausliefert. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends via Dynamic Import. Kein eigenes Backend-Logik. Lädt die Web Components der fachlichen Module dynamisch von den jeweiligen SCS-Modulen.
 
-*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search (Elasticsearch), Vorschau-Generierung, **Template Management Dashboard mit Status-Filtern und Workflow** (UC-5: Status-Übergänge, Duplikation, Re-Upload). Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
+*blocpress-workbench (Quarkus):* Template-Entwicklung — Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung (Entity E-2, inkl. WebDAV-Zugriff), Content Search (Elasticsearch), Vorschau-Generierung, **Template Management Dashboard mit Status-Filtern und kombinierter Statusansicht** (UC-5: Status-Übergänge, Duplikation, Re-Upload). **WebDAV-Endpoint** (`/api/webdav/`) für direkten Baustein- und Template-Zugriff aus LibreOffice (DAV Level 1: GET/PUT/PROPFIND; DRAFT read-write, APPROVED read-only unter `/released/`). Arbeitsumgebung für Template-Designer. Nutzt Schema `workbench`. +
 _Use Cases: UC-1 bis UC-5, UC-19 bis UC-21_ +
 _Detaillierte Beschreibung: xref:Element_Design_Concept.adoc#edc-goals[Goals im Element Design Concept]_
 

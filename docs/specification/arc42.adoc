@@ -614,6 +614,7 @@ package "blocpress-workbench (Quarkus)" {
   component "Storage\nService" as Storage
   component "Repository\nLayer" as Repo
   component "Web Component\n(bp-workbench)" as WC
+  component "WebDAV\nEndpoint" as WebDAV
 }
 
 component "blocpress-core\n(Shared Library)" as Core
@@ -622,10 +623,12 @@ WC ..> API : REST
 API -down-> TS : aufrufen
 API -down-> BS : aufrufen
 API -down-> SS : aufrufen
+API -down-> WebDAV : aufrufen
 TS -down-> Core : TF-1\n(Validierung)
 TS -down-> Storage : save/load
 TS -down-> Repo : CRUD
 BS -down-> Repo : CRUD
+WebDAV -down-> Repo : CRUD
 SS -down-> "Elasticsearch" : HTTP
 
 note right of WC
@@ -2238,6 +2241,39 @@ Drei Datenstufen mit kopie-basierter Übergabe: workbench → proof → producti
 * Negativ: Höhere Deployment-Komplexität (5 Container statt 1), Datenredundanz durch Kopien, Cross-Schema-Kommunikation über REST statt direkte DB-Zugriffe
 * Mitigation: Gemeinsame PostgreSQL-Instanz reduziert Infrastruktur-Overhead, Docker-Compose/Kubernetes-Konfiguration automatisiert Deployment
 
+=== ADR-007: WebDAV-Endpoint für Baustein- und Template-Zugriff aus LibreOffice
+
+*Status:* Akzeptiert
+
+*Kontext:*
+
+Template-Designer arbeiten in LibreOffice und binden Bausteine als verknüpfte Abschnitte (`text:section-source`) in Templates ein. Diese Verknüpfungen erfordern eine HTTP-URL zum Baustein-ODT. Der Zugriff muss sowohl zur Designzeit (LibreOffice lädt den Baustein) als auch zur Renderzeit (`RenderEngine.expandTextBlocks()` fetcht `text:section-source`-URLs) funktionieren. Eine rein browserbasierte Upload-/Download-Lösung würde manuelles URL-Management erfordern und unterbricht den natürlichen Arbeitsfluss in LibreOffice.
+
+*Entscheidung:*
+
+blocpress-workbench exponiert einen WebDAV-Endpoint (`/api/webdav/`) als JAX-RS-Resource:
+
+* DRAFT-Versionen unter `/api/webdav/{bausteine|templates}/{name}.odt` — read-write (GET + PUT)
+* APPROVED-Versionen unter `/api/webdav/released/{bausteine|templates}/{name}.odt` — read-only (GET)
+* PROPFIND für Verzeichnislistings (207 Multi-Status XML) implementiert via eigener `@PROPFIND`-Annotation (JAX-RS §3.3 Custom HTTP Methods)
+* DAV Level 1 — keine externe WebDAV-Bibliothek, reine JAX-RS-Implementierung
+* PUT erzeugt bei unbekanntem Namen automatisch einen neuen DRAFT-Eintrag (WebDAV create-or-update)
+
+LibreOffice verbindet sich per `dav://workbench:8081/api/webdav/bausteine/`. Filesystem-Mounts über GNOME Files oder `davfs2` ermöglichen transparentes Bearbeiten. Zur Renderzeit verwendet blocpress-core die `/released/`-URLs direkt über `java.net.URL.openStream()`.
+
+*Begründung:*
+
+* *Einfachheit für Designer:* Standard-Dateisystem-Integration ohne Browser-Uploads
+* *Renderzeit-Kompatibilität:* `RenderEngine` nutzt bereits `java.net.URL` für `text:section-source` — WebDAV-URLs werden nativ unterstützt
+* *Statusbewusstsein:* `/released/` trennt DRAFT von APPROVED — LibreOffice lädt gezielt die freigegebene Version
+* *Keine Infrastruktur-Zusatzabhängigkeit:* Kein separater WebDAV-Server nötig
+
+*Konsequenzen:*
+
+* Positiv: Nahtlose LibreOffice-Integration, Designzeit- und Renderzeit-Zugriff über gleiche URL-Basis, Filesystem-Mount-Kompatibilität (GNOME Files, davfs2)
+* Negativ: Nur DAV Level 1 (kein LOCK/UNLOCK) — parallele Bearbeitung ohne Sperrmechanismus möglich
+* Mitigation: DRAFT-Status als softwareseitiger Schutz; bei konkurrierendem Zugriff gewinnt der letzte PUT (letzte Schreibt-gewinnt-Semantik akzeptabel für ein Einzelnutzer-Entwicklungswerkzeug)
+
 <<<<
 [[section-quality-requirements]]
 == Qualitätsanforderungen
@@ -2575,7 +2611,10 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | Portal-Shell (Quarkus): Keine eigene Business-Logik. Verantwortlich für Navigation, JWT-Authentifizierung und Integration der Micro-Frontends (Web Components) via Dynamic Import.
 
 | *blocpress-workbench*
-| SCS-Modul für Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search. Arbeitsumgebung des Template-Designers. Schema: `workbench`.
+| SCS-Modul für Template-Entwicklung: Upload, Validierung, Bearbeitung, Bausteinverwaltung, Content Search, WebDAV-Endpoint. Arbeitsumgebung des Template-Designers. Schema: `workbench`.
+
+| *WebDAV*
+| Web Distributed Authoring and Versioning (RFC 4918) — HTTP-Erweiterung für kollaborativen Dateizugriff. blocpress-workbench implementiert DAV Level 1 unter `/api/webdav/` für direkten Baustein- und Template-Zugriff aus LibreOffice. DRAFT-Versionen read-write, APPROVED-Versionen (unter `/released/`) read-only.
 
 | *Compliance Review*
 | Turnusmäßige Prüfung eines Templates auf inhaltliche Aktualität. Review-Zyklen: 1, 3 oder 5 Jahre. Verwaltet in blocpress-proof. Entity E-5.

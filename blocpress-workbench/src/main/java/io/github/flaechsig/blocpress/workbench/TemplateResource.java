@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.workbench;
 
 import io.github.flaechsig.blocpress.workbench.entity.Template;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
+import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
 import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
@@ -17,6 +18,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -58,17 +60,19 @@ public class TemplateResource {
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Transactional
-    public Response upload(@RestForm String name, @RestForm("file") FileUpload file) throws IOException {
+    public Response upload(@RestForm String name, @RestForm("file") FileUpload file, @RestForm String type) throws IOException {
         if (name == null || name.isBlank()) {
             throw new WebApplicationException("Name is required", Response.Status.BAD_REQUEST);
         }
+
+        TemplateType templateType = "BAUSTEIN".equals(type) ? TemplateType.BAUSTEIN : TemplateType.TEMPLATE;
 
         byte[] content = Files.readAllBytes(file.uploadedFile());
         ValidationResult validationResult = validator.validate(content);
 
         // Find the next version number
         Integer nextVersion = 1;
-        Template lastVersion = Template.find("name = ?1 ORDER BY version DESC", name.strip())
+        Template lastVersion = Template.find("name = ?1 AND type = ?2 ORDER BY version DESC", name.strip(), templateType)
                 .firstResult();
         if (lastVersion != null) {
             nextVersion = lastVersion.version + 1;
@@ -80,6 +84,7 @@ public class TemplateResource {
         template.content = content;
         template.createdAt = LocalDateTime.now();
         template.status = TemplateStatus.DRAFT;
+        template.type = templateType;
         template.validationResult = validationResult;
         template.persist();
 
@@ -96,27 +101,41 @@ public class TemplateResource {
     }
 
     @GET
-    public List<TemplateSummary> list() {
-        // For each template name, get only the latest version (highest version number)
-        // Fetch all templates and group by name in Java to get latest version
-        return Template.<Template>findAll().list()
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(
-                    t -> t.name,
-                    t -> t,
-                    (existing, newer) -> existing.version > newer.version ? existing : newer
-                ))
-                .values()
-                .stream()
-                .sorted((a, b) -> a.name.compareTo(b.name))
-                .map(t -> new TemplateSummary(
-                    t.id,
-                    t.name,
-                    t.createdAt,
-                    t.status,
-                    t.validationResult != null && t.validationResult.isValid()
-                ))
-                .toList();
+    public List<TemplateSummary> list(@QueryParam("type") TemplateType type) {
+        TemplateType effectiveType = (type != null) ? type : TemplateType.TEMPLATE;
+        // Sorted DESC by version so putIfAbsent keeps the highest version per name
+        List<Template> all = Template.<Template>find(
+            "type = ?1 ORDER BY name ASC, version DESC", effectiveType
+        ).list();
+
+        // For each name: latest non-APPROVED (in-progress) + latest APPROVED separately
+        java.util.Map<String, Template> approvedByName = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Template> inProgressByName = new java.util.LinkedHashMap<>();
+        for (Template t : all) {
+            if (t.status == TemplateStatus.APPROVED) {
+                approvedByName.putIfAbsent(t.name, t);
+            } else {
+                inProgressByName.putIfAbsent(t.name, t);
+            }
+        }
+
+        // Merge: in-progress first, then approved, unique names in sorted order
+        java.util.Set<String> allNames = new java.util.LinkedHashSet<>(inProgressByName.keySet());
+        allNames.addAll(approvedByName.keySet());
+
+        List<TemplateSummary> result = new java.util.ArrayList<>();
+        for (String name : allNames) {
+            Template inProgress = inProgressByName.get(name);
+            Template approved = approvedByName.get(name);
+            if (inProgress != null) result.add(toSummary(inProgress));
+            if (approved != null) result.add(toSummary(approved));
+        }
+        return result;
+    }
+
+    private TemplateSummary toSummary(Template t) {
+        return new TemplateSummary(t.id, t.name, t.createdAt, t.status,
+            t.validationResult != null && t.validationResult.isValid(), t.type, t.version);
     }
 
     @GET
@@ -579,7 +598,7 @@ public class TemplateResource {
             .build();
     }
 
-    public record TemplateSummary(UUID id, String name, LocalDateTime createdAt, TemplateStatus status, boolean isValid) {}
+    public record TemplateSummary(UUID id, String name, LocalDateTime createdAt, TemplateStatus status, boolean isValid, TemplateType type, Integer version) {}
 
     public record TemplateDetails(
         UUID id,

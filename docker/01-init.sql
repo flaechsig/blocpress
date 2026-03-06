@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS template (
     version INTEGER NOT NULL DEFAULT 1,
     content BYTEA NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    type VARCHAR(20) NOT NULL DEFAULT 'TEMPLATE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     validation_result JSONB,
     UNIQUE(name, valid_from, version)
@@ -36,4 +37,5 @@ CREATE TABLE IF NOT EXISTS test_data_set (
 CREATE INDEX IF NOT EXISTS idx_template_name ON template(name);
 CREATE INDEX IF NOT EXISTS idx_template_valid_from ON template(valid_from DESC);
 CREATE INDEX IF NOT EXISTS idx_template_status ON template(status);
+CREATE INDEX IF NOT EXISTS idx_template_type ON template(type);
 CREATE INDEX IF NOT EXISTS idx_test_data_set_template ON test_data_set(template_id);

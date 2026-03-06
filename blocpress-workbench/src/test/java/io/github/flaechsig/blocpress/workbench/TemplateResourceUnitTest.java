@@ -5,6 +5,7 @@ import io.github.flaechsig.blocpress.workbench.service.TestDataSetService;
 import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
+import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
 import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.github.flaechsig.blocpress.workbench.entity.Template;
 
@@ -52,7 +53,7 @@ class TemplateResourceUnitTest {
         TemplateStatus status = TemplateStatus.DRAFT;
 
         TemplateResource.TemplateSummary summary =
-            new TemplateResource.TemplateSummary(id, name, createdAt, status, true);
+            new TemplateResource.TemplateSummary(id, name, createdAt, status, true, TemplateType.TEMPLATE, 1);
 
         assertEquals(id, summary.id());
         assertEquals(name, summary.name());
@@ -69,9 +70,9 @@ class TemplateResourceUnitTest {
         TemplateStatus status = TemplateStatus.SUBMITTED;
 
         TemplateResource.TemplateSummary summary1 =
-            new TemplateResource.TemplateSummary(id, name, instant, status, true);
+            new TemplateResource.TemplateSummary(id, name, instant, status, true, TemplateType.TEMPLATE, 1);
         TemplateResource.TemplateSummary summary2 =
-            new TemplateResource.TemplateSummary(id, name, instant, status, true);
+            new TemplateResource.TemplateSummary(id, name, instant, status, true, TemplateType.TEMPLATE, 1);
 
         assertEquals(summary1, summary2);
     }
@@ -83,13 +84,13 @@ class TemplateResourceUnitTest {
         LocalDateTime instant = LocalDateTime.now();
 
         TemplateResource.TemplateSummary draft =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.DRAFT, true, TemplateType.TEMPLATE, 1);
         TemplateResource.TemplateSummary submitted =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.SUBMITTED, true);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.SUBMITTED, true, TemplateType.TEMPLATE, 1);
         TemplateResource.TemplateSummary approved =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.APPROVED, true);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.APPROVED, true, TemplateType.TEMPLATE, 1);
         TemplateResource.TemplateSummary rejected =
-            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.REJECTED, false);
+            new TemplateResource.TemplateSummary(id, name, instant, TemplateStatus.REJECTED, false, TemplateType.TEMPLATE, 1);
 
         assertEquals(TemplateStatus.DRAFT, draft.status());
         assertEquals(TemplateStatus.SUBMITTED, submitted.status());
@@ -101,9 +102,9 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryHashCode() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary1 =
-            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true, TemplateType.TEMPLATE, 1);
         TemplateResource.TemplateSummary summary2 =
-            new TemplateResource.TemplateSummary(id, "Test", summary1.createdAt(), TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, "Test", summary1.createdAt(), TemplateStatus.DRAFT, true, TemplateType.TEMPLATE, 1);
 
         assertEquals(summary1.hashCode(), summary2.hashCode());
     }
@@ -193,7 +194,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithNullName() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload(null, null);
+            resource.upload(null, null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -201,7 +202,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithEmptyName() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload("", null);
+            resource.upload("", null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -209,7 +210,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithBlankName() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload("   ", null);
+            resource.upload("   ", null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -217,7 +218,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithSingleSpace() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload(" ", null);
+            resource.upload(" ", null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -225,7 +226,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithTabs() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload("\t\t", null);
+            resource.upload("\t\t", null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -233,7 +234,7 @@ class TemplateResourceUnitTest {
     @Test
     void testUploadWithNewlines() {
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
-            resource.upload("\n\n", null);
+            resource.upload("\n\n", null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), ex.getResponse().getStatus());
     }
@@ -244,7 +245,7 @@ class TemplateResourceUnitTest {
     void testTemplateSummaryToString() {
         UUID id = UUID.randomUUID();
         TemplateResource.TemplateSummary summary =
-            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true);
+            new TemplateResource.TemplateSummary(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, true, TemplateType.TEMPLATE, 1);
         String str = summary.toString();
         assertNotNull(str);
         assertTrue(str.contains("Test") || str.contains("DRAFT"));
@@ -272,7 +273,9 @@ class TemplateResourceUnitTest {
                 "Invoice",
                 LocalDateTime.now(),
                 TemplateStatus.DRAFT,
-                true
+                true,
+                TemplateType.TEMPLATE,
+                1
             );
         assertNotNull(summary, "Template summary should not be null");
         assertEquals("Invoice", summary.name());

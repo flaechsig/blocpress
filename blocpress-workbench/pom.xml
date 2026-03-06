@@ -127,6 +127,29 @@
                 </executions>
             </plugin>
             <plugin>
+                <!-- Validate JavaScript syntax at build time — catches syntax errors
+                     in bp-workbench.js before they reach the browser. -->
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>check-js-syntax</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>node</executable>
+                            <arguments>
+                                <argument>--check</argument>
+                                <argument>${project.basedir}/src/main/resources/META-INF/resources/components/bp-workbench.js</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>

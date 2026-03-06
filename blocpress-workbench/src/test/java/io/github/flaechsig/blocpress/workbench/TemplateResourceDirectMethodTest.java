@@ -53,7 +53,7 @@ class TemplateResourceDirectMethodTest {
     @Test
     @Transactional
     void list_EmptyDatabase_ReturnsEmptyList() {
-        var result = resource.list();
+        var result = resource.list(null);
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
@@ -65,7 +65,7 @@ class TemplateResourceDirectMethodTest {
         Template t1 = createTemplate("Invoice", 1, TemplateStatus.DRAFT);
         Template t2 = createTemplate("Invoice", 2, TemplateStatus.DRAFT);
 
-        var result = resource.list();
+        var result = resource.list(null);
 
         // Should only return v2 (latest)
         assertEquals(1, result.size());
@@ -79,7 +79,7 @@ class TemplateResourceDirectMethodTest {
         createTemplate("AppleTemplate", 1, TemplateStatus.DRAFT);
         createTemplate("BananaTemplate", 1, TemplateStatus.DRAFT);
 
-        var result = resource.list();
+        var result = resource.list(null);
 
         assertEquals(3, result.size());
         // Should be sorted by name

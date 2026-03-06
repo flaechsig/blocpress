@@ -88,6 +88,7 @@ services:
     environment:
       API_WORKBENCH_URL: http://workbench:8081/api
       API_RENDER_URL: http://render:8080/api
+      WORKBENCH_URL: http://workbench:8081
     depends_on:
       - workbench
       - render

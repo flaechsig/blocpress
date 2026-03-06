@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.workbench.entity;
 
 import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
+import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Basic;
@@ -16,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -53,6 +55,11 @@ public class Template extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public TemplateStatus status = TemplateStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @ColumnDefault("'TEMPLATE'")
+    public TemplateType type = TemplateType.TEMPLATE;
 
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "validation_result", columnDefinition = "jsonb")

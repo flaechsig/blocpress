@@ -42,6 +42,27 @@ export class BpApp extends LitElement {
             background: #f5f5f5;
             overflow-y: auto;
         }
+        .load-error {
+            padding: 32px;
+            color: #c62828;
+        }
+        .load-error p {
+            margin: 0 0 12px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .load-error button {
+            padding: 8px 20px;
+            background: #1e3c72;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .load-error button:hover {
+            background: #2a5298;
+        }
     `;
 
     constructor() {
@@ -66,12 +87,23 @@ export class BpApp extends LitElement {
     }
 
     async _loadWorkbench() {
-        try {
-            const url = this._workbenchUrl.replace(/\/+$/, '');
-            await import(`${url}/components/bp-workbench.js`);
-            this._workbenchLoaded = true;
-        } catch (err) {
-            this._workbenchError = `Workbench konnte nicht geladen werden: ${err.message}`;
+        this._workbenchError = '';
+        this._workbenchLoaded = false;
+        // Retry a few times: handles the brief window after a Quarkus hot-reload
+        // where the proxy returns an error module. Each attempt uses a fresh ?v=
+        // URL so the browser never serves a cached failed module.
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                await import(`/proxy/bp-workbench.js?v=${Date.now()}`);
+                this._workbenchLoaded = true;
+                return;
+            } catch (err) {
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 2000));
+                } else {
+                    this._workbenchError = err.message;
+                }
+            }
         }
     }
 
@@ -94,12 +126,21 @@ export class BpApp extends LitElement {
         switch (this._route) {
             case 'workbench':
                 if (this._workbenchError) {
-                    return html`<div style="padding:32px;color:#c62828;">${this._workbenchError}</div>`;
+                    return html`
+                        <div class="load-error">
+                            <p>Workbench konnte nicht geladen werden:</p>
+                            <p>${this._workbenchError}</p>
+                            <button @click=${() => this._loadWorkbench()}>
+                                Neu verbinden
+                            </button>
+                        </div>`;
                 }
                 if (!this._workbenchLoaded) {
                     return html`<div style="padding:32px;color:#666;">Workbench wird geladen...</div>`;
                 }
-                return html`<bp-workbench .jwt=${this._token}></bp-workbench>`;
+                return html`<bp-workbench
+                    .jwt=${this._token}
+                    api-base-url=${this._workbenchUrl}></bp-workbench>`;
             default:
                 return html`<div style="padding:32px;color:#666;">Coming soon</div>`;
         }

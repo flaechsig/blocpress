@@ -32,6 +32,7 @@ export class BpWorkbench extends LitElement {
         // Phase 4: Dashboard & Status Management
         _dashboardView: { state: true },
         _statusFilter: { state: true },
+        _activeType: { state: true },
         // Phase 3: TestData Management
         _activeTab: { state: true },
         _testDataSets: { state: true },
@@ -801,6 +802,37 @@ export class BpWorkbench extends LitElement {
             background: #2a5298;
         }
 
+        /* Type Tabs (Templates / Bausteine) */
+        .type-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .type-tab {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s;
+        }
+
+        .type-tab:hover {
+            color: #1e3c72;
+        }
+
+        .type-tab.active {
+            color: #1e3c72;
+            border-bottom-color: #1e3c72;
+            font-weight: 600;
+        }
+
         /* Status Filter */
         .status-filter {
             margin-bottom: 24px;
@@ -1033,6 +1065,7 @@ export class BpWorkbench extends LitElement {
         // Phase 4: Dashboard & Status Management
         this._dashboardView = true; // Start with dashboard
         this._statusFilter = 'ALL'; // Filter: ALL, DRAFT, SUBMITTED, APPROVED, REJECTED
+        this._activeType = 'TEMPLATE'; // 'TEMPLATE' or 'BAUSTEIN'
         // Phase 3: TestData Management
         this._activeTab = 'testdata'; // Only 'testdata' tab now
         this._testDataSets = [];
@@ -1101,12 +1134,24 @@ export class BpWorkbench extends LitElement {
     _renderDashboard() {
         const filteredTemplates = this._filterTemplates();
 
+        const typeLabel = this._activeType === 'BAUSTEIN' ? 'Baustein' : 'Template';
         return html`
             <div class="dashboard">
                 <div class="dashboard-header">
-                    <h2>Template Verwaltung</h2>
+                    <h2>${this._activeType === 'BAUSTEIN' ? 'Bausteinverwaltung' : 'Template Verwaltung'}</h2>
                     <button class="btn-primary" @click=${this._openUploadDialog.bind(this)}>
-                        + Neues Template hochladen
+                        + Neuen ${typeLabel} hochladen
+                    </button>
+                </div>
+
+                <div class="type-tabs">
+                    <button class="type-tab ${this._activeType === 'TEMPLATE' ? 'active' : ''}"
+                        @click=${() => this._switchActiveType('TEMPLATE')}>
+                        Templates
+                    </button>
+                    <button class="type-tab ${this._activeType === 'BAUSTEIN' ? 'active' : ''}"
+                        @click=${() => this._switchActiveType('BAUSTEIN')}>
+                        Bausteine
                     </button>
                 </div>
 
@@ -1117,9 +1162,9 @@ export class BpWorkbench extends LitElement {
                 <div class="template-list">
                     ${filteredTemplates.length === 0 ? html`
                         <div class="empty-state">
-                            <p>Keine Templates mit Status "${this._statusFilter === 'ALL' ? 'beliebig' : this._statusFilter}"</p>
+                            <p>Keine ${typeLabel}s mit Status "${this._statusFilter === 'ALL' ? 'beliebig' : this._statusFilter}"</p>
                         </div>
-                    ` : filteredTemplates.map(t => this._renderTemplateCard(t))}
+                    ` : this._groupTemplatesByName(filteredTemplates).map(g => this._renderTemplateGroup(g))}
                 </div>
 
                 ${this._uploadMode ? this._renderUploadForm() : ''}
@@ -1155,6 +1200,20 @@ export class BpWorkbench extends LitElement {
     _filterTemplates() {
         if (this._statusFilter === 'ALL') return this._templates;
         return this._templates.filter(t => t.status === this._statusFilter);
+    }
+
+    _groupTemplatesByName(templates) {
+        const groups = new Map();
+        for (const t of templates) {
+            if (!groups.has(t.name)) groups.set(t.name, { name: t.name, approved: null, inProgress: null });
+            const g = groups.get(t.name);
+            if (t.status === 'APPROVED') {
+                if (!g.approved || t.version > g.approved.version) g.approved = t;
+            } else {
+                if (!g.inProgress || t.version > g.inProgress.version) g.inProgress = t;
+            }
+        }
+        return [...groups.values()];
     }
 
     _countByStatus(status) {
@@ -1209,6 +1268,48 @@ export class BpWorkbench extends LitElement {
                             ${action.label}
                         </button>
                     `)}
+                </div>
+            </div>
+        `;
+    }
+
+    _renderTemplateGroup(group) {
+        const { name, approved, inProgress } = group;
+        const primary = inProgress || approved;
+        const actions = this._getTemplateActions(primary);
+
+        return html`
+            <div class="template-card">
+                <div class="card-header">
+                    <h3>${name}</h3>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        ${approved ? html`
+                            <span class="status-badge-card" style="background:#2e7d32;">
+                                v${approved.version} Produktiv
+                            </span>` : ''}
+                        ${inProgress ? html`
+                            <span class="status-badge-card" style="background:${this._getStatusColor(inProgress.status)};">
+                                v${inProgress.version} ${inProgress.status}
+                            </span>` : ''}
+                    </div>
+                </div>
+
+                <div class="card-meta">
+                    <span>Erstellt: ${new Date(primary.createdAt).toLocaleDateString('de-DE')}</span>
+                    <span>${primary.isValid ? '✓ Valid' : '✗ Invalid'}</span>
+                </div>
+
+                <div class="card-actions">
+                    ${actions.map(action => html`
+                        <button class="action-btn ${action.style}" @click=${action.handler}>
+                            ${action.label}
+                        </button>
+                    `)}
+                    ${approved && inProgress ? html`
+                        <button class="action-btn secondary"
+                            @click=${() => this._openTemplate(approved)}>
+                            v${approved.version} ansehen
+                        </button>` : ''}
                 </div>
             </div>
         `;
@@ -1279,6 +1380,16 @@ export class BpWorkbench extends LitElement {
             URL.revokeObjectURL(this._pdfUrl);
             this._pdfUrl = null;
         }
+    }
+
+    _switchActiveType(type) {
+        if (this._activeType === type) return;
+        this._activeType = type;
+        this._statusFilter = 'ALL';
+        this._uploadMode = false;
+        this._error = '';
+        this._success = '';
+        this._loadTemplates();
     }
 
     async _changeStatus(templateId, newStatus) {
@@ -1692,13 +1803,15 @@ export class BpWorkbench extends LitElement {
     }
 
     _renderUploadForm() {
+        const typeLabel = this._activeType === 'BAUSTEIN' ? 'Baustein' : 'Template';
         return html`
             <div class="upload-form">
+                <h3 style="margin: 0 0 14px; color: #1e3c72; font-size: 15px;">${typeLabel} hochladen</h3>
                 <div class="fields">
                     <div class="field field-name">
                         <label>Name</label>
                         <input type="text"
-                            placeholder="Eindeutiger Template-Name"
+                            placeholder="Eindeutiger ${typeLabel}-Name"
                             .value=${this._uploadName}
                             @input=${e => this._uploadName = e.target.value}>
                     </div>
@@ -1714,6 +1827,11 @@ export class BpWorkbench extends LitElement {
                     <button class="btn-cancel" @click=${this._toggleUploadMode}>Abbrechen</button>
                     ${this._uploading ? html`<span class="spinner"></span>` : ''}
                 </div>
+                ${this._activeType === 'BAUSTEIN' ? html`
+                    <div style="margin-top: 8px; font-size: 12px; color: #888;">
+                        Bausteine können nicht alleine gedruckt werden — sie werden per section-source in Templates eingebunden.
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -1823,7 +1941,7 @@ export class BpWorkbench extends LitElement {
 
     async _loadTemplates() {
         try {
-            const response = await fetch(`${this._getApiBase()}/api/workbench/templates`);
+            const response = await fetch(`${this._getApiBase()}/api/workbench/templates?type=${this._activeType}`);
             if (response.ok) {
                 this._templates = await response.json();
             }
@@ -1899,7 +2017,12 @@ export class BpWorkbench extends LitElement {
 
     _onUploadFileChange(e) {
         const file = e.target.files[0];
-        if (file) this._uploadFile = file;
+        if (file) {
+            this._uploadFile = file;
+            if (!this._uploadName.trim()) {
+                this._uploadName = file.name.replace(/\.odt$/i, '');
+            }
+        }
     }
 
     _canSave() {
@@ -1915,6 +2038,7 @@ export class BpWorkbench extends LitElement {
             const formData = new FormData();
             formData.append('name', this._uploadName.trim());
             formData.append('file', this._uploadFile);
+            formData.append('type', this._activeType);
 
             const response = await fetch(`${this._getApiBase()}/api/workbench/templates`, {
                 method: 'POST',

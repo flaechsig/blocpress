@@ -186,9 +186,14 @@ Bausteinverwaltung und Content Search.
 | icon:circle-o[] OFFEN
 
 | —
-| Bausteinverwaltung (Entity E-2)
+| Bausteinverwaltung (Entity E-2): Upload, Workflow (DRAFT→SUBMITTED→APPROVED), Tab-Navigation Templates/Bausteine, kombinierte Statusansicht (APPROVED + Draft pro Name)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
+
+| —
+| WebDAV-Endpoint (`/api/webdav/`) für Baustein- und Template-Zugriff aus LibreOffice (GET/PUT/PROPFIND, DRAFT read-write, APPROVED read-only unter `/released/`, GNOME Files / davfs2 kompatibel)
+| 2
+| icon:check-circle[role=green] DONE
 
 | UC-19
 | Content Search (Volltextsuche ueber alle Templates)

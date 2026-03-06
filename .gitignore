@@ -18,3 +18,4 @@ CLAUDE.md
 /blocpress-render/blocpress-server.iml
 /src/site/
 /blocpress-workbench/target
+/.claude/settings.json
