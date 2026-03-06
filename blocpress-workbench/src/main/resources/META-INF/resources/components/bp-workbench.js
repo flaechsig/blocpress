@@ -1,8 +1,5 @@
 import { LitElement, html, css } from 'https://esm.sh/lit@3.2.1';
 
-const RENDER_URL_KEY = 'bp-render-url';
-const DEFAULT_RENDER_URL = 'http://localhost:8080';
-
 const SAMPLE_JSON = JSON.stringify({
     firstname: 'John',
     lastname: 'Doe',
@@ -1822,10 +1819,6 @@ export class BpWorkbench extends LitElement {
         }
     }
 
-    _getRenderUrl() {
-        return (localStorage.getItem(RENDER_URL_KEY) || DEFAULT_RENDER_URL).replace(/\/+$/, '');
-    }
-
     // --- Template list ---
 
     async _loadTemplates() {
@@ -1980,36 +1973,29 @@ export class BpWorkbench extends LitElement {
         this._error = '';
 
         try {
-            // 1. Fetch template binary from workbench API
-            const templateResponse = await fetch(
-                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}`
-            );
-            if (!templateResponse.ok) throw new Error('Template konnte nicht geladen werden.');
-
-            const blob = await templateResponse.blob();
-            const base64 = await this._blobToBase64(blob);
-
-            // 2. Send to render API
+            // Call the preview endpoint which handles rendering server-side
             const data = JSON.parse(this._jsonText);
-            const renderResponse = await fetch(`${this._getRenderUrl()}/api/render/template`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(this.jwt ? { 'Authorization': `Bearer ${this.jwt}` } : {})
-                },
-                body: JSON.stringify({
-                    template: base64,
-                    data,
-                    outputType: 'pdf'
-                })
-            });
+            const renderResponse = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/preview`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(this.jwt ? { 'Authorization': `Bearer ${this.jwt}` } : {})
+                    },
+                    body: JSON.stringify({
+                        data,
+                        outputType: 'pdf'
+                    })
+                }
+            );
 
             if (!renderResponse.ok) {
                 const text = await renderResponse.text();
                 throw new Error(`Render fehlgeschlagen: ${renderResponse.status} ${text}`);
             }
 
-            // 3. Display PDF and store blob for later use
+            // Display PDF and store blob for later use
             const pdfBlob = await renderResponse.blob();
             this._pdfBlob = pdfBlob; // Store for later use (e.g., saving as expected PDF)
             if (this._pdfUrl) URL.revokeObjectURL(this._pdfUrl);

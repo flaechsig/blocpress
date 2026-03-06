@@ -24,8 +24,13 @@ import org.jboss.resteasy.reactive.multipart.FileUpload;
 import org.jboss.resteasy.reactive.RestForm;
 
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -45,8 +50,10 @@ public class TemplateResource {
     TestDataSetService testDataSetService;
 
     @Inject
-    @RestClient
-    RenderImportClient renderImportClient;
+    com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @ConfigProperty(name = "quarkus.rest-client.\"render\".url")
+    String renderUrl;
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -187,6 +194,63 @@ public class TemplateResource {
     }
 
     @POST
+    @Path("{id}/preview")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response previewTemplate(@PathParam("id") UUID id, PreviewRequest request) {
+        Template template = Template.findById(id);
+        if (template == null || template.content == null || template.content.length == 0) {
+            throw new WebApplicationException("Template not found or empty", Response.Status.NOT_FOUND);
+        }
+
+        try {
+            // Build request JSON manually for reliable serialization
+            String base64Template = Base64.getEncoder().encodeToString(template.content);
+            com.fasterxml.jackson.databind.node.ObjectNode requestJson = objectMapper.createObjectNode();
+            requestJson.put("template", base64Template);
+            requestJson.set("data", objectMapper.valueToTree(request.data()));
+            requestJson.put("outputType", request.outputType());
+
+            String requestBody = objectMapper.writeValueAsString(requestJson);
+
+            // Make HTTP request using standard Java HttpClient
+            HttpClient httpClient = HttpClient.newHttpClient();
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(renderUrl + "/render/template"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+            HttpResponse<byte[]> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (httpResponse.statusCode() >= 400) {
+                String errorMsg = new String(httpResponse.body());
+                throw new WebApplicationException(
+                    "Render service error (" + httpResponse.statusCode() + "): " + errorMsg,
+                    Response.Status.BAD_GATEWAY
+                );
+            }
+
+            String contentType = httpResponse.headers().firstValue("Content-Type").orElse("application/pdf");
+            if (contentType.isBlank()) {
+                contentType = "application/pdf";
+            }
+
+            return Response.status(httpResponse.statusCode())
+                .type(contentType)
+                .entity(httpResponse.body())
+                .build();
+        } catch (WebApplicationException e) {
+            throw e;  // Re-throw as-is
+        } catch (Exception e) {
+            throw new WebApplicationException(
+                "Failed to render preview: " + e.getMessage(),
+                Response.Status.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    @POST
     @Path("{id}/submit")
     @Transactional
     public Response submitForApproval(@PathParam("id") UUID id) {
@@ -260,15 +324,30 @@ public class TemplateResource {
         // TI-2: Auto-deploy to production when transitioning to APPROVED
         if (request.newStatus() == TemplateStatus.APPROVED) {
             try {
-                // Push template to production schema via internal API
-                RenderImportClient.ImportRequest importRequest = new RenderImportClient.ImportRequest(
-                    template.id,
-                    template.name,
-                    template.version,
-                    Base64.getEncoder().encodeToString(template.content),
-                    template.validFrom
-                );
-                renderImportClient.importTemplate(importRequest);
+                // Build deploy request JSON
+                com.fasterxml.jackson.databind.node.ObjectNode deployJson = objectMapper.createObjectNode();
+                deployJson.put("id", template.id.toString());
+                deployJson.put("name", template.name);
+                deployJson.put("version", template.version);
+                deployJson.put("contentBase64", Base64.getEncoder().encodeToString(template.content));
+                if (template.validFrom != null) {
+                    deployJson.put("validFrom", template.validFrom.toString());
+                }
+
+                String deployBody = objectMapper.writeValueAsString(deployJson);
+
+                // Deploy to production via HTTP
+                HttpClient httpClient = HttpClient.newHttpClient();
+                HttpRequest deployRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(renderUrl + "/render/templates/import"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(deployBody))
+                    .build();
+
+                HttpResponse<String> deployResponse = httpClient.send(deployRequest, HttpResponse.BodyHandlers.ofString());
+                if (deployResponse.statusCode() >= 400) {
+                    throw new Exception("Deploy failed with status " + deployResponse.statusCode() + ": " + deployResponse.body());
+                }
             } catch (Exception e) {
                 // Rollback the status change since deploy failed
                 throw new WebApplicationException(
@@ -513,6 +592,8 @@ public class TemplateResource {
     public record StatusUpdateRequest(TemplateStatus newStatus) {}
 
     public record DuplicateRequest(String name) {}
+
+    public record PreviewRequest(Object data, String outputType) {}
 
     public record CreateTestDataSetRequest(String name, JsonNode testData) {}
 
