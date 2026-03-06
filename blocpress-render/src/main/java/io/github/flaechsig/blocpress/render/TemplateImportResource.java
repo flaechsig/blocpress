@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.render;
 
+import io.quarkus.cache.CacheInvalidateAll;
 import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -39,6 +40,7 @@ public class TemplateImportResource {
     @POST
     @PermitAll
     @Transactional
+    @CacheInvalidateAll(cacheName = "templates")
     public Response importTemplate(ImportRequest request) {
         // Delete existing template with same ID if present (upsert)
         ProductionTemplate.delete("id", request.id());

@@ -34,6 +34,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -233,10 +234,13 @@ public class TemplateResource {
             String requestBody = objectMapper.writeValueAsString(requestJson);
 
             // Make HTTP request using standard Java HttpClient
-            HttpClient httpClient = HttpClient.newHttpClient();
+            HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
             HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(renderUrl + "/render/template"))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(60))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
@@ -356,10 +360,13 @@ public class TemplateResource {
                 String deployBody = objectMapper.writeValueAsString(deployJson);
 
                 // Deploy to production via HTTP
-                HttpClient httpClient = HttpClient.newHttpClient();
+                HttpClient httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
                 HttpRequest deployRequest = HttpRequest.newBuilder()
                     .uri(URI.create(renderUrl + "/render/templates/import"))
                     .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(30))
                     .POST(HttpRequest.BodyPublishers.ofString(deployBody))
                     .build();
 

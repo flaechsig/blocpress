@@ -362,12 +362,12 @@ Folgende Probleme wurden bei der Code-Review der TI-2-Implementierung identifizi
 | TD-10
 | *Cache-Invalidierung fehlt*: `TemplateCache` verwendet `@CacheResult` (10 min TTL), aber `TemplateImportResource` hat kein `@CacheInvalidate`. Bei Re-Import eines Templates wird veralteter Inhalt bis zu 10 Minuten ausgeliefert.
 | HOCH
-| `@CacheInvalidate(cacheName="templates")` in `TemplateImportResource.importTemplate()` hinzufuegen
+| icon:check-circle[role=green] DONE — `@CacheInvalidateAll(cacheName="templates")` in `TemplateImportResource.importTemplate()` hinzugefuegt (v2.1.0)
 
 | TD-11
 | *Kein Timeout fuer RenderImportClient*: `RenderImportClient` hat kein konfigurierbares Timeout. Bei nicht erreichbarem render-Service blockiert der HTTP-Client unbegrenzt.
 | HOCH
-| MicroProfile Timeout-Annotation oder `quarkus.rest-client."render-import".connect-timeout=5000` konfigurieren
+| icon:check-circle[role=green] DONE — `connectTimeout(5s)` und `timeout(30s/60s)` an beiden HttpClient-Aufrufen in `TemplateResource.java` gesetzt (v2.1.0)
 
 | TD-12
 | *Case-Sensitivity-Bug bei OutputType*: `outputTypeStr` wird gegen Kleinbuchstaben ("pdf", "rtf", "odt") verglichen, aber `enum.toString()` liefert ggf. Grossbuchstaben (abhaengig von Enum-Definition).
