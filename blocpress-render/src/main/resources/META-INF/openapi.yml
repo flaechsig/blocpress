@@ -1,41 +1,54 @@
 openapi: 3.0.3
 info:
-  title: Blocpress Server API
+  title: Blocpress Render API
   version: 1.0.0
   description: >
-    Blocpress Server provides HTTP APIs for document rendering and related services.
-    The API is designed to be extensible; additional endpoints and service domains
-    may be added over time without breaking existing integrations.
+    REST API for document generation from ODT templates and JSON data.
 
+    **Stateless rendering** (`POST /api/render/template`) generates a document from a
+    template you supply inline — either as a multipart file upload or as a base64-encoded
+    JSON request. No authentication required.
 
-    **Authentication:** All endpoints require a valid JWT Bearer token. The server
-    ships with a built-in dev key (issuer `https://blocpress.dev`). To use your own
-    identity provider, override the environment variables `MP_JWT_VERIFY_PUBLICKEY`
-    and `MP_JWT_VERIFY_ISSUER` when starting the container.
+    **Name-based rendering** (`POST /api/render/{name}`) renders a document using an
+    approved template stored in the production template store. The latest active version
+    of the named template is used. Requires a valid JWT Bearer token.
+
+    **Authentication:** The server ships with a built-in dev key (issuer `https://blocpress.dev`).
+    To use your own identity provider, override the environment variables
+    `MP_JWT_VERIFY_PUBLICKEY` and `MP_JWT_VERIFY_ISSUER` when starting the container.
 
 servers:
-  - url: http://localhost:8080/api
+  - url: http://localhost:8080
 
 security:
   - BearerJWT: []
 
 tags:
-  - name: Template
-    description: Template handling and document generation
+  - name: Rendering
+    description: Document generation endpoints
 
 paths:
-  /render/template/upload:
+  /api/render/template:
     post:
-      tags: [ Template ]
-      operationId: renderDocumentMultipart
-      summary: Generate document from ODT template and JSON data
+      tags: [ Rendering ]
+      operationId: renderDocumentStateless
+      summary: Generate document from ODT template (stateless)
       description: >
-        Upload an ODT template together with JSON data to generate a document in the
-        desired output format. This is a stateless endpoint — no template storage required.
+        Submit an ODT template and JSON data to generate a document.
+        No authentication required — the template is provided inline with each request.
+
+        Two request formats are supported, selected via the `Content-Type` header:
+
+        - **`multipart/form-data`**: Upload the ODT file as `template` field, JSON data
+          as `data` field. Use the `Accept` header to specify the desired output format.
+
+        - **`application/json`**: Submit a base64-encoded ODT template with JSON data
+          and output type in a single JSON body.
+      security: []
       parameters:
         - name: Accept
           in: header
-          required: true
+          required: false
           schema:
             type: string
             enum:
@@ -44,8 +57,9 @@ paths:
               - application/vnd.oasis.opendocument.text
             example: application/pdf
           description: >
-            Desired response media type. Must be one of: application/pdf, application/rtf, 
-            application/vnd.oasis.opendocument.text.
+            Desired output format for multipart requests. One of: `application/pdf`,
+            `application/rtf`, `application/vnd.oasis.opendocument.text`.
+            Ignored for JSON requests (use `outputType` field instead).
       requestBody:
         required: true
         content:
@@ -59,58 +73,22 @@ paths:
                 template:
                   type: string
                   format: binary
-                  description: ODT template
+                  description: ODT template file
                 data:
                   type: string
-                  description: JSON template data
-      responses:
-        "200":
-          description: Generated document (binary) in specified format
-          headers:
-            Content-Disposition:
-              description: download filename
-              schema:
-                type: string
-                example: attachment; filename="generated-document.[pdf|rtf|odt]"
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-            application/rtf:
-              schema:
-                type: string
-                format: binary
-            application/vnd.oasis.opendocument.text:
-              schema:
-                type: string
-                format: binary
-        "400":
-          description: Bad request (e.g. missing template, invalid JSON data, or invalid template structure)
-        "406":
-          description: Unsupported Media Type
-        "401":
-          description: Unauthorized — missing or invalid JWT
-        "500":
-          description: Internal server error
-
-  /render/template:
-    post:
-      tags: [ Template ]
-      operationId: renderDocumentJson
-      summary: Render document from base64-encoded template and JSON data
-      description: >
-        Submit a base64-encoded ODT template together with JSON data and desired
-        output type to generate a document. Alternative to multipart upload.
-      requestBody:
-        required: true
-        content:
+                  description: JSON template data as string (key-value pairs matching template fields)
           application/json:
             schema:
               $ref: '#/components/schemas/RenderRequest'
       responses:
         "200":
-          description: Generated document (binary)
+          description: Generated document
+          headers:
+            Content-Disposition:
+              description: Download filename
+              schema:
+                type: string
+                example: 'attachment; filename="document.pdf"'
           content:
             application/pdf:
               schema:
@@ -125,28 +103,28 @@ paths:
                 type: string
                 format: binary
         "400":
-          description: Bad request
-        "401":
-          description: Unauthorized — missing or invalid JWT
+          description: Bad request — missing template, invalid JSON, or invalid template structure
+        "406":
+          description: Unsupported output format
         "500":
           description: Internal server error
 
-  /render/{name}:
+  /api/render/{name}:
     post:
-      tags: [ Template ]
+      tags: [ Rendering ]
       operationId: renderDocumentByName
-      summary: Render document using template name
+      summary: Generate document from stored template
       description: >
-        Generate a document using a template that has been uploaded and approved
-        in blocpress-workbench. Uses the latest active version of the template.
-        Only APPROVED templates can be used. Template content is cached for performance.
+        Render a document using an approved template from the production template store.
+        The latest active version of the named template is used. Only APPROVED templates
+        are available for rendering. Template content is cached for performance.
       parameters:
         - name: name
           in: path
           required: true
           schema:
             type: string
-          description: Template name
+          description: Template name (must exist and be in APPROVED status)
       requestBody:
         required: true
         content:
@@ -155,7 +133,7 @@ paths:
               $ref: '#/components/schemas/RenderByNameRequest'
       responses:
         "200":
-          description: Generated document (binary) in specified format
+          description: Generated document
           content:
             application/pdf:
               schema:
@@ -170,7 +148,7 @@ paths:
                 type: string
                 format: binary
         "400":
-          description: Bad request (invalid JSON data)
+          description: Bad request — invalid JSON data
         "401":
           description: Unauthorized — missing or invalid JWT
         "403":
@@ -195,23 +173,7 @@ components:
           description: Base64-encoded ODT template
         data:
           type: object
-          description: JSON template data (key-value pairs matching template fields)
-        outputType:
-          type: string
-          enum:
-            - pdf
-            - rtf
-            - odt
-          description: Desired output format
-    RenderByIdRequest:
-      type: object
-      required:
-        - data
-        - outputType
-      properties:
-        data:
-          type: object
-          description: JSON template data (key-value pairs matching template fields)
+          description: Template data (key-value pairs matching template fields)
         outputType:
           type: string
           enum:
@@ -227,7 +189,7 @@ components:
       properties:
         data:
           type: object
-          description: JSON template data (key-value pairs matching template fields)
+          description: Template data (key-value pairs matching template fields)
         outputType:
           type: string
           enum:

@@ -24,7 +24,7 @@ import java.util.UUID;
  * within the deployment infrastructure.
  */
 @ApplicationScoped
-@Path("render/templates/import")
+@Path("api/render/templates/import")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class TemplateImportResource {

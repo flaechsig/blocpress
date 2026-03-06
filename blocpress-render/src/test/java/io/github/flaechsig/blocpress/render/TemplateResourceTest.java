@@ -118,11 +118,11 @@ class TemplateResourceTest {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
 
-        var ex = assertThrows(IllegalStateException.class, () ->
+        var ex = assertThrows(jakarta.ws.rs.WebApplicationException.class, () ->
                 resource.renderDocumentMultipart("application/json", template, VALID_JSON)
         );
-        assertTrue(ex.getMessage().contains("application/json"),
-                "Exception should mention the invalid accept value, but was: " + ex.getMessage());
+        assertEquals(406, ex.getResponse().getStatus(),
+                "Invalid Accept header should return 406 Not Acceptable");
     }
 
     @Test

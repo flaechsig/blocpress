@@ -181,13 +181,6 @@ class TemplateHandlerIT {
         assertTrue(response.statusCode() >= 400, "Expected error status but got " + response.statusCode());
     }
 
-    @Test
-    void unauthenticatedRequestReturns401() throws Exception {
-        HttpResponse<byte[]> response = sendMergeRequest("application/pdf", VALID_JSON, null);
-
-        assertEquals(401, response.statusCode());
-    }
-
     private HttpResponse<byte[]> sendMergeRequest(String accept, String jsonData) throws IOException, InterruptedException {
         return sendMergeRequest(accept, jsonData, DEV_TOKEN);
     }
@@ -217,7 +210,7 @@ class TemplateHandlerIT {
         out.writeBytes("--" + boundary + "--\r\n");
         out.flush();
 
-        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/render/template/upload"))
+        var builder = HttpRequest.newBuilder(baseUri.resolve("/api/render/template"))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .header("Accept", accept);
         if (token != null) {
@@ -242,13 +235,6 @@ class TemplateHandlerIT {
         String contentType = response.headers().firstValue("Content-Type").orElse("");
         assertTrue(contentType.contains("application/pdf"));
         assertTrue(response.body().length > 0, "Response body is empty");
-    }
-
-    @Test
-    void renderDocumentWithoutAuth401() throws Exception {
-        HttpResponse<byte[]> response = sendRenderRequest("pdf", VALID_JSON, null);
-
-        assertEquals(401, response.statusCode());
     }
 
     private HttpResponse<byte[]> sendRenderRequest(String outputType, String jsonData, String token) throws IOException, InterruptedException {
