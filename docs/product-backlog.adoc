@@ -83,6 +83,16 @@ Einzige öffentlich exponierte API des Systems.
 | 2
 | icon:check-circle[role=green] DONE
 
+| UC-23
+| Asynchrones Rendering (Job-Queue): `POST /api/render/jobs` liefert Job-ID zurück, `GET /api/render/jobs/{id}` liefert Status (PENDING / RUNNING / DONE / FAILED) und Download-Link für fertige Dokumente. Großdokumente und Batch-Läufe blockieren nicht den HTTP-Thread.
+| 2
+| icon:circle-o[] OFFEN
+
+| TI-8
+| Messaging-Infrastruktur für asynchrones Rendering: Quarkus Reactive Messaging mit Apache Kafka (oder AMQP/RabbitMQ als Alternative). Render-Jobs werden als Events auf einen Topic geschrieben; ein Consumer-Pool verarbeitet sie. Job-Status persistiert in der workbench-DB (Tabelle `render_job`).
+| 2
+| icon:circle-o[] OFFEN
+
 |===
 
 <<<
@@ -194,12 +204,12 @@ Bausteinverwaltung und Content Search.
 | icon:check-circle[role=green] DONE
 
 | UC-19
-| Content Search (Volltextsuche ueber alle Templates)
+| Content Search (Volltextsuche über alle Templates): Suchfeld in der Workbench-UI, sucht über Template-Name, Beschreibung, Feldnamen und — nach Extraktion — über den Textinhalt des ODT. Ergebnisse mit Highlighting, filterbar nach Status (DRAFT / APPROVED).
 | 3
 | icon:circle-o[] OFFEN
 
 | TI-7
-| Elasticsearch-Integration
+| Elasticsearch-Integration: Quarkus Elasticsearch-Client (REST High-Level Client). Index `blocpress-templates` mit Feldern `name`, `description`, `status`, `extractedText`, `fields[]`, `conditions[]`. Dokument wird bei Upload/Validierung indiziert, bei Status-Änderung aktualisiert, bei Löschung entfernt. Elasticsearch läuft als separater Container (Quickstart-Image optional mit ES-Profil).
 | 3
 | icon:circle-o[] OFFEN
 |===
