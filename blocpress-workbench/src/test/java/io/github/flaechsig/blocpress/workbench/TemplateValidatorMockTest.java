@@ -102,7 +102,7 @@ class TemplateValidatorMockTest {
         var schema = objectMapper.createObjectNode();
         schema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertFalse(result.isValid());
         assertEquals(1, result.errors().size());
@@ -119,7 +119,7 @@ class TemplateValidatorMockTest {
         var schema = objectMapper.createObjectNode();
         schema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertEquals(2, result.errors().size());
         assertEquals("CODE1", result.errors().get(0).code());
@@ -144,7 +144,7 @@ class TemplateValidatorMockTest {
         properties.set("customer", customerProp);
         schema.set("properties", properties);
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertTrue(result.isValid());
         assertNotNull(result.schema());
@@ -168,7 +168,7 @@ class TemplateValidatorMockTest {
         properties.set("items", itemsProp);
         schema.set("properties", properties);
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertEquals("array", result.schema().get("properties").get("items").get("type").asText());
     }
@@ -209,7 +209,7 @@ class TemplateValidatorMockTest {
         properties.set("valid_field", fieldProp);
         schema.set("properties", properties);
 
-        ValidationResult result = new ValidationResult(false, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(false, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         // Verify complex structure
         assertFalse(result.isValid());
@@ -235,7 +235,7 @@ class TemplateValidatorMockTest {
         var schema = objectMapper.createObjectNode();
         schema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertTrue(result.isValid());
         assertEquals("object", result.schema().get("type").asText());

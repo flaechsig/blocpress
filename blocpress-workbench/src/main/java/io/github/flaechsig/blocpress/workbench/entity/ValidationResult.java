@@ -38,7 +38,9 @@ public record ValidationResult(
     boolean isValid,
     JsonNode schema,  // JSON-Schema (https://json-schema.org/)
     List<ValidationMessage> errors,
-    List<ValidationMessage> warnings
+    List<ValidationMessage> warnings,
+    List<String> conditions,        // JEXL-Ausdrücke, z.B. "kunde.anrede == \"FRAU\""
+    List<String> repetitionGroups   // Array-Pfade, z.B. ["items", "positions"]
 ) {
     public record ValidationMessage(String code, String message) {}
 }

@@ -83,10 +83,6 @@ Einzige öffentlich exponierte API des Systems.
 | 2
 | icon:check-circle[role=green] DONE
 
-| —
-| Asynchrone Generierung ueber Message Queue
-| 3
-| icon:circle-o[] OFFEN
 |===
 
 <<<
@@ -95,12 +91,9 @@ Einzige öffentlich exponierte API des Systems.
 
 _Module: blocpress-render, blocpress-core_
 
-Datenbankanbindung und Storage Abstraction Layer als Grundlage fuer
-Template-Verwaltung und Stufenuebergabe.
+Datenbankanbindung als Grundlage fuer Template-Verwaltung und Stufenuebergabe.
 
 NOTE: Voraussetzung fuer Epics 3-6.
-
-NOTE: TI-2 (Datenbankinfrastruktur) ist implementiert. StorageService-Abstraktion und formale Repository-Schicht sind noch offen (werden inkrementell gebaut).
 
 [cols="1,3,1,1" options="header"]
 |===
@@ -110,11 +103,6 @@ NOTE: TI-2 (Datenbankinfrastruktur) ist implementiert. StorageService-Abstraktio
 | Zwei PostgreSQL-Datenbanken (workbench, production) mit automatischem Template-Deploy via REST
 | 1
 | icon:check-circle[role=green] DONE
-
-| —
-| Storage Abstraction Layer (`StorageService` Interface)
-| 1
-| icon:circle-o[] OFFEN
 
 | —
 | Entity E-1 (Template) und E-3 (generiertes Dokument)
@@ -181,9 +169,19 @@ Bausteinverwaltung und Content Search.
 | icon:check-circle[role=green] DONE
 
 | UC-11
-| Regression-Test durchfuehren (Ist-PDF vs. expected PDF)
+| Regression-Test durchfuehren (Ist-PDF vs. expected PDF mit Inline-Diff, click-to-ignore, akzeptierte Abweichungen)
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
+
+| —
+| Template-Ablehnung (SUBMITTED → DRAFT) mit Begründung: Ablehnungsgrund persistiert, im Workspace angezeigt
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Coverage-Analyse: Feld-Abdeckung, Bedingungen (true/false), Wiederholungsgruppen (0/1/2+), Testfall-Vorschläge
+| 3
+| icon:check-circle[role=green] DONE
 
 | —
 | Bausteinverwaltung (Entity E-2): Upload, Workflow (DRAFT→SUBMITTED→APPROVED), Tab-Navigation Templates/Bausteine, kombinierte Statusansicht (APPROVED + Draft pro Name)
@@ -222,34 +220,34 @@ NOTE: Interim-Implementierung (TI-2): Die Freigabe (UC-8, TF-2) findet derzeit i
 | Ref | Story | Prio | Status
 
 | UC-8
-| Template freigeben (Reviewer-Freigabe, organisatorisch durchgesetzt)
+| Template freigeben (Reviewer-Freigabe, organisatorisch durchgesetzt) — interim in blocpress-workbench implementiert
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TF-2
-| Workflow-Status aendern (Reviewer muss Freigabe erteilen)
+| Workflow-Status aendern (DRAFT→SUBMITTED→APPROVED/REJECTED→DRAFT) — in blocpress-workbench implementiert
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
-| Stufenuebergabe proof -> production (Kopie)
+| Stufenuebergabe workbench -> production (Auto-Deploy bei APPROVED via HTTP)
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | UC-14
-| Test Case erstellen (Baseline-PDF)
+| Test Case erstellen (Baseline-PDF als Expected speichern)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | UC-16
-| Regressionstest ausfuehren
+| Regressionstest ausfuehren (Ist-PDF vs. Expected PDF, alle auf einmal)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TF-6
-| PDF-Vergleich (Baseline vs. aktuell)
+| PDF-Vergleich (Baseline vs. aktuell, Inline-Diff, click-to-ignore)
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | UC-12
 | Compliance-Review durchfuehren
@@ -266,10 +264,6 @@ NOTE: Interim-Implementierung (TI-2): Die Freigabe (UC-8, TF-2) findet derzeit i
 | 3
 | icon:circle-o[] OFFEN
 
-| TI-5
-| Message Queue fuer asynchrone Regressionstests
-| 3
-| icon:circle-o[] OFFEN
 |===
 
 <<<
@@ -329,12 +323,27 @@ der SCS-Module.
 | icon:check-circle[role=green] DONE
 
 | —
-| Web Components: `<bp-workbench>`, `<bp-proof>`, `<bp-admin>`
+| Web Components: `<bp-workbench>`, `<bp-admin>`
 | 2
 | icon:play-circle[role=blue] IN PROGRESS
 
 | —
 | JWT-Weitergabe als Property an Web Components
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| All-in-one Quickstart Image: Studio + Workbench + Render + PostgreSQL in einem Container (`docker/studio/Dockerfile`, supervisord, `flaechsig/blocpress-studio:latest`)
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Studio API-Proxy: Browser-Requests auf `/api/*` transparent an internen Workbench (Port 8082) weitergeleitet — Port 8082 bleibt nach außen geschlossen
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Token-Guard: Workbench-UI nur zugänglich wenn JWT gesetzt (verhindert leere Fehlerseite ohne Token)
 | 2
 | icon:check-circle[role=green] DONE
 |===
@@ -355,8 +364,8 @@ component "Epic 5\nAdministration" as E5
 component "Epic 6\nPortal & Frontends" as E6
 
 E1 <-- E2 : benoetigt DB\nfuer Template-ID
-E2 <-- E3 : benoetigt Schemas\n& StorageService
-E2 <-- E4 : benoetigt Schemas\n& StorageService
+E2 <-- E3 : benoetigt Schemas
+E2 <-- E4 : benoetigt Schemas
 E2 <-- E5 : benoetigt Schema admin
 E3 <-- E4 : liefert Templates\nzur Pruefung
 E3 <-- E6 : Web Component\nbp-workbench

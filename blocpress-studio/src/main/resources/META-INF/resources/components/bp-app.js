@@ -4,7 +4,9 @@ import './bp-nav.js';
 import './bp-token-input.js';
 
 const WORKBENCH_URL_KEY = 'bp-workbench-url';
-const DEFAULT_WORKBENCH_URL = 'http://localhost:8081';
+// Empty = same-origin: API calls go to /api/* on studio (port 8080),
+// which proxies them internally to workbench (port 8082).
+const DEFAULT_WORKBENCH_URL = '';
 
 export class BpApp extends LitElement {
     static properties = {
@@ -71,7 +73,10 @@ export class BpApp extends LitElement {
         this._route = getCurrentRoute();
         this._workbenchLoaded = false;
         this._workbenchError = '';
-        this._workbenchUrl = localStorage.getItem(WORKBENCH_URL_KEY) || DEFAULT_WORKBENCH_URL;
+        const stored = localStorage.getItem(WORKBENCH_URL_KEY);
+        // Clear legacy absolute URLs stored by older studio versions.
+        // API calls now go through the /api/* proxy on the same origin.
+        this._workbenchUrl = (stored && stored.startsWith('http')) ? DEFAULT_WORKBENCH_URL : (stored || DEFAULT_WORKBENCH_URL);
         this._onHashChange = () => { this._route = getCurrentRoute(); };
     }
 
@@ -125,6 +130,22 @@ export class BpApp extends LitElement {
     _renderContent() {
         switch (this._route) {
             case 'workbench':
+                if (!this._token) {
+                    return html`
+                        <div style="padding:48px 32px;max-width:540px;">
+                            <h2 style="font-size:1.1rem;font-weight:700;color:#1e3c72;margin:0 0 12px;">
+                                JWT Token required
+                            </h2>
+                            <p style="color:#555;font-size:0.9rem;margin:0 0 16px;">
+                                Paste your Bearer token into the field in the top bar and click
+                                <strong>Set Token</strong>.
+                            </p>
+                            <p style="color:#888;font-size:0.82rem;margin:0;">
+                                Quickstart: copy the token from
+                                <code style="background:#eef3ff;padding:2px 6px;border-radius:4px;color:#2a5298;">docs/samples/quickstart/token.txt</code>
+                            </p>
+                        </div>`;
+                }
                 if (this._workbenchError) {
                     return html`
                         <div class="load-error">

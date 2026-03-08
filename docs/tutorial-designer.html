@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Template Designer Tutorial – Blocpress</title>
+    <meta name="description"
+          content="10-minute tutorial for template designers: create an ODT template, upload it to the Workbench, validate, test, and submit for approval.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://flaechsig.github.io/blocpress/tutorial-designer.html">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 48px 48px 36px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .badge-strip {
+            background: #1a3266;
+            border-radius: 0 0 16px 16px;
+            padding: 14px 48px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 3rem;
+        }
+
+        .badge-strip span {
+            background: rgba(255, 255, 255, 0.12);
+            color: #c8d8ff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        .terminal {
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.82rem;
+        }
+
+        .terminal-bar {
+            background: #21262d;
+            padding: 10px 14px;
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .terminal-bar .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-bar .dot.red {
+            background: #ff5f57;
+        }
+
+        .terminal-bar .dot.yellow {
+            background: #febc2e;
+        }
+
+        .terminal-bar .dot.green {
+            background: #28c840;
+        }
+
+        .terminal-bar .title {
+            flex: 1;
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.75rem;
+        }
+
+        .terminal-body {
+            margin: 0;
+            padding: 20px 22px;
+            color: #e6edf3;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .t-prompt {
+            color: #3fb950;
+        }
+
+        .t-method {
+            color: #79c0ff;
+        }
+
+        .t-flag {
+            color: #d2a8ff;
+        }
+
+        .t-value {
+            color: #a5d6ff;
+        }
+
+        .t-comment {
+            color: #8b949e;
+            font-style: italic;
+        }
+
+        .t-success {
+            color: #3fb950;
+        }
+
+        .t-key {
+            color: #ff9f0a;
+        }
+
+        .t-str {
+            color: #a5d6ff;
+        }
+
+        .feature-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .accent {
+            color: #2a5298;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: #2a5298;
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-number.zero {
+            background: #6c757d;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .step-block {
+            border-left: 3px solid #2a5298;
+            padding-left: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .step-block.prep {
+            border-left-color: #6c757d;
+        }
+
+        .code-block {
+            position: relative;
+        }
+
+        .code-block .btn-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .code-block:hover .btn-copy {
+            opacity: 1;
+        }
+
+        .tip-box {
+            background: #eef3ff;
+            border-left: 4px solid #2a5298;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin-top: 1rem;
+            font-size: 0.92rem;
+        }
+
+        .tip-box strong {
+            color: #2a5298;
+        }
+
+        .ui-mock {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-size: 0.88rem;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+
+        kbd {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 0.85em;
+        }
+
+        .screenshot-placeholder {
+            background: #f1f3f5;
+            border: 2px dashed #adb5bd;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            color: #6c757d;
+            margin-top: 1rem;
+        }
+
+        .screenshot-placeholder img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+<div class="container py-5">
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <p class="mb-1" style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                    <a href="index.html" style="color: rgba(255,255,255,0.7);">← Back to overview</a>
+                </p>
+                <h1 class="fw-bold" style="font-size: 1.6rem; line-height: 1.35;">
+                    Tutorial: Template Designer
+                </h1>
+                <p class="mt-3" style="color: rgba(255,255,255,0.85); font-size: 1.05rem;">
+                    From a blank LibreOffice document to an approved production template
+                    in 10 minutes.
+                </p>
+                <div class="d-flex gap-3 flex-wrap mt-4">
+                    <span class="badge bg-light text-dark px-3 py-2">&#128337; ~10 minutes</span>
+                    <span class="badge bg-light text-dark px-3 py-2">&#128203; LibreOffice Writer</span>
+                    <span class="badge bg-light text-dark px-3 py-2">&#128279; Workbench UI</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="terminal">
+                    <div class="terminal-bar">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="title">letter.odt — LibreOffice Writer</span>
+                    </div>
+                    <pre class="terminal-body"><span
+                            class="t-comment"># User-defined fields in LibreOffice (Ctrl+F2)</span>
+
+<span class="t-key">Field name:</span>  <span class="t-str">customer.firstname</span>  → "John"
+<span class="t-key">Field name:</span>  <span class="t-str">customer.lastname</span>   → "Doe"
+<span class="t-key">Field name:</span>  <span class="t-str">customer.gender</span>   → "MALE"
+<span class="t-key">Field name:</span>  <span class="t-str">customer.street</span>     → "Example Street 1"
+<span class="t-key">Field name:</span>  <span class="t-str">customer.zip</span>       → "62701"
+<span class="t-key">Field name:</span>  <span class="t-str">customer.city</span>       → "Springfield"
+
+<span class="t-success">✓ Template uploaded and validated</span></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="badge-strip">
+        <span>Step 0: Start the Workbench</span>
+        <span>Step 1: Create document</span>
+        <span>Step 2: Insert fields</span>
+        <span>Step 3: Upload &amp; validate</span>
+        <span>Step 4: Add test data</span>
+        <span>Step 5: Preview &amp; regression</span>
+        <span>Step 6: Submit for approval</span>
+    </div>
+
+    <!-- PREREQUISITES -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <h2 class="accent mb-3">What you need</h2>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card feature-card p-3 h-100 text-center">
+                        <div style="font-size: 2rem;">&#128196;</div>
+                        <strong>LibreOffice Writer</strong>
+                        <p class="small text-muted mb-1 mt-1">Version 24 or newer.</p>
+                        <a href="https://www.libreoffice.org/download/libreoffice-fresh/"
+                           class="btn btn-outline-primary btn-sm">Download</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card p-3 h-100 text-center">
+                        <div style="font-size: 2rem;">&#128051;</div>
+                        <strong>Docker</strong>
+                        <p class="small text-muted mb-0 mt-1">Docker Engine to run the Blocpress Studio — the all-in-one
+                            quickstart image</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card feature-card p-3 h-100 text-center">
+                        <div style="font-size: 2rem;">&#128273;</div>
+                        <strong>Test token included</strong>
+                        <p class="small text-muted mb-0 mt-1">The Studio image ships with a built-in dev key — no IdP
+                            setup needed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEPS -->
+    <div class="col-lg-8 mx-auto">
+
+        <!-- STEP 0 -->
+        <div class="step-block prep">
+            <div class="step-header">
+                <span class="step-number zero">0</span>
+                <h2>Start the Blocpress Studio</h2>
+            </div>
+
+            <p>
+                Blocpress Studio is a single Docker image that bundles the Workbench,
+                the Render API, and a PostgreSQL database — everything you need to get
+                started without any configuration.
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker run -d -p 8080:8080 --name blocpress-studio flaechsig/blocpress-studio:latest</pre>
+            </div>
+
+            <p class="mt-3">
+                Once the container is running, open the Workbench in your browser:
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">http://localhost:8080</pre>
+            </div>
+
+            <p class="mt-3">
+                The Studio ships with a built-in dev JWT token for the
+                Render API (<code>POST /api/render/{name}</code>).
+                Download it here:
+                <a href="samples/quickstart/token.txt">token.txt</a>
+            </p>
+
+            <div class="tip-box">
+                <strong>For production deployments</strong> with a separate Render API,
+                PostgreSQL, and your own Identity Provider, see the
+                <a href="tutorial-sysadmin.html">Sysadmin tutorial</a>.
+            </div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h2>Create a document in LibreOffice</h2>
+            </div>
+
+            <p>
+                Download the two sample files for this tutorial:
+            </p>
+
+            <div class="d-flex gap-2 mb-3 flex-wrap">
+                <a href="samples/quickstart/letter.odt" class="btn btn-outline-primary btn-sm">&#128196; letter.odt</a>
+                <a href="samples/quickstart/letter_blocpress.odt" class="btn btn-outline-primary btn-sm">&#128196;
+                    letter_blocpress.odt</a>
+                <a href="samples/quickstart/letter.json" class="btn btn-outline-secondary btn-sm">letter.json</a>
+            </div>
+
+            <ul>
+                <li><strong>letter.odt</strong> — the plain design document: layout, fonts, and static text,
+                    exactly as the finished PDF should look. Use this as your starting point when
+                    creating your own templates.
+                </li>
+                <li><strong>letter_blocpress.odt</strong> — the ready-to-use template with all
+                    user-defined fields already inserted. Upload this file to the Workbench in step 3.
+                </li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Creating your own template:</strong> Open <code>letter.odt</code>,
+                replace the static placeholder text with user-defined fields (see step 2),
+                and save as a new ODT file. <code>letter_blocpress.odt</code> shows you
+                the finished result.
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h2>Insert fields (Ctrl+F2)</h2>
+            </div>
+
+            <p>
+                Wherever JSON data should appear in the document, insert a
+                <strong>User-Defined Field</strong>:
+            </p>
+
+            <ol>
+                <li>Place the cursor at the desired position</li>
+                <li>Press <kbd>Ctrl</kbd>&nbsp;+&nbsp;<kbd>F2</kbd></li>
+                <li>In the dialog: select type <strong>"User-Defined"</strong></li>
+                <li>Enter a field name in <strong>dot notation</strong> matching the JSON path —
+                    for example <code>customer.firstname</code> or <code>customer.lastname</code></li>
+                <li>Click <strong>Insert</strong></li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Dot notation = JSON path:</strong>
+                The field name maps directly to a path in the JSON data.
+                <code>customer.firstname</code> reads from
+                <code>{ "customer": { "firstname": "..." } }</code>.
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Fields for the letter example</h3>
+            <div class="terminal">
+                <div class="terminal-bar">
+                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    <span class="title">letter.odt — field names</span>
+                </div>
+                <pre class="terminal-body"><span class="t-comment"># Recipient fields</span>
+<span class="t-key">customer.firstname</span>  → <span class="t-str">"Jane"</span>
+<span class="t-key">customer.lastname</span>   → <span class="t-str">"Doe"</span>
+<span class="t-key">customer.street</span>     → <span class="t-str">"123 Main Street"</span>
+<span class="t-key">customer.city</span>       → <span class="t-str">"Springfield"</span></pre>
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Conditional text (e.g. salutation)</h3>
+            <p>
+                To vary text inline based on a data value — like choosing between
+                "Ms." and "Mr." — use two steps:
+            </p>
+
+            <p><strong>Step A — Insert the field as a regular user-defined field</strong></p>
+            <p>
+                First, insert <code>customer.gender</code> anywhere in the document
+                as a regular user-defined field (<kbd>Ctrl</kbd>+<kbd>F2</kbd> → User-Defined).
+                This registers the field in the template schema so Blocpress knows about it.
+                You can place it invisibly (e.g. in a hidden area or with white font color)
+                if you don't want it to appear directly.
+            </p>
+
+            <div class="screenshot-placeholder">
+                <img src="images/tutorial-userfield-dialog.png"
+                     alt="LibreOffice Fields dialog showing a User-Defined field with dot-notation name">
+            </div>
+
+            <p class="mt-3"><strong>Step B — Insert a Conditional Text field</strong></p>
+            <p>
+                Place the cursor where the salutation should appear, then go to
+                <em>Insert → Field → More Fields… → Functions tab → Conditional Text</em>:
+            </p>
+
+            <div class="screenshot-placeholder">
+                <img src="images/tutorial-conditional-text-dialog.png"
+                     alt="LibreOffice Fields dialog, Functions tab, showing Conditional Text with customer.gender condition">
+            </div>
+
+            <div class="ui-mock">
+                <div class="text-muted small mb-1">Insert → Field → More Fields → Functions → Conditional Text</div>
+                <div><strong>Condition:</strong> <code>customer.gender == "MALE"</code></div>
+                <div><strong>Then:</strong> <code>Mr.</code></div>
+                <div><strong>Else:</strong> <code>Ms.</code></div>
+                <div class="mt-1 small text-muted">
+                    Blocpress evaluates the condition against the JSON data and replaces
+                    the field with the matching text.
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <strong>Need loops or shared blocks?</strong> Repeating table rows for
+                arrays (e.g. invoice line items) and reusable text blocks (e.g. terms
+                &amp; conditions) are covered in the
+                <a href="https://github.com/flaechsig/blocpress/blob/main/README.adoc">full template reference</a>.
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h2>Upload &amp; validate the template</h2>
+            </div>
+
+            <p>
+                Open <strong><code>http://localhost:8080</code></strong> in your browser
+                (the Studio started in step 0) and click
+                <strong>"Upload template"</strong> in the top right. Select
+                <code>letter_blocpress.odt</code>.
+            </p>
+
+            <p>Validation automatically checks:</p>
+            <ul>
+                <li>All field names are valid JSON paths</li>
+                <li>Conditions in section names are syntactically correct</li>
+                <li>Repeat groups are properly structured</li>
+                <li>A JSON schema is generated covering all fields</li>
+            </ul>
+
+            <p>
+                Errors are listed with the field name and a description.
+                Warnings can be individually suppressed if they are intentional.
+            </p>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">4</span>
+                <h2>Add test data</h2>
+            </div>
+
+            <p>
+                Switch to the <strong>"Test data"</strong> tab in the Workbench. Click
+                <strong>"Create test dataset"</strong> — the Workbench automatically suggests
+                values based on the template's JSON schema.
+            </p>
+
+            <p>Create one dataset per relevant scenario:</p>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <div class="card feature-card p-3 h-100">
+                        <strong>Female recipient</strong>
+                        <p class="small text-muted mb-0 mt-1">
+                            <code>customer.gender = "FEMALE"</code> — verifies the
+                            "Dear Ms." greeting section is shown
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card feature-card p-3 h-100">
+                        <strong>Male recipient</strong>
+                        <p class="small text-muted mb-0 mt-1">
+                            <code>customer.gender = "MALE"</code> — verifies the
+                            "Dear Mr." greeting section is shown
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card feature-card p-3 h-100">
+                        <strong>Standard case</strong>
+                        <p class="small text-muted mb-0 mt-1">
+                            Typical values, all fields filled — the go-to dataset for a
+                            quick sanity check
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card feature-card p-3 h-100">
+                        <strong>Long name / address <span class="badge text-bg-secondary" style="font-size:0.7rem;">optional</span></strong>
+                        <p class="small text-muted mb-0 mt-1">
+                            Very long first/last name — useful to catch line-break or
+                            page-overflow issues
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tip-box mt-3">
+                <strong>Coverage analysis:</strong> The Workbench shows which fields and
+                conditions are not yet covered by your test data and automatically suggests
+                missing datasets.
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">5</span>
+                <h2>Preview &amp; regression test</h2>
+            </div>
+
+            <p>
+                Click <strong>"Preview"</strong> next to a test dataset. The Workbench
+                renders the template and displays the generated PDF directly in the browser.
+                Check that the greeting, name, and address are correct.
+            </p>
+
+            <div class="screenshot-placeholder">
+                <img src="images/tutorial-designer-preview.png"
+                     alt="Workbench showing a rendered PDF preview next to the test dataset list">
+            </div>
+
+            <p class="mt-3">
+                If the PDF looks correct, click <strong>"Save as expected PDF"</strong>.
+                This reference PDF is stored alongside the test dataset.
+                After any future template change, click <strong>"Run all"</strong> to run the
+                regression test — the Workbench compares every PDF against its saved reference
+                and reports pass or fail.
+            </p>
+            tutorial-regression-test.png
+            <div class="screenshot-placeholder">
+                <img src="images/tutorial-regression-test.png"
+                     alt="Coverage & Regression showing the test results">
+            </div>
+        </div>
+
+        <!-- STEP 6 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">6</span>
+                <h2>Submit for approval</h2>
+            </div>
+
+            <p>
+                When you are satisfied with the template and all regression tests pass,
+                click <strong>"Submit for approval"</strong> in the template dashboard.
+                The status changes from <code>DRAFT</code> to <code>SUBMITTED</code>.
+            </p>
+
+            <div class="screenshot-placeholder">
+                <img src="images/tutorial-designer-submit.png"
+                     alt="Workbench template dashboard showing the Submit for approval button and the status badge">
+            </div>
+
+            <div class="ui-mock mt-3">
+                <div class="text-muted small mb-2">Workflow status</div>
+                <span class="badge text-bg-secondary">DRAFT</span>
+                &nbsp;→&nbsp;
+                <span class="badge text-bg-warning">SUBMITTED</span>
+                &nbsp;→&nbsp;
+                <span class="badge text-bg-success">APPROVED</span>
+                &nbsp;/&nbsp;
+                <span class="badge text-bg-danger">→ DRAFT</span>
+
+                <div class="mt-2 small text-muted">
+                    ↳ If rejected, you see the rejection reason as an orange banner and
+                    can revise the template and resubmit.
+                </div>
+            </div>
+
+            <p class="mt-3">
+                The reviewer checks the template and either:
+            </p>
+            <ul>
+                <li><strong>Approves (APPROVED):</strong> The template is automatically deployed
+                    to production and immediately available via
+                    <code>POST /api/render/letter</code>.
+                </li>
+                <li><strong>Rejects (→ DRAFT):</strong> You receive a rejection reason and
+                    can correct the template.
+                </li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Automatic deploy:</strong> No manual step needed after approval —
+                the template is immediately available in production with a version
+                timestamp (<code>validFrom</code>).
+            </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="card feature-card p-4 mb-5" style="background: #eef3ff; border: none;">
+            <h2 class="h5 accent mb-3">&#9989; Summary</h2>
+            <ol class="mb-0">
+                <li>Start Blocpress Studio: <code>docker run flaechsig/blocpress-studio:latest</code></li>
+                <li>Create an ODT document in LibreOffice and save it as <code>.odt</code></li>
+                <li>Insert user-defined fields with dot notation (<kbd>Ctrl+F2</kbd>)</li>
+                <li>Upload the template to the Workbench and fix any validation errors</li>
+                <li>Create test datasets for all relevant scenarios (female/male greeting)</li>
+                <li>Save PDFs as expected results and run regression tests</li>
+                <li>Submit the template for approval — it deploys automatically</li>
+            </ol>
+        </div>
+
+        <!-- FURTHER READING -->
+        <h2 class="accent mb-3">Further resources</h2>
+        <div class="row g-3 mb-5">
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128203; Template reference</strong>
+                    <p class="small text-muted mb-2 mt-1">Full reference: all field types, condition operators, repeat
+                        groups, shared text blocks</p>
+                    <a href="https://github.com/flaechsig/blocpress/blob/main/README.adoc"
+                       class="btn btn-outline-primary btn-sm">Read README</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128196; Sample templates</strong>
+                    <p class="small text-muted mb-2 mt-1">Welcome letter and invoice as downloads — ready to test with
+                        the Render API</p>
+                    <a href="index.html" class="btn btn-outline-primary btn-sm">View samples</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128218; Swagger UI</strong>
+                    <p class="small text-muted mb-2 mt-1">Interactive API documentation — available in the running
+                        Studio at <code>/q/swagger-ui</code></p>
+                    <a href="http://localhost:8080/q/swagger-ui" class="btn btn-outline-primary btn-sm">Open Swagger
+                        UI</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128736; Sysadmin tutorial</strong>
+                    <p class="small text-muted mb-2 mt-1">Deploy Blocpress for your team: Docker Compose, PostgreSQL,
+                        JWT, reverse proxy</p>
+                    <a href="tutorial-sysadmin.html" class="btn btn-outline-primary btn-sm">Open tutorial</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="text-center mt-3 pt-4 border-top">
+        <p>© 2026 Blocpress – Open Source ODT to PDF Rendering Engine &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress">GitHub</a> &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress/releases">Release Notes</a> &nbsp;·&nbsp;
+            <a href="index.html">Home</a>
+        </p>
+    </footer>
+
+</div>
+
+<script>
+    function copyCode(btn) {
+        const block = btn.parentElement;
+        const text = block.dataset.copy || block.querySelector('pre').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+        });
+    }
+</script>
+
+</body>
+</html>

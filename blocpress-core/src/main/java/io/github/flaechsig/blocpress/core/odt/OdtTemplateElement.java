@@ -42,17 +42,39 @@ public class OdtTemplateElement implements TemplateElement {
     }
 
     /**
-     * Gets the text content of this element.
-     * For user field elements, this is the displayed/default value.
+     * Returns the JEXL condition expression stored in the {@code text:condition} attribute.
+     * For conditional elements (text:conditional-text, text:section with hide condition),
+     * this holds the raw condition like {@code ooow:customer.gender="FEMALE"}.
      *
-     * @return the text content of the element, or null if empty
+     * @return the condition expression, or an empty string if not set
+     */
+    public String getCondition() {
+        return element.getAttribute("text:condition");
+    }
+
+    /**
+     * Gets the text content of this element.
+     * For {@code text:user-field-get} elements this is the rendered/default value.
+     * For {@code text:user-field-decl} elements the value lives in the
+     * {@code office:string-value} attribute (the element itself has no text content).
+     *
+     * @return the value, or null if not available
      */
     public String getTextContent() {
         if (element == null) {
             return null;
         }
         String content = element.getTextContent();
-        return (content != null && !content.isBlank()) ? content.strip() : null;
+        if (content != null && !content.isBlank()) {
+            return content.strip();
+        }
+        // text:user-field-decl stores the declared/example value here
+        String declared = element.getAttributeNS(
+                "urn:oasis:names:tc:opendocument:xmlns:office:1.0", "string-value");
+        if (declared == null || declared.isBlank()) {
+            declared = element.getAttribute("office:string-value");
+        }
+        return (declared != null && !declared.isBlank()) ? declared.strip() : null;
     }
 
     /**

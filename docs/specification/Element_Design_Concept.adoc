@@ -945,25 +945,6 @@ blocpress-studio hält den JWT nach Login und übergibt ihn als Attribut an die 
 
 Jedes SCS-Modul validiert JWT-Signatur gegen den konfigurierten Public Key, prüft Issuer und Expiration. Extrahiert das Subject (`sub`-Claim) und gleicht es mit E-9 (Benutzer, Schema: admin) ab — blocpress-admin stellt hierfür eine interne API bereit, oder die Rolleninformation wird direkt aus dem JWT-`groups`-Claim gelesen.
 
-[[edc-ti-5]]
-=== TI-5: Message Queue Interface (blocpress-workbench, blocpress-proof)
-
-*Description:*
-Asynchrone Kommunikation für zeitaufwändige Operationen (Indexierung in blocpress-workbench, Regressionstests in blocpress-proof). Wird intern von den jeweiligen SCS-Modulen genutzt.
-
-*Input:*
-
-- Queue-Name (String)
-- Message-Payload (JSON)
-
-*Output:*
-
-- Message-ID
-
-*Action:*
-
-Sendet Message an RabbitMQ Queue, Consumer im jeweiligen SCS-Modul verarbeitet Message asynchron
-
 [[edc-ti-7]]
 === TI-7: Elasticsearch API
 
@@ -1265,12 +1246,6 @@ TF-2 (Workflow-Status ändern) muss atomar sein: Entweder alle Änderungen (E-1,
 *Description:*
 TF-2 (Workflow-Status ändern) muss sicherstellen, dass Designer ≠ Freigeber. Diese Prüfung ist zwingend erforderlich für UC-8 (Template freigeben) und darf nicht umgangen werden können.
 
-[[edc-qr-6]]
-=== QR-6: Skalierbarkeit der Message Queue
-
-*Description:*
-TI-5 (Message Queue Interface) muss bis zu 100 gleichzeitige Dokumentengenerierungen in der Queue verwalten können ohne Performance-Degradation.
-
 [[edc-qr-7]]
 === QR-7: Datensicherheit bei Binärdaten
 
@@ -1344,23 +1319,17 @@ Alle Entities mit personenbezogenen Daten (E-3.4 json_daten, E-6.6 json_testdate
 
 _Referenz: DSGVO Art. 17 (Recht auf Löschung)_
 
-[[edc-c-7]]
-=== C-7: Storage Abstraction Layer
-
-*Description:*
-Zugriff auf Binärdaten (E-1.10, E-3.6, E-6.7, E-6.8) muss über eine Storage Abstraction Layer erfolgen, die zukünftigen Wechsel von PostgreSQL bytea zu S3-kompatiblem Object Storage ermöglicht. Interface: `StorageService.save(byte[])` und `StorageService.load(id)`.
-
 [[edc-c-8]]
 === C-8: Datenvolumen
 
 *Description:*
-Das System ist dimensioniert für < 5.000 Dokumente + Templates als Binärdaten in PostgreSQL. Bei Überschreitung muss Migration zu S3 über C-7 (Storage Abstraction Layer) erfolgen.
+Das System ist dimensioniert für < 5.000 Dokumente + Templates als Binärdaten in PostgreSQL.
 
 [[edc-c-9]]
 === C-9: Docker-Container (SCS-Module)
 
 *Description:*
-Jedes SCS-Modul (blocpress-studio, blocpress-workbench, blocpress-proof, blocpress-render, blocpress-admin) wird als eigener Docker-Container betrieben. Eine gemeinsame `docker-compose.yml` orchestriert alle Container inkl. PostgreSQL, RabbitMQ und Elasticsearch. blocpress-render kann unabhängig skaliert werden.
+Jedes SCS-Modul (blocpress-studio, blocpress-workbench, blocpress-proof, blocpress-render, blocpress-admin) wird als eigener Docker-Container betrieben. Eine gemeinsame `docker-compose.yml` orchestriert alle Container inkl. PostgreSQL und Elasticsearch. blocpress-render kann unabhängig skaliert werden.
 
 _Referenz: Docker Best Practices_
 

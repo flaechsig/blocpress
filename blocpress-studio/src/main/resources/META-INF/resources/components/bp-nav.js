@@ -47,7 +47,6 @@ export class BpNav extends LitElement {
             <nav>
                 <a class=${this.route === 'workbench' ? 'active' : ''}
                    @click=${() => this._navigate('workbench')}>Workbench</a>
-                <a class="disabled">Proof</a>
                 <a class="disabled">Admin</a>
             </nav>
         `;

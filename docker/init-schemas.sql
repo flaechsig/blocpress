@@ -14,8 +14,12 @@ CREATE TABLE IF NOT EXISTS template (
     version INTEGER NOT NULL DEFAULT 1,
     content BYTEA NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    type VARCHAR(50) NOT NULL DEFAULT 'TEMPLATE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     validation_result JSONB,
+    ignored_patterns JSONB,
+    rejection_reason TEXT,
+    rejected_at TIMESTAMP,
     UNIQUE(name, valid_from, version)
 );
 

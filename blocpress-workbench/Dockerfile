@@ -7,8 +7,11 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       openjdk-21-jre-headless \
-      curl; \
-    rm -rf /var/lib/apt/lists/*;
+      curl \
+      poppler-utils \
+      imagemagick; \
+    rm -rf /var/lib/apt/lists/*; \
+    sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
 
 ENV HOME=/tmp
 WORKDIR /app

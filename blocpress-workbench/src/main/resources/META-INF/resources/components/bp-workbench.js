@@ -49,8 +49,36 @@ export class BpWorkbench extends LitElement {
         _selectedTestDataForPreview: { state: true },
         _expandedTestDataId: { state: true },
         _editingTestDataId: { state: true },
+        _editingTestDataName: { state: true },
         _editingTestDataFormData: { state: true },
-        _savingTestData: { state: true }
+        _savingTestData: { state: true },
+        // Coverage & Regression
+        _activeSubTab: { state: true },
+        _coverageReport: { state: true },
+        _loadingCoverage: { state: true },
+        _regressionResults: { state: true },
+        _runningRegressions: { state: true },
+        // Inline Diff
+        _expandedDiffId: { state: true },     // testDataSetId with open diff panel
+        _diffReport: { state: true },          // DiffPagesReport from API
+        _diffCurrentPage: { state: true },     // current page index shown
+        _loadingDiff: { state: true },
+        _ignorePopup: { state: true },         // { block, testDataSetId, side, pattern }
+        // Collapsible coverage sections
+        _coverageSectionOpen: { state: true },
+        _conditionSectionOpen: { state: true },
+        _groupSectionOpen: { state: true },
+        _suggestionSectionOpen: { state: true },
+        _regressionSectionOpen: { state: true },
+        // Notes
+        _editingNoteId: { state: true },       // testDataSetId being annotated
+        _noteText: { state: true },
+        // Ignored patterns (loaded from backend, managed via click-to-ignore)
+        _ignoredPatterns: { state: true },
+        // Reject dialog
+        _rejectDialogOpen: { state: true },
+        _rejectReason: { state: true },
+        _rejecting: { state: true }
     };
 
     static styles = css`
@@ -242,6 +270,8 @@ export class BpWorkbench extends LitElement {
             padding: 20px;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            min-height: 640px;
         }
         .panel-header {
             display: flex;
@@ -496,6 +526,9 @@ export class BpWorkbench extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
         }
         .testdata-item {
             display: flex;
@@ -1039,6 +1072,167 @@ export class BpWorkbench extends LitElement {
             color: #333;
             flex: 1;
         }
+
+        /* Coverage & Regression */
+        .sub-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .sub-tab-btn {
+            padding: 8px 14px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+        }
+        .sub-tab-btn.active {
+            color: #1e3c72;
+            border-bottom-color: #1e3c72;
+            font-weight: 600;
+        }
+        .sub-tab-btn:hover:not(.active) { color: #333; }
+
+        .coverage-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .coverage-percent {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e3c72;
+        }
+        .coverage-bar-wrap {
+            flex: 1;
+            height: 14px;
+            background: #e0e0e0;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+        .coverage-bar-fill {
+            height: 100%;
+            background: #388e3c;
+            border-radius: 7px;
+            transition: width 0.4s;
+        }
+        .coverage-section {
+            margin-bottom: 20px;
+        }
+        .coverage-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .coverage-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .cov-field {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .cov-field.covered { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .cov-field.uncovered { background: #fff5f5; color: #c62828; border: 1px solid #ef9a9a; }
+
+        .cov-condition-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .cov-condition-expr {
+            flex: 1;
+            font-family: monospace;
+            font-size: 12px;
+            color: #333;
+            min-width: 0;
+            word-break: break-all;
+        }
+        .cov-badge {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .cov-badge.ok { background: #e8f5e9; color: #2e7d32; }
+        .cov-badge.miss { background: #fff5f5; color: #c62828; }
+
+        .regression-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+        .regression-status {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .regression-name { flex: 1; font-weight: 500; font-size: 13px; }
+        .regression-hash { font-family: monospace; font-size: 11px; color: #888; }
+        .regression-error { font-size: 12px; color: #c62828; }
+
+        /* Modal (Reject dialog) */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 440px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        }
+        .modal-box h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* Rejection banner */
+        .rejection-banner {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #6d4c00;
+            line-height: 1.5;
+        }
     `;
 
     constructor() {
@@ -1082,8 +1276,36 @@ export class BpWorkbench extends LitElement {
         this._selectedTestDataForPreview = null;
         this._expandedTestDataId = null;
         this._editingTestDataId = null;
+        this._editingTestDataName = '';
         this._editingTestDataFormData = {};
         this._savingTestData = false;
+        // Coverage & Regression
+        this._activeSubTab = 'testdata'; // 'testdata' | 'coverage'
+        this._coverageReport = null;
+        this._loadingCoverage = false;
+        this._regressionResults = null;
+        this._runningRegressions = false;
+        // Inline Diff
+        this._expandedDiffId = null;
+        this._diffReport = null;
+        this._diffCurrentPage = 0;
+        this._loadingDiff = false;
+        this._ignorePopup = null;
+        // Collapsible coverage sections (all closed by default)
+        this._coverageSectionOpen = false;
+        this._conditionSectionOpen = false;
+        this._groupSectionOpen = false;
+        this._suggestionSectionOpen = false;
+        this._regressionSectionOpen = false;
+        // Notes
+        this._editingNoteId = null;
+        this._noteText = '';
+        // Ignored patterns
+        this._ignoredPatterns = [];
+        // Reject dialog
+        this._rejectDialogOpen = false;
+        this._rejectReason = '';
+        this._rejecting = false;
     }
 
     connectedCallback() {
@@ -1111,7 +1333,17 @@ export class BpWorkbench extends LitElement {
 
             ${this._uploadMode ? this._renderUploadForm() : ''}
 
+            ${this._rejectDialogOpen ? this._renderRejectDialog() : ''}
+
             ${this._detailsView ? this._renderDetailsView() : ''}
+
+            <!-- Ablehnungs-Banner (bei DRAFT mit vorheriger Ablehnung) -->
+            ${this._selectedTemplate?.status === 'DRAFT' && this._selectedTemplate?.rejectionReason ? html`
+                <div class="rejection-banner">
+                    <strong>⚠ Abgelehnt am ${new Date(this._selectedTemplate.rejectedAt).toLocaleString('de-DE')}:</strong>
+                    ${this._selectedTemplate.rejectionReason}
+                </div>
+            ` : ''}
 
             <!-- Tab Navigation (only when template selected) -->
             ${this._selectedTemplate && !this._detailsView ? html`
@@ -1121,10 +1353,23 @@ export class BpWorkbench extends LitElement {
                         Testdaten
                     </button>
                 </div>
+                <!-- Sub-Tab Navigation inside Testdata area -->
+                <div class="sub-tabs">
+                    <button class="sub-tab-btn ${this._activeSubTab === 'testdata' ? 'active' : ''}"
+                        @click=${() => { this._activeSubTab = 'testdata'; }}>
+                        Testdaten
+                    </button>
+                    <button class="sub-tab-btn ${this._activeSubTab === 'coverage' ? 'active' : ''}"
+                        @click=${() => { this._activeSubTab = 'coverage'; this._loadCoverage(); }}>
+                        Coverage &amp; Regression
+                    </button>
+                </div>
             ` : ''}
 
-            <!-- TestData Tab Content (now includes preview) -->
-            ${this._selectedTemplate && !this._detailsView && this._activeTab === 'testdata' ? this._renderTestDataTab() : ''}
+            <!-- TestData / Coverage Tab Content -->
+            ${this._selectedTemplate && !this._detailsView && this._activeTab === 'testdata' ?
+                (this._activeSubTab === 'coverage' ? this._renderCoverageTab() : this._renderTestDataTab())
+                : ''}
 
             ${this._error ? html`<div class="error">${this._error}</div>` : ''}
             ${this._success ? html`<div class="success">${this._success}</div>` : ''}
@@ -1333,7 +1578,7 @@ export class BpWorkbench extends LitElement {
                 actions.push(
                     { label: '← Zurück', style: 'secondary', handler: () => this._changeStatus(template.id, 'DRAFT') },
                     { label: '✓ Genehmigen', style: 'success', handler: () => this._changeStatus(template.id, 'APPROVED') },
-                    { label: '✗ Ablehnen', style: 'danger', handler: () => this._changeStatus(template.id, 'REJECTED') }
+                    { label: '✗ Ablehnen', style: 'danger', handler: () => this._openRejectDialog(template.id) }
                 );
                 break;
 
@@ -1412,6 +1657,88 @@ export class BpWorkbench extends LitElement {
             await this._loadTemplates();
         } catch (err) {
             this._error = err.message;
+        }
+    }
+
+    _openRejectDialog(templateId) {
+        this._rejectDialogTemplateId = templateId;
+        this._rejectReason = '';
+        this._rejectDialogOpen = true;
+    }
+
+    _renderRejectDialog() {
+        return html`
+            <div class="modal-backdrop" @click=${() => { this._rejectDialogOpen = false; }}>
+                <div class="modal-box" @click=${e => e.stopPropagation()}>
+                    <h3>Template ablehnen</h3>
+                    <p style="color:#666; margin-bottom: 12px; font-size: 13px;">
+                        Das Template wird in den Status <strong>DRAFT</strong> zurückgesetzt.
+                        Die Begründung ist für den Entwickler sichtbar.
+                    </p>
+                    <label style="display:block; margin-bottom: 6px; font-size: 13px; font-weight: 600;">
+                        Begründung
+                    </label>
+                    <textarea
+                        rows="4"
+                        style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical;"
+                        placeholder="Was muss korrigiert werden?"
+                        .value=${this._rejectReason}
+                        @input=${e => { this._rejectReason = e.target.value; }}
+                    ></textarea>
+                    <div style="display:flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+                        <button class="action-btn secondary" @click=${() => { this._rejectDialogOpen = false; }}>
+                            Abbrechen
+                        </button>
+                        <button class="action-btn danger"
+                            ?disabled=${!this._rejectReason.trim() || this._rejecting}
+                            @click=${() => this._confirmReject()}>
+                            ${this._rejecting ? 'Wird abgelehnt…' : 'Ablehnen'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async _confirmReject() {
+        if (!this._rejectReason.trim() || this._rejecting) return;
+        this._rejecting = true;
+        try {
+            const response = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._rejectDialogTemplateId}/reject`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: this._rejectReason.trim() })
+                }
+            );
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Fehler: ${response.status} - ${errorText}`);
+            }
+            this._rejectDialogOpen = false;
+            this._success = 'Template abgelehnt und in DRAFT zurückgesetzt.';
+            await this._loadTemplates();
+            // Refresh selected template if it was the rejected one
+            if (this._selectedTemplate?.id === this._rejectDialogTemplateId) {
+                const detailsRes = await fetch(
+                    `${this._getApiBase()}/api/workbench/templates/${this._rejectDialogTemplateId}/details`
+                );
+                if (detailsRes.ok) {
+                    const details = await detailsRes.json();
+                    this._selectedTemplate = {
+                        ...this._selectedTemplate,
+                        status: details.status,
+                        rejectionReason: details.rejectionReason,
+                        rejectedAt: details.rejectedAt
+                    };
+                    if (this._detailsView) this._templateDetails = details;
+                }
+            }
+        } catch (err) {
+            this._error = err.message;
+        } finally {
+            this._rejecting = false;
         }
     }
 
@@ -1507,6 +1834,620 @@ export class BpWorkbench extends LitElement {
         return this._renderTestDataTabContent();
     }
 
+    // ===== Coverage & Regression Tab =====
+
+    async _loadCoverage() {
+        if (!this._selectedTemplate) return;
+        this._loadingCoverage = true;
+        this._coverageReport = null;
+        this._error = '';
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/coverage`
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._coverageReport = await res.json();
+        } catch (err) {
+            this._error = 'Coverage konnte nicht geladen werden: ' + err.message;
+        } finally {
+            this._loadingCoverage = false;
+        }
+    }
+
+    async _runAllRegressions() {
+        if (!this._selectedTemplate) return;
+        this._runningRegressions = true;
+        this._regressionResults = null;
+        this._error = '';
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/run-all-regressions`,
+                { method: 'POST' }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._regressionResults = await res.json();
+        } catch (err) {
+            this._error = 'Regression fehlgeschlagen: ' + err.message;
+        } finally {
+            this._runningRegressions = false;
+        }
+    }
+
+    async _createFromSuggestion(suggestion) {
+        if (!this._selectedTemplate) return;
+        this._error = '';
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/from-suggestion`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(suggestion)
+                }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._success = `Testdatensatz "${suggestion.suggestedName}" angelegt`;
+            await this._loadTestDataSets();
+        } catch (err) {
+            this._error = 'Fehler beim Erstellen: ' + err.message;
+        }
+    }
+
+    _renderCoverageTab() {
+        const r = this._coverageReport;
+
+        return html`
+            <div class="panel" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3>Coverage</h3>
+                    <button class="refresh-btn"
+                        ?disabled=${this._loadingCoverage}
+                        @click=${() => this._loadCoverage()}>
+                        ${this._loadingCoverage ? html`<span class="spinner"></span>` : '↻'} Analysieren
+                    </button>
+                </div>
+
+                ${!r && !this._loadingCoverage ? html`
+                    <p style="color:#888; text-align:center; padding:24px;">
+                        Klicken Sie "Analysieren" um die Coverage zu berechnen.
+                    </p>
+                ` : ''}
+
+                ${this._loadingCoverage ? html`
+                    <div style="text-align:center; padding:24px;">
+                        <span class="spinner"></span> Wird analysiert…
+                    </div>
+                ` : ''}
+
+                ${r ? html`
+                    <!-- Coverage Progress Bar -->
+                    <div class="coverage-header">
+                        <div class="coverage-percent">${r.coveragePercent}%</div>
+                        <div class="coverage-bar-wrap">
+                            <div class="coverage-bar-fill"
+                                style="width:${r.coveragePercent}%; background:${r.coveragePercent >= 80 ? '#388e3c' : r.coveragePercent >= 50 ? '#f57c00' : '#c62828'}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Field Coverage -->
+                    ${this._renderFieldCoverage(r.fieldCoverage)}
+
+                    <!-- Condition Coverage -->
+                    ${this._renderConditionCoverage(r.conditionCoverage)}
+
+                    <!-- Repetition Group Coverage -->
+                    ${this._renderGroupCoverage(r.repetitionGroupCoverage)}
+
+                    <!-- Suggestions -->
+                    ${r.suggestions && r.suggestions.length > 0 ? html`
+                        <div class="coverage-section">
+                            <div style="display:flex; align-items:center; gap:6px; cursor:pointer;"
+                                 @click=${() => this._suggestionSectionOpen = !this._suggestionSectionOpen}>
+                                <span style="font-size:14px; color:#888;">${this._suggestionSectionOpen ? '▲' : '▼'}</span>
+                                <h4 style="margin:0;">💡 Vorgeschlagene Testfälle (${r.suggestions.length})</h4>
+                            </div>
+                            ${this._suggestionSectionOpen ? html`
+                                <div style="margin-top:8px;">
+                                    ${r.suggestions.map(s => html`
+                                        <div class="cov-condition-row">
+                                            <div class="cov-condition-expr">${s.reason}</div>
+                                            <button class="testdata-btn primary"
+                                                @click=${() => this._createFromSuggestion(s)}>
+                                                + Anlegen
+                                            </button>
+                                        </div>
+                                    `)}
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    <!-- Regression -->
+                    <div class="coverage-section">
+                        <div style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;"
+                             @click=${(e) => { if (!e.target.closest('button[data-noclose]')) this._regressionSectionOpen = !this._regressionSectionOpen; }}>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:14px; color:#888;">${this._regressionSectionOpen ? '▲' : '▼'}</span>
+                                <h4 style="margin:0;">▶ Regressionstests</h4>
+                            </div>
+                            <button class="btn-submit" data-noclose
+                                style="padding:6px 12px; font-size:12px;"
+                                ?disabled=${this._runningRegressions}
+                                @click=${(e) => { e.stopPropagation(); this._regressionSectionOpen = true; this._runAllRegressions(); }}>
+                                ${this._runningRegressions ? html`<span class="spinner"></span> Läuft…` : 'Alle ausführen'}
+                            </button>
+                        </div>
+                        ${this._regressionSectionOpen ? html`
+                            <div style="margin-top:10px;">
+                                ${this._regressionResults ? this._renderRegressionResults() : html`
+                                    <p style="color:#888; font-size:13px;">
+                                        Klicken Sie "Alle ausführen" um Regressionstests zu starten.
+                                    </p>
+                                `}
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    _renderFieldCoverage(fieldCoverage) {
+        if (!fieldCoverage) return '';
+        const entries = Object.entries(fieldCoverage);
+        if (entries.length === 0) return '';
+        const covCount = entries.filter(([, v]) => v).length;
+        const open = this._coverageSectionOpen;
+
+        return html`
+            <div class="coverage-section">
+                <div style="display:flex; align-items:center; gap:6px; cursor:pointer;"
+                     @click=${() => this._coverageSectionOpen = !open}>
+                    <span style="font-size:14px; color:#888;">${open ? '▲' : '▼'}</span>
+                    <h4 style="margin:0;">📋 Felder (${covCount}/${entries.length})</h4>
+                </div>
+                ${open ? html`
+                    <div class="coverage-grid" style="margin-top:8px;">
+                        ${entries.map(([path, covered]) => html`
+                            <span class="cov-field ${covered ? 'covered' : 'uncovered'}">
+                                ${covered ? '✓' : '✗'} ${path}
+                            </span>
+                        `)}
+                    </div>` : ''}
+            </div>
+        `;
+    }
+
+    _renderConditionCoverage(conditionCoverage) {
+        if (!conditionCoverage) return '';
+        const entries = Object.entries(conditionCoverage);
+        if (entries.length === 0) return '';
+        const open = this._conditionSectionOpen;
+
+        return html`
+            <div class="coverage-section">
+                <div style="display:flex; align-items:center; gap:6px; cursor:pointer;"
+                     @click=${() => this._conditionSectionOpen = !open}>
+                    <span style="font-size:14px; color:#888;">${open ? '▲' : '▼'}</span>
+                    <h4 style="margin:0;">🔀 Bedingungen (${entries.length})</h4>
+                </div>
+                ${open ? html`
+                    <div style="margin-top:8px;">
+                        ${entries.map(([expr, cov]) => html`
+                            <div class="cov-condition-row">
+                                <div class="cov-condition-expr" title=${expr}>${this._abbreviate(expr, 60)}</div>
+                                <span class="cov-badge ${cov[0] ? 'ok' : 'miss'}">${cov[0] ? '✓' : '✗'} true</span>
+                                <span class="cov-badge ${cov[1] ? 'ok' : 'miss'}">${cov[1] ? '✓' : '✗'} false</span>
+                            </div>
+                        `)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    _renderGroupCoverage(groupCoverage) {
+        if (!groupCoverage) return '';
+        const entries = Object.entries(groupCoverage);
+        const open = this._groupSectionOpen;
+
+        return html`
+            <div class="coverage-section">
+                <div style="display:flex; align-items:center; gap:6px; cursor:pointer;"
+                     @click=${() => this._groupSectionOpen = !open}>
+                    <span style="font-size:14px; color:#888;">${open ? '▲' : '▼'}</span>
+                    <h4 style="margin:0;">🔁 Wiederholungsgruppen (${entries.length})</h4>
+                </div>
+                ${open ? html`
+                    <div style="margin-top:8px;">
+                        ${entries.length === 0 ? html`
+                            <p style="font-size:12px; color:#888; margin:0;">
+                                Keine erkannt — Template erneut validieren um Wiederholungsgruppen zu aktivieren.
+                            </p>` : entries.map(([path, cov]) => html`
+                            <div class="cov-condition-row">
+                                <div class="cov-condition-expr">${path}</div>
+                                <span class="cov-badge ${cov[0] ? 'ok' : 'miss'}">${cov[0] ? '✓' : '✗'} 0</span>
+                                <span class="cov-badge ${cov[1] ? 'ok' : 'miss'}">${cov[1] ? '✓' : '✗'} 1</span>
+                                <span class="cov-badge ${cov[2] ? 'ok' : 'miss'}">${cov[2] ? '✓' : '✗'} 2+</span>
+                            </div>
+                        `)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    _renderRegressionResults() {
+        const results = this._regressionResults;
+        if (!results || results.length === 0) {
+            return html`<p style="color:#888; font-size:13px;">Keine Testdatensätze vorhanden.</p>`;
+        }
+        return html`${results.map(r => this._renderRegressionRow(r))}`;
+    }
+
+    _renderRegressionRow(r) {
+        const isExpanded = this._expandedDiffId === r.testDataSetId;
+        const isEditingNote = this._editingNoteId === r.testDataSetId;
+        const tds = this._testDataSets.find(t => t.id === r.testDataSetId);
+
+        return html`
+            <div style="border:1px solid #ddd; border-radius:6px; margin-bottom:8px; overflow:hidden;">
+                <!-- Row header -->
+                <div class="regression-row" style="margin:0; border:none; border-radius:0;
+                            cursor:${r.hasExpectedPdf && !r.errorMessage ? 'pointer' : 'default'};"
+                     @click=${() => r.hasExpectedPdf && !r.errorMessage && this._toggleDiff(r.testDataSetId)}>
+                    <span style="font-size:13px; color:#888; width:14px; flex-shrink:0;">
+                        ${r.hasExpectedPdf && !r.errorMessage ? (isExpanded ? '▲' : '▼') : ''}
+                    </span>
+                    <span class="regression-status">
+                        ${r.errorMessage ? '⚠' : !r.hasExpectedPdf ? '—' : r.passed && !r.hasAcceptedDeviations ? '✅' : r.passed ? '✓' : '❌'}
+                    </span>
+                    <div style="flex:1; min-width:0;">
+                        <div class="regression-name">${r.testDataSetName}</div>
+                        ${r.errorMessage ? html`<div class="regression-error">${r.errorMessage}</div>` : ''}
+                        ${!r.hasExpectedPdf && !r.errorMessage ? html`
+                            <div class="regression-hash">— Kein Expected PDF</div>` : ''}
+                        ${r.hasExpectedPdf && !r.errorMessage ? html`
+                            <div class="regression-hash">
+                                ${r.passed && !r.hasAcceptedDeviations ? 'Identisch' : r.passed ? 'Akzeptierte Abweichungen' : 'Abweichungen gefunden'}
+                            </div>` : ''}
+                        ${tds?.notes ? html`<div style="font-size:11px; color:#666; margin-top:2px;">📝 ${tds.notes}</div>` : ''}
+                    </div>
+                    <div style="display:flex; gap:4px; flex-shrink:0;" @click=${e => e.stopPropagation()}>
+                        ${!r.passed && !r.errorMessage ? html`
+                            <button class="btn-secondary" style="padding:4px 8px; font-size:11px;"
+                                title="Neuen Draft erstellen"
+                                @click=${() => this._createDraftFromRegression()}>
+                                ✏️ Draft
+                            </button>` : ''}
+                        <button class="btn-secondary" style="padding:4px 8px; font-size:11px;"
+                            title="Anmerkung"
+                            @click=${() => this._toggleNote(r.testDataSetId, tds?.notes || '')}>
+                            📝
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Note editor -->
+                ${isEditingNote ? html`
+                    <div style="padding:8px 12px; background:#fffde7; border-top:1px solid #ddd;">
+                        <textarea
+                            .value=${this._noteText}
+                            @input=${e => this._noteText = e.target.value}
+                            rows="2"
+                            style="width:100%; box-sizing:border-box; font-size:13px; border:1px solid #ccc; border-radius:4px; padding:4px 6px; resize:vertical;"
+                            placeholder="Anmerkung zum Testergebnis…"></textarea>
+                        <div style="display:flex; gap:6px; margin-top:4px;">
+                            <button class="btn-submit" style="padding:3px 10px; font-size:12px;"
+                                @click=${() => this._saveNote(r.testDataSetId)}>Speichern</button>
+                            <button class="btn-secondary" style="padding:3px 10px; font-size:12px;"
+                                @click=${() => this._editingNoteId = null}>Abbrechen</button>
+                        </div>
+                    </div>` : ''}
+
+                <!-- Inline diff panel -->
+                ${isExpanded ? this._renderInlineDiff(r.testDataSetId) : ''}
+            </div>`;
+    }
+
+    _renderInlineDiff(testDataSetId) {
+        if (this._loadingDiff) {
+            return html`<div style="padding:20px; text-align:center; color:#888;">
+                <span class="spinner"></span> Diff wird geladen…
+            </div>`;
+        }
+        const report = this._diffReport;
+        if (!report) return html``;
+
+        const page = report.pages[this._diffCurrentPage];
+        const diffIndices = report.diffPageIndices || [];
+        const prevDiff = diffIndices.filter(i => i < this._diffCurrentPage).pop();
+        const nextDiff = diffIndices.find(i => i > this._diffCurrentPage);
+
+        return html`
+            <div style="border-top:1px solid #ddd; background:#fafafa;">
+                <!-- Navigation bar -->
+                <div style="display:flex; align-items:center; gap:8px; padding:8px 12px;
+                            background:#f0f0f0; border-bottom:1px solid #ddd; flex-wrap:wrap;">
+                    <button class="btn-secondary" style="padding:3px 8px; font-size:12px;"
+                        ?disabled=${this._diffCurrentPage === 0}
+                        @click=${() => this._diffCurrentPage--}>◀</button>
+                    <span style="font-size:12px; color:#555;">
+                        Seite ${this._diffCurrentPage + 1} / ${report.totalPages}
+                        ${report.diffCount > 0 ? html`· <b>${report.diffCount} Unterschied${report.diffCount !== 1 ? 'e' : ''}</b>` : html`· <span style="color:green;">✓ identisch</span>`}
+                    </span>
+                    <button class="btn-secondary" style="padding:3px 8px; font-size:12px;"
+                        ?disabled=${this._diffCurrentPage >= report.totalPages - 1}
+                        @click=${() => this._diffCurrentPage++}>▶</button>
+                    ${prevDiff !== undefined ? html`
+                        <button class="btn-secondary" style="padding:3px 8px; font-size:11px;"
+                            @click=${() => this._diffCurrentPage = prevDiff}>↑ Vorh. Diff</button>` : ''}
+                    ${nextDiff !== undefined ? html`
+                        <button class="btn-secondary" style="padding:3px 8px; font-size:11px;"
+                            @click=${() => this._diffCurrentPage = nextDiff}>↓ Nächst. Diff</button>` : ''}
+                    <div style="flex:1;"></div>
+                    <button class="btn-submit" style="padding:3px 10px; font-size:12px;"
+                        @click=${() => this._saveCurrentDiffAsExpected(testDataSetId)}>
+                        📷 Aktuell als Expected
+                    </button>
+                </div>
+                <!-- Page images side by side with clickable overlays -->
+                ${page ? html`
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; overflow-x:auto;">
+                        ${this._renderDiffPageSide(page, 'expected', testDataSetId)}
+                        ${this._renderDiffPageSide(page, 'actual', testDataSetId)}
+                    </div>` : ''}
+            </div>`;
+    }
+
+    async _toggleDiff(testDataSetId) {
+        if (this._expandedDiffId === testDataSetId) {
+            this._expandedDiffId = null;
+            this._diffReport = null;
+            return;
+        }
+        this._expandedDiffId = testDataSetId;
+        this._diffCurrentPage = 0;
+        this._diffReport = null;
+        this._loadingDiff = true;
+        try {
+            const templateId = this._selectedTemplate.id;
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${templateId}/testdata/${testDataSetId}/regression-diff-pages`,
+                { method: 'POST' }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._diffReport = await res.json();
+            // Jump to first diff page
+            if (this._diffReport.diffPageIndices?.length > 0) {
+                this._diffCurrentPage = this._diffReport.diffPageIndices[0];
+            }
+        } catch (err) {
+            this._error = 'Diff fehlgeschlagen: ' + err.message;
+            this._expandedDiffId = null;
+        } finally {
+            this._loadingDiff = false;
+        }
+    }
+
+    _renderDiffPageSide(page, side, testDataSetId) {
+        const isExpected = side === 'expected';
+        const imgSrc = isExpected ? page.expectedBase64 : page.actualBase64;
+        const blocks  = isExpected ? (page.removedBlocks || []) : (page.addedBlocks || []);
+        const pw = page.pageWidthPx || 1240;
+        const ph = page.pageHeightPx || 1754;
+        const borderStyle = page.hasDiff
+            ? (isExpected ? 'border-right:2px solid #e53935' : '')
+            : 'border-right:1px solid #ddd';
+
+        return html`
+            <div style="padding:8px; ${borderStyle};">
+                <div style="font-size:11px; font-weight:600; color:#555; margin-bottom:4px; text-align:center;">
+                    ${isExpected ? 'Erwartet' : 'Aktuell'}
+                </div>
+                <!-- image + overlay container -->
+                <div style="position:relative; display:block;" @click=${() => this._ignorePopup = null}>
+                    <img src="data:image/png;base64,${imgSrc}"
+                         style="width:100%; display:block; border:1px solid #ddd;">
+                    ${blocks.map(b => {
+                        const l = (b.x1 / pw * 100).toFixed(2);
+                        const t = (b.y1 / ph * 100).toFixed(2);
+                        const w = ((b.x2 - b.x1) / pw * 100).toFixed(2);
+                        const h = ((b.y2 - b.y1) / ph * 100).toFixed(2);
+                        const isActive = this._ignorePopup?.block?.x1 === b.x1
+                                      && this._ignorePopup?.block?.y1 === b.y1
+                                      && this._ignorePopup?.block?.x2 === b.x2
+                                      && this._ignorePopup?.block?.y2 === b.y2
+                                      && this._ignorePopup?.side === side;
+                        return html`
+                            <div style="position:absolute; left:${l}%; top:${t}%; width:${w}%; height:${h}%;
+                                        cursor:pointer; box-sizing:border-box;
+                                        border:2px solid rgba(200,0,0,${isActive ? 0.9 : 0.4});
+                                        background:rgba(255,50,50,${isActive ? 0.15 : 0.04});"
+                                 title="${b.text}"
+                                 @click=${e => { e.stopPropagation(); this._openIgnorePopup(b, testDataSetId, side, l, t); }}>
+                            </div>
+                            ${isActive ? this._renderIgnorePopup(b.x1/pw, b.y1/ph) : ''}`;
+                    })}
+                </div>
+            </div>`;
+    }
+
+    _renderIgnorePopup(xFrac, yFrac) {
+        const p = this._ignorePopup;
+        if (!p) return html``;
+        // Position popup: below block if in upper half, above if in lower half
+        const top = yFrac < 0.6 ? 'calc(' + (yFrac * 100).toFixed(1) + '% + 20px)'
+                                 : 'auto';
+        const bottom = yFrac >= 0.6 ? 'calc(' + ((1 - yFrac) * 100).toFixed(1) + '% + 20px)'
+                                     : 'auto';
+        return html`
+            <div style="position:absolute; left:2%; top:${top}; bottom:${bottom}; width:96%;
+                        background:white; border:1px solid #bbb; border-radius:6px;
+                        padding:10px; z-index:50; box-shadow:0 4px 16px rgba(0,0,0,0.2);"
+                 @click=${e => e.stopPropagation()}>
+                <div style="font-size:11px; font-weight:600; color:#333; margin-bottom:6px;">
+                    Unterschied ignorieren
+                </div>
+                <div style="font-family:monospace; font-size:11px; background:#f5f5f5;
+                            padding:4px 6px; border-radius:3px; margin-bottom:8px;
+                            word-break:break-all; color:#c62828;">"${p.block.text}"</div>
+                <div style="font-size:11px; color:#888; margin-bottom:10px;">
+                    <b>Nur diese Stelle</b> ignoriert exakt diese Position (nur dieser Test).<br>
+                    <b>Alle Tests</b> ignoriert diesen Text überall (Muster).
+                </div>
+                <div style="font-size:11px; color:#666; margin-bottom:4px;">Muster für "Alle Tests":</div>
+                <input type="text"
+                    .value=${p.pattern}
+                    @input=${e => this._ignorePopup = {...p, pattern: e.target.value}}
+                    style="width:100%; box-sizing:border-box; font-family:monospace; font-size:12px;
+                           border:1px solid #ccc; border-radius:4px; padding:4px 6px; margin-bottom:6px;">
+                ${p.suggestedPattern ? html`
+                    <div style="font-size:11px; color:#888; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                        <span>Muster: <code style="font-family:monospace; color:#555;">${p.suggestedPattern}</code></span>
+                        <button style="border:1px solid #bbb; background:#f5f5f5; border-radius:3px; font-size:10px;
+                                       padding:1px 6px; cursor:pointer; color:#444;"
+                            @click=${() => this._ignorePopup = {...p, pattern: p.suggestedPattern, suggestedPattern: null}}>
+                            verwenden
+                        </button>
+                    </div>` : html`<div style="margin-bottom:8px;"></div>`}
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn-secondary" style="font-size:11px; padding:4px 8px; flex:1;"
+                        @click=${() => this._applyIgnore('this')}>
+                        Nur diese Stelle
+                    </button>
+                    <button class="btn-submit" style="font-size:11px; padding:4px 8px; flex:1;"
+                        @click=${() => this._applyIgnore('all')}>
+                        Alle Tests
+                    </button>
+                    <button class="btn-secondary" style="font-size:11px; padding:4px 8px;"
+                        @click=${() => this._ignorePopup = null}>✕</button>
+                </div>
+            </div>`;
+    }
+
+    _openIgnorePopup(block, testDataSetId, side, xFrac, yFrac) {
+        const literal = block.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const suggested = this._suggestPattern(block.text);
+        // Area pattern for position-based ignore ("Nur dieser Test")
+        const areaPattern = `@area:${this._diffCurrentPage}:${block.x1}:${block.y1}:${block.x2}:${block.y2}`;
+        this._ignorePopup = {
+            block, testDataSetId, side,
+            areaPattern,                                                  // for "Nur diese Stelle"
+            pattern: literal,                                             // for "Alle Tests"
+            suggestedPattern: suggested !== literal ? suggested : null
+        };
+    }
+
+    /** Heuristik für Regex-Muster-Vorschläge (nur als optionale Alternative) */
+    _suggestPattern(text) {
+        // Datum dd.mm.yyyy
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(text)) return '\\d{2}\\.\\d{2}\\.\\d{4}';
+        // Datum yyyy-mm-dd
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return '\\d{4}-\\d{2}-\\d{2}';
+        // Reine Zahl
+        if (/^\d+([.,]\d+)?$/.test(text)) return '\\d+([.,]\\d+)?';
+        // UUID
+        if (/^[0-9a-f-]{36}$/i.test(text)) return '[0-9a-f-]{36}';
+        // Seite X von Y
+        if (/^Seite \d+ von \d+$/.test(text)) return 'Seite \\d+ von \\d+';
+        // Literal (escaped) — same as default, so no suggestion offered
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    async _applyIgnore(scope) {
+        const p = this._ignorePopup;
+        if (!p || !this._selectedTemplate) return;
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${p.testDataSetId}/ignore-block`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // "this" = position-based area pattern; "all" = text/regex pattern
+                    body: JSON.stringify({ pattern: scope === 'this' ? p.areaPattern : p.pattern, scope })
+                }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._ignorePopup = null;
+            // Reload diff with updated patterns
+            const expandedId = this._expandedDiffId;
+            this._expandedDiffId = null;
+            this._diffReport = null;
+            await new Promise(r => setTimeout(r, 50)); // allow state update
+            await this._toggleDiff(expandedId);
+        } catch (err) {
+            this._error = 'Ignorieren fehlgeschlagen: ' + err.message;
+        }
+    }
+
+    async _saveCurrentDiffAsExpected(testDataSetId) {
+        if (!this._selectedTemplate) return;
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${testDataSetId}/save-rendered-as-expected`,
+                { method: 'POST' }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._expandedDiffId = null;
+            this._diffReport = null;
+            await this._loadTestDataSets();
+        } catch (err) {
+            this._error = 'Als Expected speichern fehlgeschlagen: ' + err.message;
+        }
+    }
+
+    _toggleNote(testDataSetId, currentNote) {
+        if (this._editingNoteId === testDataSetId) {
+            this._editingNoteId = null;
+        } else {
+            this._editingNoteId = testDataSetId;
+            this._noteText = currentNote || '';
+        }
+    }
+
+    async _saveNote(testDataSetId) {
+        if (!this._selectedTemplate) return;
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${testDataSetId}/notes`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: this._noteText })
+                }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            this._editingNoteId = null;
+            await this._loadTestDataSets();
+        } catch (err) {
+            this._error = 'Notiz speichern fehlgeschlagen: ' + err.message;
+        }
+    }
+
+    async _createDraftFromRegression() {
+        if (!this._selectedTemplate) return;
+        if (!confirm(`Neuen Draft aus "${this._selectedTemplate.name}" erstellen?`)) return;
+        try {
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/new-draft`,
+                { method: 'POST' }
+            );
+            if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+            const newDraft = await res.json();
+            await this._loadTemplates();
+            this._error = '';
+            alert(`Draft erstellt: ${newDraft.name} v${newDraft.version}`);
+        } catch (err) {
+            this._error = 'Draft erstellen fehlgeschlagen: ' + err.message;
+        }
+    }
+
+    _abbreviate(str, max) {
+        return str && str.length > max ? str.substring(0, max) + '…' : str;
+    }
+
     _renderTestDataTabContent() {
         // If creating new test data, show form
         if (this._testDataMode === 'create') {
@@ -1580,10 +2521,24 @@ export class BpWorkbench extends LitElement {
                 <div class="panel">
                     <div class="panel-header">
                         <h3>Vorschau</h3>
-                        ${this._rendering ? html`<span class="spinner"></span>` : ''}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${this._rendering ? html`<span class="spinner"></span>` : ''}
+                            ${this._pdfUrl && this._selectedTestDataForPreview ? html`
+                                <button class="testdata-btn primary"
+                                    style="font-size: 12px;"
+                                    ?disabled=${this._savingExpectedPdf}
+                                    @click=${() => this._saveCurrentPreviewAsExpected()}>
+                                    ${this._savingExpectedPdf
+                                        ? html`<span class="spinner"></span> Speichert…`
+                                        : (this._selectedTestDataForPreview.hasExpectedPdf
+                                            ? '📷 Expected aktualisieren'
+                                            : '📷 Als Expected speichern')}
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                     ${this._pdfUrl
-                        ? html`<iframe class="pdf-frame" src=${this._pdfUrl}></iframe>`
+                        ? html`<iframe class="pdf-frame" src="${this._pdfUrl}#pagemode=none"></iframe>`
                         : html`<div class="pdf-placeholder">
                             ${this._rendering ? 'Wird gerendert...' : 'Testfall auswählen zur Vorschau'}
                           </div>`}
@@ -1597,17 +2552,25 @@ export class BpWorkbench extends LitElement {
             <div class="testdata-view">
                 <div class="testdata-view-header">
                     <h4>Testdaten: ${testData.name}</h4>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
                             @click=${() => {
                                 this._editingTestDataId = testData.id;
+                                this._editingTestDataName = testData.name;
                                 this._editingTestDataFormData = JSON.parse(JSON.stringify(testData.testData || {}));
                             }}>
                             ✎ Bearbeiten
                         </button>
+                        <button class="testdata-btn primary" style="font-size: 12px;"
+                            ?disabled=${this._savingExpectedPdf}
+                            @click=${() => this._saveExpectedPdfForTestData(testData)}>
+                            ${this._savingExpectedPdf && this._selectedTestData?.id === testData.id
+                                ? html`<span class="spinner"></span> Speichert…`
+                                : (testData.hasExpectedPdf ? '📷 Expected aktualisieren' : '📷 Als Expected speichern')}
+                        </button>
                         <button class="btn-submit" style="padding: 6px 12px; font-size: 12px;"
                             @click=${() => this._duplicateTestData(testData)}>
-                            ↗ Als Testfall hinterlegen
+                            ↗ Duplizieren
                         </button>
                     </div>
                 </div>
@@ -1622,7 +2585,15 @@ export class BpWorkbench extends LitElement {
         return html`
             <div class="testdata-edit">
                 <div class="testdata-edit-header">
-                    <h4>Testdaten Bearbeitung: ${testData.name}</h4>
+                    <h4>Testdaten Bearbeitung</h4>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 4px;">Name</label>
+                    <input type="text"
+                        .value=${this._editingTestDataName}
+                        @input=${e => this._editingTestDataName = e.target.value}
+                        style="width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;"
+                        placeholder="Name des Testdatensatzes">
                 </div>
                 <div class="testdata-form">
                     <!-- Render editable tree structure -->
@@ -1643,7 +2614,7 @@ export class BpWorkbench extends LitElement {
                     <button class="testdata-btn primary"
                         ?disabled=${this._savingExpectedPdf}
                         @click=${() => this._saveExpectedPdfForTestData(testData)}>
-                        PDF speichern
+                        ${this._savingExpectedPdf ? html`<span class="spinner"></span> Speichert…` : '📷 Als Expected speichern'}
                     </button>
                 </div>
             </div>
@@ -1743,11 +2714,30 @@ export class BpWorkbench extends LitElement {
         await this._renderPdf();
     }
 
+    // Renders the PDF and then saves it as expected output (triggered via button in read/edit view)
     async _saveExpectedPdfForTestData(testData) {
         this._selectedTestData = testData;
+        this._selectedTestDataForPreview = testData;
         this._jsonText = JSON.stringify(testData.testData, null, 2);
         this._jsonValid = true;
         await this._renderPdf();
+    }
+
+    // Saves the currently visible preview PDF (from _pdfBlob) as expected without re-rendering
+    async _saveCurrentPreviewAsExpected() {
+        const testData = this._selectedTestDataForPreview;
+        if (!testData || !this._pdfBlob || !this._selectedTemplate) {
+            this._error = 'Kein gerendertes PDF vorhanden';
+            return;
+        }
+        this._selectedTestData = testData;
+        await this._finalizePdfSave();
+        // Keep preview visible after saving
+        this._selectedTestDataForPreview = testData;
+        this._pdfUrl = URL.createObjectURL(this._pdfBlob);
+        await this._loadTestDataSets();
+        // Update the local reference so the button shows "aktualisieren"
+        this._selectedTestDataForPreview = this._testDataSets.find(t => t.id === testData.id) || testData;
     }
 
     _renderAutocomplete() {
@@ -1964,6 +2954,13 @@ export class BpWorkbench extends LitElement {
         this._error = '';
         this._success = '';
         this._activeTab = 'testdata';
+        this._activeSubTab = 'testdata';
+        this._coverageReport = null;
+        this._regressionResults = null;
+        this._expandedDiffId = null;
+        this._diffReport = null;
+        this._editingNoteId = null;
+        this._ignoredPatterns = [];
 
         // Load full template details (with validationResult) for form generation
         try {
@@ -1972,11 +2969,15 @@ export class BpWorkbench extends LitElement {
             );
             if (response.ok) {
                 const details = await response.json();
-                // Merge details with summary to get validationResult
+                // Merge details with summary to get validationResult + rejection info
                 this._selectedTemplate = {
                     ...this._selectedTemplate,
-                    validationResult: details.validationResult
+                    validationResult: details.validationResult,
+                    ignoredPatterns: details.ignoredPatterns || [],
+                    rejectionReason: details.rejectionReason || null,
+                    rejectedAt: details.rejectedAt || null
                 };
+                this._ignoredPatterns = details.ignoredPatterns || [];
 
                 // Generate sample JSON from schema
                 if (details.validationResult?.schema?.properties) {
@@ -2125,9 +3126,11 @@ export class BpWorkbench extends LitElement {
             if (this._pdfUrl) URL.revokeObjectURL(this._pdfUrl);
             this._pdfUrl = URL.createObjectURL(pdfBlob);
 
-            // 4. If we're in save mode, save the expected PDF
+            // If we're in save mode (_saveExpectedPdfForTestData), save the expected PDF and clear preview
             if (this._selectedTestData) {
                 await this._finalizePdfSave();
+                this._selectedTestDataForPreview = null;
+                this._pdfUrl = null;
             }
         } catch (err) {
             this._error = err.message;
@@ -2154,8 +3157,7 @@ export class BpWorkbench extends LitElement {
 
             this._success = 'Expected PDF gespeichert';
             this._selectedTestData = null;
-            this._selectedTestDataForPreview = null;
-            this._pdfUrl = null;
+            // Note: caller is responsible for managing _selectedTestDataForPreview and _pdfUrl
             await this._loadTestDataSets();
         } catch (err) {
             this._error = err.message;
@@ -2838,7 +3840,7 @@ export class BpWorkbench extends LitElement {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: this._testDataSets.find(td => td.id === testDataId)?.name || 'Unnamed',
+                        name: this._editingTestDataName || 'Unnamed',
                         testData: this._editingTestDataFormData
                     })
                 }

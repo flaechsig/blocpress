@@ -81,8 +81,6 @@ _Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities im Element Des
 *Content Search Engine (Elasticsearch ≥ 7.x):* Suchindex für Templates und Bausteine, genutzt von blocpress-workbench. +
 _Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-7[TI-7: Elasticsearch API]_
 
-*Message Queue (RabbitMQ/Kafka):* Asynchrone Dokumentengenerierung und Regressionstests. +
-_Technical Interface: xref:Element_Design_Concept.adoc#edc-ti-5[TI-5: Message Queue Interface]_
 
 [[sydc-hardware]]
 === Hardware Elements
@@ -160,14 +158,9 @@ _Technical Functions: Status-Übergänge mit Validierung (von TF-2), Template-Du
 2. blocpress-render authentifiziert die Anfrage (JWT-Validierung)
 3. blocpress-render validiert die JSON-Daten gegen das Template-Schema
 4. blocpress-render lädt das freigegebene Template aus dem Schema `production` (PostgreSQL)
-5. blocpress-render legt die Generierungsanfrage in die Message Queue für asynchrone Verarbeitung
-6. Der LibreOffice Document Processor nimmt die Anfrage aus der Queue entgegen
-7. Der Document Processor befüllt das Template mit den JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen)
-8. Der Document Processor exportiert das befüllte Dokument im gewünschten Format (ODT, PDF oder RTF)
-9. Das generierte Dokument wird im Schema `production` gespeichert
-10. blocpress-render aktualisiert den Generierungs-Status auf "Erfolgreich"
-11. Die externe Anwendung erhält die Generierungs-ID als Response und kann den Status abfragen
-12. Beim Status-Abruf liefert blocpress-render einen Download-Link für das generierte Dokument zurück
+5. Der Document Processor befüllt das Template mit den JSON-Daten (User-Fields, Wiederholungsgruppen, IF-Bedingungen) synchron im selben Request
+6. Der Document Processor exportiert das befüllte Dokument im gewünschten Format (ODT, PDF oder RTF)
+7. blocpress-render liefert das generierte Dokument direkt als Response zurück
 
 _Technical Function: xref:Element_Design_Concept.adoc#edc-tf-5[TF-5: Dokument generieren]_ +
 _Use Case: xref:Element_Design_Concept.adoc#edc-uc-10[UC-10: Testdokument mit Template generieren]_ +
@@ -333,7 +326,6 @@ _Detaillierte Test-Metriken und Erkenntnisse: xref:../product-backlog.adoc#UC-10
 - PostgreSQL Version ≥ 18 als Datenbank mit vier getrennten Schemata (workbench, proof, production, admin)
 - Identische Template-Tabellenstrukturen in workbench/proof/production für kopie-basierte Stufenübergabe
 - Binärdaten werden in PostgreSQL gespeichert (< 5.000 Dokumente + Templates erwartet)
-- Storage Abstraction Layer muss implementiert sein, um zukünftigen Wechsel zu S3-kompatiblem Object Storage zu ermöglichen
 - Elasticsearch ab Version 7.x für Content Search
 
 *Datenschutz-Constraints:*

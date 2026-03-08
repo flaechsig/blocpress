@@ -1,0 +1,10 @@
+{
+  "customer": {
+    "gender": "FEMALE",
+    "firstname": "Jane",
+    "lastname": "Doe",
+    "street": "123 Main Street",
+    "zip": "10001",
+    "city": "New York"
+  }
+}

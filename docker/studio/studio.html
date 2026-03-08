@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>blocpress Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4ff; min-height: 100vh; display: flex; flex-direction: column; }
+
+        .hero {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 56px 24px 48px;
+            text-align: center;
+        }
+        .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .hero p  { font-size: 1.05rem; opacity: 0.82; margin: 0; }
+
+        .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 3px 14px;
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+            margin-bottom: 18px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+            padding: 32px 28px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: 100%;
+        }
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 32px rgba(0,0,0,0.11);
+        }
+        .service-icon { font-size: 2.4rem; margin-bottom: 14px; }
+        .service-card h2 { font-size: 1.2rem; font-weight: 700; color: #1e3c72; margin-bottom: 8px; }
+        .service-card p  { font-size: 0.9rem; color: #555; min-height: 48px; }
+
+        .btn-studio {
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.15s ease;
+        }
+        .btn-studio:hover { background: #1e3c72; color: white; }
+        .btn-studio-outline {
+            background: transparent;
+            color: #2a5298;
+            border: 2px solid #2a5298;
+            border-radius: 8px;
+            padding: 9px 22px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.15s ease;
+        }
+        .btn-studio-outline:hover { background: #2a5298; color: white; }
+
+        .status-dot {
+            display: inline-block;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-right: 6px;
+            transition: background 0.3s;
+        }
+        .status-dot.up   { background: #28a745; }
+        .status-dot.down { background: #dc3545; }
+
+        .info-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px 24px;
+            font-size: 0.88rem;
+        }
+        .info-box code { background: #eef3ff; padding: 2px 6px; border-radius: 4px; color: #2a5298; }
+
+        footer { color: #888; font-size: 0.8rem; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="version-badge">blocpress Studio · quickstart</div>
+    <h1>&#128196; blocpress Studio</h1>
+    <p>All-in-one development environment for document templates</p>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container py-5">
+
+    <!-- SERVICE CARDS -->
+    <div class="row g-4 mb-5">
+
+        <div class="col-md-6">
+            <div class="service-card">
+                <div class="service-icon">&#128736;</div>
+                <h2>Workbench</h2>
+                <p>Upload ODT templates, validate fields, manage test data and submit for approval.</p>
+                <div class="mb-3 small">
+                    <span class="status-dot" id="dot-workbench"></span>
+                    <span id="status-workbench" style="color:#888;">checking…</span>
+                </div>
+                <a href="/index.html" class="btn-studio">Open Workbench &rarr;</a>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="service-card">
+                <div class="service-icon">&#9889;</div>
+                <h2>Render API</h2>
+                <p>Generate PDFs and ODT documents via REST. Try it interactively in Swagger UI.</p>
+                <div class="mb-3 small">
+                    <span class="status-dot" id="dot-render"></span>
+                    <span id="status-render" style="color:#888;">checking…</span>
+                </div>
+                <a href="http://localhost:8081/q/swagger-ui" target="_blank" class="btn-studio-outline">Open Swagger UI &rarr;</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- QUICK START -->
+    <div class="info-box mb-4">
+        <h3 class="h6 fw-bold mb-3" style="color:#1e3c72;">&#128640; Quick start</h3>
+        <ol class="mb-0" style="line-height:2;">
+            <li>Open the <strong>Workbench</strong> and upload your first ODT template</li>
+            <li>Validate — the schema is generated automatically from your user-defined fields</li>
+            <li>Add test data sets and generate a preview PDF</li>
+            <li>Submit for approval &rarr; the template is deployed to the Render API</li>
+            <li>Generate documents: <code>POST http://localhost:8081/api/render/{name}</code></li>
+        </ol>
+    </div>
+
+    <!-- TOKEN INFO -->
+    <div class="info-box">
+        <h3 class="h6 fw-bold mb-2" style="color:#1e3c72;">&#128273; Authentication</h3>
+        <p class="mb-1" style="font-size:0.88rem;">
+            This image ships with a built-in dev JWT key. Copy the token from
+            <code>docs/samples/quickstart/token.txt</code> and use it as Bearer token.
+        </p>
+        <p class="mb-0 small" style="color:#888;">
+            Override via <code>-e MP_JWT_VERIFY_PUBLICKEY=…</code> and <code>-e MP_JWT_VERIFY_ISSUER=…</code>
+        </p>
+    </div>
+
+</div>
+
+<footer class="text-center pb-4">
+    <p>
+        <a href="https://flaechsig.github.io/blocpress/" target="_blank">Documentation</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/flaechsig/blocpress" target="_blank">GitHub</a>
+    </p>
+</footer>
+
+<script>
+    async function checkService(url, dotId, statusId) {
+        const dot = document.getElementById(dotId);
+        const label = document.getElementById(statusId);
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+            if (res.ok) {
+                dot.className = 'status-dot up';
+                label.textContent = 'running';
+                label.style.color = '#28a745';
+            } else {
+                throw new Error('not ok');
+            }
+        } catch {
+            dot.className = 'status-dot down';
+            label.textContent = 'not ready';
+            label.style.color = '#dc3545';
+        }
+    }
+
+    checkService('/q/health/ready',               'dot-workbench', 'status-workbench');
+    checkService('http://localhost:8081/q/health/ready', 'dot-render',    'status-render');
+</script>
+
+</body>
+</html>
