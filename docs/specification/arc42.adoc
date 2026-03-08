@@ -31,7 +31,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 - Export in ODT, PDF und RTF
 * *Workflow-gesteuerte Freigabe:* Mehrstufiger Freigabeprozess mit Reviewer-Genehmigung (organisatorisch durchgesetzt)
 * *Compliance-Management:* Automatische Überwachung turnusmäßiger Reviews (1, 3 oder 5 Jahre)
-* *Test-Framework:* Verwaltung von Testdaten, Baseline-PDFs und automatisierte Regressionstests
+* *Test-Framework:* Verwaltung von Testdaten, Baseline-PDFs, automatisierte Regressionstests mit Inline-Diff und Coverage-Analyse (Felder, Bedingungen, Wiederholungsgruppen)
 * *Content Search:* Performante Volltextsuche nach fachlichen Konstrukten über alle Templates
 
 *Treibende Kräfte:*
@@ -65,7 +65,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 | 3
 | *Wartbarkeit*
-| Templates und Code müssen versioniert sein. Änderungen nachvollziehbar. Storage Abstraction Layer ermöglicht Wechsel zu S3.
+| Templates und Code müssen versioniert sein. Änderungen nachvollziehbar.
 | 9, 10.3
 
 | 4
@@ -75,7 +75,7 @@ blocpress ist ein template-basierter Print-Server zur automatisierten Generierun
 
 | 5
 | *Skalierbarkeit*
-| Horizontal skalierbar: Bis zu 100 gleichzeitige Dokumentengenerierungen. Asynchrone Verarbeitung über Message Queue.
+| Horizontal skalierbar: Mehrere parallele blocpress-render-Instanzen hinter einem Load Balancer.
 | 8.1, 10.5
 |===
 
@@ -143,8 +143,6 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 | Elasticsearch ≥ 7.x
 | Content Search Engine basiert auf Elasticsearch 7.x oder höher.
 
-| Message Queue
-| RabbitMQ oder Kafka für asynchrone Dokumentengenerierung.
 |===
 
 === Organisatorische Randbedingungen
@@ -177,9 +175,6 @@ _Detaillierte Constraints: xref:Element_Design_Concept.adoc#edc-constraints[Cons
 
 | JSON-Punkt-Notation
 | User-Fields referenzieren JSON-Pfade in Punkt-Notation: `kunde.name`, `vertrag.positionen[0].preis`
-
-| Storage Abstraction Layer
-| Zugriff auf Binärdaten nur über `StorageService` Interface. Ermöglicht zukünftigen Wechsel zu S3.
 
 | Audit-Logging
 | Alle Workflow-Änderungen, Freigaben und Reviews müssen audit-log-tauglich protokolliert werden.
@@ -324,10 +319,6 @@ ScsModules --> Monitor
 | JDBC, PostgreSQL Wire Protocol
 | blocpress-workbench nutzt Schema `workbench`, blocpress-render nutzt Schema `production`
 
-| Render → RabbitMQ/Kafka
-| AMQP (RabbitMQ) / Kafka Protocol
-| Asynchrone Dokumentengenerierung, Regressionstests
-
 | blocpress-workbench → Elasticsearch
 | REST-API, HTTP/JSON
 | Template-Indexierung, Volltextsuche (Content Search)
@@ -367,17 +358,9 @@ ScsModules --> Monitor
 | Reife relationale DB mit zwei Schemata: `workbench` für Entwicklung/Test und `production` für freigegebene Templates. Identische Tabellenstrukturen ermöglichen physische, kopie-basierte Stufenübergabe — nur freigegebene Templates werden nach production kopiert, um nachzuweisen, dass nur validierte Versionen in Produktion verwendet werden.
 | Zuverlässigkeit, Wartbarkeit, Compliance
 
-| *Storage Abstraction Layer*
-| Ermöglicht zukünftigen Wechsel zu S3 ohne Code-Änderungen in Business-Logik
-| Wartbarkeit, Flexibilität
-
 | *Elasticsearch für Content Search*
 | Hochperformante Volltextsuche, Relevanz-Ranking, Highlighting
 | Performance (< 2s Suchzeit)
-
-| *Message Queue (RabbitMQ/Kafka)*
-| Asynchrone Verarbeitung zeitaufwändiger Operationen, Entkopplung, Skalierbarkeit
-| Performance, Skalierbarkeit
 
 | *Docker-Container*
 | Jedes SCS-Modul als eigener Container, unabhängig skalierbar
@@ -443,7 +426,6 @@ Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das p
 *Q1: Performance*
 
 * LibreOffice headless läuft in blocpress-render (keine IPC-Overhead)
-* Asynchrone Dokumentengenerierung über Message Queue (nicht blockierend)
 * Elasticsearch für schnelle Volltextsuche
 * PostgreSQL-Indizes auf häufig abgefragte Spalten (template_id, status, user_id)
 
@@ -458,7 +440,6 @@ Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das p
 
 * SCS-Architektur: Module unabhängig entwickelbar, testbar und deploybar
 * Eigene Datenbank-Schemata: Keine Datenkopplung zwischen Modulen
-* Storage Abstraction Layer (`StorageService` Interface) entkoppelt Business-Logik von Storage-Implementierung
 * OpenTelemetry für Traces, Metriken und Logs (optional, vendor-neutral)
 
 *Q4: Sicherheit*
@@ -472,7 +453,6 @@ Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das p
 *Q5: Skalierbarkeit*
 
 * SCS-Module unabhängig skalierbar: blocpress-render kann separat horizontal skaliert werden
-* Message Queue entkoppelt Request-Handling von Dokumentengenerierung
 * PostgreSQL Connection Pooling (HikariCP) pro Modul
 * Caching von Templates (Caffeine Cache) in blocpress-render
 
@@ -550,7 +530,6 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 * *blocpress-render* ist die einzige öffentliche API für Dokumentengenerierung (Production-Stufe)
 * *blocpress-admin* verwaltet Benutzer, Rollen und Systemkonfiguration
 * *PostgreSQL* nutzt getrennte Datenbanken für workbench und production — identische Template-Tabellenstrukturen ermöglichen kopie-basierte Stufenübergabe via REST
-* *Message Queue* ermöglicht asynchrone Verarbeitung
 * *Elasticsearch* ist spezialisiert auf Volltextsuche (genutzt von blocpress-workbench)
 
 *Enthaltene Bausteine:*
@@ -560,7 +539,7 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 | Name | Verantwortung
 
 | blocpress-studio
-| Portal-Shell (Quarkus): Authentifizierung (JWT-Handling), Navigation, Laden der Micro-Frontends via Dynamic Import. Keine eigene Business-Logik — liefert statische HTML/JS-Assets aus und lädt Web Components dynamisch von den SCS-Modulen.
+| Portal-Shell (Quarkus): JWT-Handling (Token-Guard, LocalStorage-basiert für Quickstart), Navigation, Laden von `bp-workbench.js` via Dynamic Import über internen Proxy-Endpoint (`/proxy/bp-workbench.js`). Im Quickstart-Modus: transparenter API-Proxy für alle `/api/*`-Browser-Requests an blocpress-workbench (intern). Liefert statische HTML/JS-Assets mit deaktiviertem Browser-Caching aus.
 
 | blocpress-workbench
 | Template-Entwicklung: Upload, Validierung (TF-1 via blocpress-core), Bearbeitung, Bausteinverwaltung, Content Search, Vorschau-Generierung. Use Cases: UC-1 bis UC-5, UC-19 bis UC-21.
@@ -577,9 +556,6 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 | PostgreSQL Datenbank
 | Persistente Speicherung mit zwei Datenbanken: `workbench` (Entwicklung/Test) und `production` (freigegebene Templates). Identische Template-Tabellenstruktur in beiden Datenbanken. Übergabe via REST-API (TI-2 Option A).
 
-| Message Queue
-| Asynchrone Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests). Entkopplung.
-
 | blocpress-core
 | Shared Java-Library (Maven-Abhängigkeit, kein eigenständiger Container): ODT-Parsing (odfdom), Template-Validierung, Merge-Pipeline (Text-Block-Expansion, Bedingungen, Schleifen, Feldersetzung). Wird von blocpress-workbench (Validierung) und blocpress-render (Merge + Generierung) genutzt. Keine LibreOffice-Abhängigkeit.
 
@@ -592,7 +568,6 @@ Die Zerlegung folgt dem Self-Contained-Systems-Ansatz (SCS):
 * *TI-1 (REST-API):* Öffentliche API von blocpress-render für externe Anwendungen
 * *Interne REST-APIs:* Kommunikation zwischen SCS-Modulen (nicht öffentlich exponiert)
 * *TI-2 (Datenbank-Interface):* JDBC-Zugriff pro Modul auf eigenes PostgreSQL-Schema
-* *TI-5 (Message Queue Interface):* AMQP-Zugriff auf RabbitMQ
 * *TI-7 (Elasticsearch API):* HTTP-REST-Zugriff auf Elasticsearch
 
 === Ebene 2
@@ -721,12 +696,6 @@ note right of LO
   ODT → PDF / RTF
 end note
 
-note right of Storage
-  Storage Abstraction Layer
-  Interface: save/load
-  Impl: PostgresStorageService
-  Future: S3StorageService
-end note
 @enduml
 ----
 
@@ -736,8 +705,7 @@ Jedes SCS-Modul folgt intern einer Schichtenarchitektur mit Dependency Inversion
 
 * REST-API Controller delegieren an fachliche Services
 * Fachliche Services orchestrieren Technical Functions
-* Technical Functions nutzen Infrastructure Services (LibreOffice, Storage, Repository)
-* Storage Abstraction Layer ermöglicht Austausch der Storage-Implementierung
+* Technical Functions nutzen Infrastructure Services (LibreOffice, Repository)
 
 ==== Blackbox blocpress-core (Shared Library)
 
@@ -920,17 +888,28 @@ note right of Service
   UC-11: Hash für schnelle Vergleiche
 end note
 
-== Regression-Test vorbereiten ==
+== Regression-Test ausfuehren ==
 
-User -> WC : Testdaten-Item mit Expected PDF → "Vorschau"
-WC -> WC : Tab "Vorschau", Testdaten laden
-WC -> Render : PDF mit aktuellem Template generieren
-Render --> WC : currentPdf
-WC --> User : PDF anzeigen (mit Hash-Info)
+User -> WC : Sub-Tab "Coverage & Regression" öffnen
+WC -> API : POST /templates/{id}/run-all-regressions
+API -> API : renderPdf(template, testData) via HttpClient
+API -> API : pdfComparisonService.areVisuallyIdentical()\n(mit und ohne ignoredPatterns)
+API --> WC : List<RegressionResult>\n{passed, hasExpectedPdf, hasAcceptedDeviations}
+WC --> User : Ergebnisse: ✅ Identisch / ✓ Akzeptierte Abweichungen\n❌ Abweichungen gefunden / — Kein Expected PDF
 
-note right of WC
-  Zukünftig (Phase 4): Automatischer Vergleich
-  mit Expected PDF und Diff-Visualisierung
+User -> WC : Auf abweichende Stelle klicken (Inline-Diff)
+WC -> API : POST /regression-diff-pages
+API --> WC : DiffPagesReport (Seiten-Bilder + markierte Blöcke)
+WC --> User : Visueller Diff mit klickbaren Diff-Blöcken
+
+User -> WC : Diff-Block klicken → "Nur diese Stelle ignorieren"
+WC -> API : POST /ignore-block {pattern: "@area:page:x1:y1:x2:y2", scope: "this"}
+API -> API : tds.ignoredPatterns.add(areaPattern)
+
+note right of API
+  Koordinaten-basierte Ignore-Patterns (@area:) ermöglichen
+  positionsgenaues Ignorieren einzelner Stellen.
+  Text-Patterns ignorieren alle Vorkommen über alle Tests.
 end note
 
 @enduml
@@ -1243,6 +1222,46 @@ end note
 @enduml
 ----
 
+=== Template-Ablehnung durch Reviewer
+
+*Szenario:* Ein Reviewer lehnt ein zur Prüfung eingereichtes Template ab und hinterlässt eine Begründung für den Designer.
+
+[plantuml, laufzeit-template-ablehnung, svg]
+----
+@startuml
+actor "Reviewer" as R
+actor "Template-Designer" as D
+participant "blocpress-workbench\nREST-API" as API
+participant "Repository" as Repo
+
+== Template-Ablehnung ==
+
+R -> API : POST /templates/{id}/reject\n{reason: "Bedingung 'vip == true' fehlt"}
+API -> API : Validierung: status == SUBMITTED
+API -> Repo : template.status = DRAFT\ntemplate.rejectionReason = reason\ntemplate.rejectedAt = now()
+Repo --> API : OK
+API --> R : 200 {id, status: DRAFT}
+
+== Designer sieht Ablehnung ==
+
+D -> D : Workspace öffnen
+note right of D
+  Ablehnungs-Banner sichtbar:
+  "⚠ Abgelehnt am 07.03.2026:
+   Bedingung 'vip == true' fehlt"
+end note
+
+D -> D : Template korrigieren
+D -> API : PUT /templates/{id}/status {SUBMITTED}
+API -> Repo : status = SUBMITTED\nrejectionReason = null\nrejectedAt = null
+note right of API
+  Ablehnungsgrund wird beim Re-Submit
+  automatisch bereinigt.
+end note
+
+@enduml
+----
+
 === Compliance Review-Überwachung
 
 *Szenario:* Geplanter Job in blocpress-proof prüft täglich fällige Reviews (TF-7, UC-12)
@@ -1293,6 +1312,87 @@ end note
 == Verteilungssicht
 
 _Systemarchitektur und Hardware-Elemente: xref:System_Design_Concept.adoc#sydc-architecture[System Architecture im System Design Concept]_
+
+=== Quickstart (Single Container — blocpress-studio)
+
+Für lokale Entwicklung und schnellen Einstieg steht das All-in-one Image `flaechsig/blocpress-studio:latest` zur Verfügung.
+Es bündelt alle drei Laufzeitmodule und PostgreSQL in einem einzigen Docker-Container, verwaltet durch *supervisord*.
+
+*Start:*
+
+[source,bash]
+----
+docker run -d -p 8080:8080 -p 8081:8081 --name blocpress-studio flaechsig/blocpress-studio:latest
+----
+
+[plantuml, deployment-quickstart, svg]
+----
+@startuml
+skinparam componentStyle rectangle
+
+node "Docker Container: flaechsig/blocpress-studio" {
+  component "blocpress-studio\n(Quarkus, Port 8080)\nPortal-Shell + API-Proxy\n/proxy/* + /api/*" as Studio
+  component "blocpress-workbench\n(Quarkus, intern Port 8082)\nTemplate-Entwicklung" as WB
+  component "blocpress-render\n(Quarkus, Port 8081)\nDokumentengenerierung" as RD
+  database "PostgreSQL 16\n(intern, nicht exponiert)\nDBs: workbench, production" as DB
+  component "supervisord" as SUP
+}
+
+Studio -down-> WB : REST (intern)\n/api/* Proxy
+WB -down-> DB : JDBC (workbench)
+RD -down-> DB : JDBC (production)
+WB ..> RD : REST (Vorschau / Deploy)
+SUP -[dashed]-> Studio
+SUP -[dashed]-> WB
+SUP -[dashed]-> RD
+
+note right of Studio
+  Token-Guard: Workbench-UI
+  nur mit gesetztem JWT
+  zugänglich
+end note
+
+note right of WB
+  Port 8082 intern —
+  nicht nach außen exponiert.
+  Zugriff nur über Studio-Proxy.
+end note
+@enduml
+----
+
+[cols="1,2" options="header"]
+|===
+| Port | Service
+
+| 8080
+| Studio (Workbench UI + API-Proxy → Workbench intern)
+
+| 8081
+| Render API (Swagger UI, öffentlich)
+|===
+
+*Konfiguration via ENV (alle optional — Defaults für Quickstart eingebaut):*
+
+[cols="1,2" options="header"]
+|===
+| Variable | Funktion
+
+| `MP_JWT_VERIFY_PUBLICKEY`
+| JWT Public Key (RSA). Default: eingebundener Dev-Key.
+
+| `MP_JWT_VERIFY_ISSUER`
+| JWT Issuer. Default: `https://blocpress.dev`.
+
+| `WORKBENCH_URL`
+| Interne Workbench-URL für Proxy (Default: `http://localhost:8082`).
+
+| `RENDER_URL`
+| Interne Render-URL für Vorschau-Generierung (Default: `http://localhost:8081`).
+|===
+
+NOTE: blocpress-studio proxiert im Quickstart-Modus alle Browser-Requests auf `/api/*` transparent an blocpress-workbench (intern Port 8082). Port 8082 ist nach außen nicht exponiert. Static-File-Caching ist deaktiviert, damit Container-Rebuilds sofort im Browser sichtbar sind.
+
+NOTE: Das Quickstart-Image verwendet das Dev-JWT aus `docs/samples/quickstart/token.txt`. Für Produktionseinsatz eigenes Schlüsselpaar konfigurieren und `MP_JWT_VERIFY_PUBLICKEY` / `MP_JWT_VERIFY_ISSUER` überschreiben.
 
 === Infrastruktur Ebene 1 (Docker-Compose)
 
@@ -1728,6 +1828,7 @@ NOTE: Die Template-Tabelle existiert mit identischer Struktur in den Datenbanken
 * blocpress-studio (Portal-Shell) übernimmt die Authentifizierung und hält das JWT
 * Jedes SCS-Modul validiert JWTs eigenständig via Quarkus SmallRye JWT Extension
 * JWT wird von der Studio-Shell als Property an die Web Components weitergereicht: `<bp-workbench jwt="${token}"></bp-workbench>`
+* Im Quickstart: JWT wird in LocalStorage persistiert (`bp-token-input` Komponente) und beim Neuladen wiederhergestellt
 * Web Components senden das JWT als `Authorization: Bearer` Header bei REST-Aufrufen an ihr Backend
 * Issuer und Public Key werden in jeder `application.properties` konfiguriert (`mp.jwt.verify.issuer`, `mp.jwt.verify.publickey.location`)
 * Kompatibel mit jedem IdP, der JWTs ausstellt — nur Public Key und Issuer müssen konfiguriert werden
@@ -1761,7 +1862,7 @@ Rollenbasierte Zugriffskontrolle (RBAC) — konsolidierte Rollen:
 
 * *Reviewer-Freigabe:* Organisatorisch durchgesetzt. In der Interim-Implementierung (TI-2 Phase 1) findet die Freigabe in blocpress-workbench statt; technische Rollenprüfung ist geplant für blocpress-proof.
 * *HTTPS/TLS:* Alle externen Verbindungen verschlüsselt
-* *JWT-Weitergabe:* Über Web Component Properties — kein LocalStorage, kein Cookie
+* *JWT-Weitergabe:* Im Quickstart-Modus via LocalStorage (`bp-jwt`-Key, `bp-token-input` Komponente) → Property an Web Component. Für Produktionsbetrieb: JWT-Handling über externen IdP, kein LocalStorage.
 * *Schema-Isolation:* Jedes SCS-Modul hat nur Zugriff auf sein eigenes Datenbank-Schema
 * *SQL-Injection-Schutz:* Prepared Statements, JPA/Hibernate
 * *DSGVO-Compliance:* Löschfunktion für personenbezogene Daten in E-3, E-6
@@ -1794,19 +1895,6 @@ Alle SCS-Module teilen sich eine PostgreSQL-Instanz, nutzen aber jeweils ein eig
 |===
 
 Die Template-Tabelle hat in allen drei fachlichen Schemata eine identische Struktur. Dies ermöglicht die kopie-basierte Stufenübergabe: `INSERT INTO proof.templates SELECT ... FROM workbench.templates WHERE id = ?`.
-
-*Storage Abstraction Layer:*
-
-[source,java]
-----
-public interface StorageService {
-    StorageId save(byte[] data, String key);
-    byte[] load(StorageId id);
-    void delete(StorageId id);
-}
-----
-
-Jedes SCS-Modul nutzt eine eigene `StorageService`-Instanz, die auf das jeweilige Schema zugreift.
 
 *Datenbank-Schema (Auszug — Schema: workbench):*
 
@@ -1864,15 +1952,24 @@ blocpress-studio ist die Portal-Shell, die Micro-Frontends der SCS-Module als We
 * Die Web Components nutzen Shadow DOM für vollständige CSS- und DOM-Kapselung
 * Studio lädt die Bundles dynamisch via Dynamic Import (`import()`) von den jeweiligen SCS-Modulen
 
-*Dynamic Import (Beispiel):*
+*Dynamic Import (Implementierung):*
 
-[source,html]
+[source,javascript]
 ----
-// Studio lädt Web Components per Dynamic Import von den SCS-Modulen
-async function loadWorkbench() {
-  const workbenchUrl = 'http://workbench:8081'; // konfigurierbar
-  await import(`${workbenchUrl}/components/bp-workbench.js`);
-}
+// bp-workbench.js wird nicht direkt von blocpress-workbench geladen,
+// sondern über WorkbenchProxyResource (/proxy/bp-workbench.js).
+//
+// WHY: Dynamic import() unterliegt striktem CORS-Enforcement im Browser.
+// Der Proxy leitet den Request server-seitig an blocpress-workbench weiter
+// → beide Seiten teilen denselben Origin → kein CORS nötig.
+// Vorteil: kein CORS-Header-Management, kein Preflight.
+await import(`/proxy/bp-workbench.js?v=${Date.now()}`);
+//
+// WorkbenchProxyResource (/proxy/bp-workbench.js):
+//   - Fetcht bp-workbench.js von workbench.url (konfigurierbar, default: localhost:8082)
+//   - Validiert Antwort (kein HTML — hot-reload-safe)
+//   - Gibt Cache-Control: no-store zurück
+//   - Retry-Logik (5 Versuche, 1.5s Abstand)
 ----
 
 *JWT-Weitergabe:*
@@ -1910,126 +2007,69 @@ customElements.define('bp-workbench', BpWorkbench);
 * Framework-Freiheit: Jedes Modul kann intern ein beliebiges UI-Framework verwenden
 * JWT-Sicherheit: Token wird als Property übergeben, nicht im LocalStorage
 
-=== Template-Verarbeitung mit LibreOffice
+=== Template-Verarbeitung mit odfdom
 
-*LibreOffice-Integration:*
+Die Rendering-Pipeline arbeitet rein in-memory mit dem Apache ODF Toolkit (odfdom) —
+LibreOffice wird ausschließlich für den abschließenden Format-Export (ODT→PDF/RTF) als
+Headless-Prozess gerufen. Es gibt keine LibreOffice-UNO-API-Abhängigkeit im Kernpfad.
+
+*Rendering-Pipeline (`RenderEngine.mergeTemplate`):*
 
 [source,java]
 ----
-public class LibreOfficeProcessor {
-    private XComponentLoader componentLoader;
+// Einstiegspunkt: blocpress-core
+public static TemplateDocument mergeTemplate(URL template, JsonNode data) {
+    TemplateDocument doc = TemplateDocument.load(template);
 
-    public ValidationResult validateTemplate(byte[] odtBinary) {
-        // 1. Lade ODT über LibreOffice UNO-API
-        XComponent doc = componentLoader.loadComponentFromURL(...);
+    // Schritt 1: Text-Block-Expansion
+    // Externe ODT-Dateien (text:section-source) werden inline expandiert
+    expandTextBlocks(doc);
 
-        // 2. Extrahiere User-Fields
-        XTextFieldsSupplier fieldsSupplier = (XTextFieldsSupplier) doc;
-        XNameAccess fields = fieldsSupplier.getTextFields();
+    // Schritt 2: Bedingungsauswertung
+    // text:section / text:conditional-text / text:p / text:span
+    // mit JEXL-Ausdrücken gegen JSON evaluiert
+    evaluateConditions(doc, data);
 
-        // 3. Identifiziere Wiederholungsgruppen (Sections/Tables)
-        XTextSectionsSupplier sectionsSupplier = (XTextSectionsSupplier) doc;
+    // Schritt 3: Loop-Verarbeitung
+    // Sections und Tabellenzeilen mit Array-Feldern werden
+    // für jedes Array-Element dupliziert; Felder erhalten
+    // indizierten Namen (z.B. positionen.0.bezeichnung)
+    processLoops(doc, data);
 
-        // 4. Validiere Punkt-Notation in Field-Namen
-        // z.B. "kunde.name" ist valide, "kunde name" ist invalide
+    // Schritt 4: Feld-Ersetzung
+    // text:user-field-get / text:variable-get werden durch
+    // Werte aus dem JSON (Dot-Notation-Pfade) ersetzt
+    replaceFields(doc, data);
 
-        return new ValidationResult(...);
-    }
-
-    public byte[] generateDocument(Template template,
-                                   String jsonData,
-                                   OutputFormat format) {
-        // 1. Parse JSON zu Map/Object
-        JsonNode json = objectMapper.readTree(jsonData);
-
-        // 2. Öffne Template
-        XComponent doc = loadTemplate(template.getTemplateBinary());
-
-        // 3. Befülle User-Fields
-        for (UserField field : template.getUserFields()) {
-            String value = resolveJsonPath(json, field.getName());
-            setFieldValue(doc, field.getName(), value);
-        }
-
-        // 4. Iteriere Wiederholungsgruppen
-        for (RepetitionGroup group : template.getRepetitionGroups()) {
-            JsonNode array = resolveJsonPath(json, group.getArrayRef());
-            duplicateAndFillGroup(doc, group, array);
-        }
-
-        // 5. Evaluiere IF-Bedingungen
-        evaluateConditions(doc, json);
-
-        // 6. Exportiere
-        return exportDocument(doc, format); // ODT/PDF/RTF
-    }
+    return doc;
 }
 ----
+
+*Format-Export (nur blocpress-render):*
+
+[source,java]
+----
+// ODT-Dokument als Bytes speichern
+byte[] odtBytes = renderEngine.mergeToBytes(template, data);
+
+// Konvertierung ODT→PDF oder ODT→RTF über LibreOffice Headless
+// LibreOfficeProcessor startet einen soffice-Prozess via ProcessBuilder
+byte[] result = libreOfficeProcessor.convert(odtBytes, outputFormat);
+----
+
+*Schlüsselklassen:*
+
+* `RenderEngine` — Orchestriert die vier Pipeline-Schritte
+* `OdtTemplateDocument` — Wraps `OdfTextDocument` (odfdom), implementiert `TemplateDocument`
+* `OdtTemplateElement` — Wraps ODF-Elemente, wertet Bedingungen via `JexlConditionEvaluator` aus
+* `JexlConditionEvaluator` — Wertet JEXL-Ausdrücke gegen JSON-Daten aus
+* `LibreOfficeProcessor` — Spawnt `soffice --headless` für PDF/RTF-Export (nur in blocpress-render)
 
 *Determinismus:*
 
 * Keine Zufallswerte, keine Zeitstempel in Template-Verarbeitung
-* Sortierung von Arrays im JSON konsistent (z.B. nach ID)
-* LibreOffice-Version fixiert (≥ 24)
 * Gleiche Template-Binärdaten + gleiche JSON-Daten = gleiches Ausgabedokument
-
-=== Asynchrone Verarbeitung
-
-*Message Queue Pattern:*
-
-[source,java]
-----
-// Producer (UC-10: Testdokument generieren)
-public class DocumentService {
-    @Inject
-    MqttClient mqttClient;
-
-    public GenerationId generateDocument(UUID templateId,
-                                         String jsonData,
-                                         OutputFormat format) {
-        // 1. Erstelle Generierungs-Record
-        Dokumentengenerierung gen = new Dokumentengenerierung();
-        gen.setStatus("In Bearbeitung");
-        repository.save(gen);
-
-        // 2. Sende Message an Queue
-        GenerationMessage msg = new GenerationMessage(
-            gen.getId(), templateId, jsonData, format);
-        mqttClient.send("document.generation", msg);
-
-        return gen.getId();
-    }
-}
-
-// Consumer (Worker)
-@ApplicationScoped
-public class DocumentWorker {
-    @Inject
-    LibreOfficeProcessor processor;
-
-    @Incoming("document.generation")
-    public void processGeneration(GenerationMessage msg) {
-        try {
-            Template template = loadTemplate(msg.getTemplateId());
-            byte[] doc = processor.generateDocument(
-                template, msg.getJsonData(), msg.getFormat());
-
-            storageService.save(doc, ...);
-            updateStatus(msg.getGenerationId(), "Erfolgreich");
-        } catch (Exception e) {
-            updateStatus(msg.getGenerationId(), "Fehlgeschlagen");
-            log.error("Generation failed", e);
-        }
-    }
-}
-----
-
-*Vorteile:*
-
-* Nicht-blockierend: API gibt sofort GenerationId zurück
-* Skalierbar: Worker-Pool kann unabhängig skaliert werden
-* Fehlertoleranz: Retry-Mechanismus bei Fehlern
-* Entkopplung: Producer und Consumer unabhängig deploybar
+* LibreOffice-Version fixiert (≥ 24) für stabile PDF-Ausgabe
 
 === Observability (OpenTelemetry)
 
@@ -2041,7 +2081,6 @@ Quarkus instrumentiert automatisch:
 
 * REST-API-Aufrufe (Eingangs-Requests und ausgehende HTTP-Calls)
 * JDBC-Datenbankzugriffe (PostgreSQL)
-* Message-Queue-Operationen (RabbitMQ/Kafka)
 
 Für diese Standardmetriken und Traces ist kein eigener Code erforderlich.
 
@@ -2095,13 +2134,10 @@ Speicherung in PostgreSQL bytea-Spalten. Erwartetes Datenvolumen: < 5.000 Dokume
 * *Transaktionalität:* Metadaten + Binärdaten in einer Transaktion
 * *Performance:* Bei < 5.000 Dokumenten ist PostgreSQL performant genug
 * *Kosteneffizienz:* Kein separater S3-Service notwendig
-* *Zukunftssicherheit:* Storage Abstraction Layer ermöglicht späteren Wechsel zu S3
-
 *Konsequenzen:*
 
 * Positiv: Einfacheres Deployment, weniger Moving Parts, ACID-Garantien
-* Negativ: PostgreSQL-Backup größer, bei > 5.000 Dokumenten Migration zu S3 notwendig
-* Mitigation: Storage Abstraction Layer implementiert, Migration zu S3 vorbereitet
+* Negativ: PostgreSQL-Backup größer, bei > 5.000 Dokumenten wäre S3-Migration sinnvoll
 
 === ADR-002: Quarkus statt Spring Boot
 
@@ -2128,30 +2164,29 @@ Quarkus Framework
 * Positiv: Bessere Container-Performance, niedrigere Infrastruktur-Kosten
 * Negativ: Kleineres Ökosystem als Spring Boot, weniger Extensions
 
-=== ADR-003: Asynchrone Dokumentengenerierung
+=== ADR-003: Synchrone Dokumentengenerierung
 
 *Status:* Akzeptiert
 
 *Kontext:*
 
-Dokumentengenerierung kann 5-30 Sekunden dauern. Soll der REST-API-Call blockieren oder asynchron sein?
+Dokumentengenerierung kann mehrere Sekunden dauern. Soll der REST-API-Call blockieren oder asynchron sein?
 
 *Entscheidung:*
 
-Asynchrone Verarbeitung über Message Queue (RabbitMQ/Kafka)
+Synchrone Verarbeitung: API-Call wartet bis das Dokument fertig generiert ist und gibt das Ergebnis direkt zurück.
 
 *Begründung:*
 
-* *Responsiveness:* API gibt sofort (< 100ms) GenerationId zurück
-* *Skalierbarkeit:* Worker-Pool kann unabhängig von API-Servern skaliert werden
-* *Fehlertoleranz:* Retry-Mechanismus bei LibreOffice-Fehlern
-* *Monitoring:* Queue-Länge zeigt System-Last
+* *Einfachheit:* Kein asynchroner Mechanismus (Queue, Polling, Status-Endpunkt) notwendig
+* *Zuverlässigkeit:* Direkte Fehlerbehandlung möglich
+* *Ausreichend:* Für die aktuelle Last (Workbench-Vorschau, produktive Einzelgenerierung) ist synchrones Rendering schnell genug
 
 *Konsequenzen:*
 
-* Positiv: Bessere User Experience, horizontal skalierbar
-* Negativ: Komplexere Architektur, Client muss pollen oder WebSocket nutzen
-* Mitigation: Klares API-Design (202 Accepted, Polling-Endpoint)
+* Positiv: Einfachere Architektur, direktes Feedback
+* Negativ: Bei sehr langen Generierungen (> 60s) können HTTP-Timeouts auftreten
+* Mitigation: Timeout auf 60 Sekunden konfiguriert; für Batch-Szenarien kann später ergänzt werden
 
 === ADR-004: Elasticsearch für Content Search
 
@@ -2298,7 +2333,6 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 *** Fehlertoleranz\n(Retry-Mechanismen)
 
 ** Wartbarkeit
-*** Storage Abstraction Layer\n(Austauschbarkeit)
 *** Versionierung\n(Templates & Code)
 *** OpenTelemetry\n(Traces, Metriken, Logs)
 
@@ -2310,8 +2344,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 
 ** Skalierbarkeit
 *** Horizontal skalierbar\n(Kubernetes)
-*** 100 gleichzeitige\nGenerierungen
-*** Message Queue\n(Entkopplung)
+*** Load Balancing\n(mehrere render-Instanzen)
 
 ** Compliance
 *** DSGVO\n(Löschkonzept)
@@ -2348,11 +2381,6 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | Komplettes Rollback: Template behält alten Status, kein Freigabeprozess-Eintrag erstellt
 
 | *Wartbarkeit*
-| Storage-Austausch
-| Migration von PostgreSQL bytea zu S3
-| Storage Abstraction Layer ermöglicht Implementierungswechsel ohne Änderungen in Use Cases/TFs
-
-| *Wartbarkeit*
 | Template-Versionierung
 | Template wird geändert
 | Neue Version wird erstellt, alte Version bleibt verfügbar, Änderungen nachvollziehbar
@@ -2365,12 +2393,7 @@ _Qualitätsanforderungen auf Fachebene: xref:Solution_Design_Concept.adoc#sdc-qr
 | *Skalierbarkeit*
 | Horizontale Skalierung
 | 150 gleichzeitige Dokumentengenerierungen
-| Kubernetes skaliert auf 5 blocpress-render Pods, Queue puffert Last, alle Requests erfolgreich
-
-| *Skalierbarkeit*
-| Message Queue Entkopplung
-| 100 Generierungsanfragen in 10 Sekunden
-| API nimmt alle Anfragen an (< 100ms Response), Queue verarbeitet asynchron
+| Kubernetes skaliert auf 5 blocpress-render Pods, Load Balancer verteilt Last
 
 | *Compliance*
 | DSGVO-Löschung
@@ -2481,9 +2504,8 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | *PostgreSQL bytea Performance*: Bei > 5.000 Dokumenten kann Performance von PostgreSQL bytea degradieren
 | Hoch
 | Mittel (Langsamere Queries)
-| - Storage Abstraction Layer bereits implementiert
-- Migration zu S3 vorbereitet
-- Monitoring der DB-Performance
+| - Monitoring der DB-Performance
+- Migration zu S3 als zukünftige Option
 
 | R-3
 | *Determinismus-Verlust*: LibreOffice-Updates können Rendering ändern, Determinismus brechen
@@ -2492,14 +2514,6 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | - LibreOffice-Version in Dockerfile fixieren
 - Regressionstests bei jedem LibreOffice-Update
 - Baseline-PDFs bei bewusstem Update neu generieren
-
-| R-4
-| *Message Queue Single Point of Failure*: Wenn RabbitMQ ausfällt, keine asynchrone Verarbeitung möglich
-| Niedrig
-| Hoch (Keine Dokumentengenerierung)
-| - RabbitMQ Cluster (3 Nodes)
-- Persistent Messages
-- Monitoring & Alerting
 
 | R-5
 | *Elasticsearch Eventual Consistency*: Index kann wenige Sekunden verzögert sein
@@ -2640,9 +2654,6 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | *LibreOffice headless*
 | LibreOffice-Installation ohne grafische Oberfläche, die über UNO-API programmgesteuert bedient wird. Version ≥ 24 erforderlich. Eingesetzt ausschließlich in blocpress-render für Format-Export (ODT → PDF/RTF). Validierung und Merge laufen über blocpress-core ohne LibreOffice.
 
-| *Message Queue*
-| RabbitMQ oder Kafka zur asynchronen Verarbeitung zeitaufwändiger Operationen (Dokumentengenerierung, Regressionstests).
-
 | *Micro-Frontend*
 | Architekturmuster, bei dem die UI eines SCS-Moduls als eigenständige Einheit (Web Component) in eine gemeinsame Portal-Shell integriert wird.
 
@@ -2661,8 +2672,6 @@ Nach Implementierung von TI-2 (Multi-Schema), werden Integration Tests mit direk
 | *Self-Contained System (SCS)*
 | Architekturmuster: Unabhängig deploybare Einheit mit eigener UI, eigenem Backend und eigener Datenhaltung. blocpress besteht aus fünf SCS.
 
-| *Storage Abstraction Layer*
-| Interface (`StorageService`) zur Entkopplung von Binärdaten-Speicherung. Ermöglicht Wechsel von PostgreSQL bytea zu S3. Wird in jedem SCS-Modul eingesetzt.
 
 | *Stufenübergabe*
 | Kopie-basierte Überführung von Templates zwischen Datenstufen. Implementiert (TI-2 Option A): workbench → production via `POST /api/render/templates/import` (automatisch bei APPROVED-Status). Geplant: workbench → proof (Reviewer-Prüfung) → production.

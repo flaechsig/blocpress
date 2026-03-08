@@ -1,7 +1,12 @@
 package io.github.flaechsig.blocpress.core.odt;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.jexl3.*;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Hilfsklasse zur Auswertung von ODF/Writer-Bedingungen mittels Apache Commons JEXL.
@@ -60,6 +65,84 @@ public final class JexlConditionEvaluator {
         }
 
         return toBooleanResult(result);
+    }
+
+    /**
+     * Evaluiert die übergebene Bedingung gegen den übergebenen JsonNode-Kontext.
+     *
+     * @param conditionRaw der rohe Condition-Text aus dem Dokument
+     * @param data         JsonNode mit Testdaten (wird als Flat-Map in JEXL-Kontext überführt)
+     * @return true, wenn Bedingung als wahr ausgewertet wird, false sonst
+     */
+    public static boolean evaluate(String conditionRaw, JsonNode data) {
+        if (StringUtils.isBlank(conditionRaw)) {
+            return true;
+        }
+
+        String expr = preprocessCondition(conditionRaw);
+
+        // Build JEXL context from flattened JSON (dot-notation paths → nested maps for JEXL access)
+        Map<String, Object> flatMap = new HashMap<>();
+        if (data != null) {
+            flattenJson(data, "", flatMap);
+        }
+        // Build nested map structure so JEXL can resolve "kunde.name" as kunde["name"]
+        Map<String, Object> nestedMap = buildNestedMap(flatMap);
+
+        JexlContext ctx = new MapContext(nestedMap);
+        JexlExpression jexlExpr;
+        try {
+            jexlExpr = JEXL.createExpression(expr);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Ungültige Bedingung: " + conditionRaw, ex);
+        }
+
+        Object result;
+        try {
+            result = jexlExpr.evaluate(ctx);
+        } catch (Exception ex) {
+            return false; // Missing field → condition not applicable → false
+        }
+
+        return toBooleanResult(result);
+    }
+
+    private static void flattenJson(JsonNode node, String prefix, Map<String, Object> result) {
+        if (node.isObject()) {
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+                flattenJson(entry.getValue(), key, result);
+            }
+        } else if (node.isArray()) {
+            result.put(prefix + ".length", node.size());
+            for (int i = 0; i < node.size(); i++) {
+                flattenJson(node.get(i), prefix + "." + i, result);
+            }
+        } else if (node.isBoolean()) {
+            result.put(prefix, node.booleanValue());
+        } else if (node.isNumber()) {
+            result.put(prefix, node.numberValue());
+        } else if (node.isNull()) {
+            result.put(prefix, null);
+        } else {
+            result.put(prefix, node.asText());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> buildNestedMap(Map<String, Object> flatMap) {
+        Map<String, Object> root = new HashMap<>();
+        for (Map.Entry<String, Object> entry : flatMap.entrySet()) {
+            String[] parts = entry.getKey().split("\\.");
+            Map<String, Object> current = root;
+            for (int i = 0; i < parts.length - 1; i++) {
+                current = (Map<String, Object>) current.computeIfAbsent(parts[i], k -> new HashMap<String, Object>());
+            }
+            current.put(parts[parts.length - 1], entry.getValue());
+        }
+        return root;
     }
 
     private static boolean toBooleanResult(Object result) {

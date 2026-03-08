@@ -249,7 +249,7 @@ class TemplateResourceDirectMethodTest {
         template.content = "test".getBytes();
         template.status = TemplateStatus.DRAFT;
         template.createdAt = LocalDateTime.now();
-        template.validationResult = new ValidationResult(false, null, java.util.List.of(), java.util.List.of());
+        template.validationResult = new ValidationResult(false, null, java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of());
         template.persist();
 
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
@@ -466,6 +466,8 @@ class TemplateResourceDirectMethodTest {
         template.validationResult = new ValidationResult(
             true,
             null,
+            java.util.List.of(),
+            java.util.List.of(),
             java.util.List.of(),
             java.util.List.of()
         );

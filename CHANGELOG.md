@@ -9,6 +9,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-03-08
+
+### Added
+
+- **Coverage analysis** — The workbench now shows how well your test datasets cover a
+  template. Coverage is calculated across three dimensions:
+  - *Fields* — which declared user fields appear in at least one test dataset
+  - *Conditions* — which JEXL condition expressions are exercised in both the `true` and
+    `false` case
+  - *Repetition groups* — which array paths are tested with zero, one, and two-or-more
+    elements
+  The coverage panel is collapsible and displays a percentage score.
+
+- **Test-case suggestions** — For every uncovered dimension the workbench proposes a new
+  test dataset that would close the gap. One click creates it.
+
+- **Regression tests** — Run all test datasets against the current template and compare
+  the rendered PDF to the stored baseline (expected PDF). Results show pass / fail per
+  dataset with an inline pixel-diff viewer. Individual differences can be accepted
+  ("ignore block"); accepted deviations are persisted per test dataset.
+
+- **"Save rendered as expected"** — After reviewing a rendered PDF the user can promote
+  it to the new baseline in one click, updating `expectedPdf` and `pdfHash`.
+
+- **All-in-one Quickstart image** (`flaechsig/blocpress-studio:latest`) — A single Docker
+  container bundles blocpress-studio, blocpress-workbench, blocpress-render and PostgreSQL
+  16, managed by supervisord. Start everything with one command:
+
+  ```
+  docker run -d -p 8080:8080 -p 8081:8081 --name blocpress-studio \
+    flaechsig/blocpress-studio:latest
+  ```
+
+  A built-in dev JWT keypair is included; override via `MP_JWT_VERIFY_PUBLICKEY` and
+  `MP_JWT_VERIFY_ISSUER` for production use.
+
+- **Studio API proxy** — blocpress-studio now transparently forwards all `/api/*` browser
+  requests to blocpress-workbench (internal port 8082). Port 8082 is not exposed; the
+  browser only ever talks to port 8080.
+
+- **Token guard** — The workbench UI is no longer reachable without a JWT. An explanatory
+  message and a token input field are shown until a valid token is set.
+
+- **Designer tutorial** (`docs/tutorial-designer.html`) — Step-by-step guide for template
+  authors: creating user fields, conditional text, uploading, validating, previewing and
+  submitting a template for approval.
+
+- **Sysadmin tutorial** (`docs/tutorial-sysadmin.html`) — Installation guide for the
+  Quickstart image including JWT configuration and production deployment hints.
+
+- **Field discovery from `text:user-field-decls`** — The validator now reads the ODT
+  declaration list (`text:user-field-decl`) as the authoritative source for user fields,
+  including fields that appear only inside conditions (e.g. `customer.gender` used in
+  conditional text but never placed directly in the document body). Previously these
+  fields were missing from the generated JSON schema.
+
+### Changed
+
+- `ValidationResult` is extended with two new fields: `conditions` (list of distinct JEXL
+  condition expressions found in the template) and `repetitionGroups` (list of detected
+  array paths). Existing records with `null` values deserialise without error.
+- `JexlConditionEvaluator` gains a new overload `evaluate(String expr, JsonNode data)`
+  used by the coverage analysis to evaluate conditions against test dataset JSON.
+- Static file caching is disabled in blocpress-studio (`Cache-Control` header omitted).
+  A container rebuild is immediately visible in the browser without a hard-refresh.
+- The Dynamic Import of `bp-workbench.js` now goes through a server-side proxy endpoint
+  (`/proxy/bp-workbench.js`) to avoid CORS enforcement on cross-origin `import()` calls.
+
+### Fixed
+
+- User fields referenced only inside JEXL conditions (e.g. in `text:conditional-text`)
+  were not included in the generated JSON schema and therefore missing from auto-generated
+  test data. Fixed by scanning `text:user-field-decl` declarations instead of
+  `text:user-field-get` usages.
+- Cached `bp-app.js` with a stale workbench URL caused all API calls to hit the wrong
+  service after a container rebuild. Fixed by disabling immutable browser caching for
+  static assets in blocpress-studio.
+
+---
+
 ## [2.0.0] - 2026-03-06
 
 ### Breaking Changes

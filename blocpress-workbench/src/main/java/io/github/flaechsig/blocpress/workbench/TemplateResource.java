@@ -5,6 +5,8 @@ import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
 import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
+import io.github.flaechsig.blocpress.workbench.service.CoverageAnalysisService;
+import io.github.flaechsig.blocpress.workbench.service.PdfComparisonService;
 import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
 import io.github.flaechsig.blocpress.workbench.service.TestDataSetService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,6 +36,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -50,6 +53,12 @@ public class TemplateResource {
 
     @Inject
     TestDataSetService testDataSetService;
+
+    @Inject
+    CoverageAnalysisService coverageAnalysisService;
+
+    @Inject
+    PdfComparisonService pdfComparisonService;
 
     @Inject
     com.fasterxml.jackson.databind.ObjectMapper objectMapper;
@@ -208,7 +217,10 @@ public class TemplateResource {
             template.name,
             template.createdAt,
             template.status,
-            template.validationResult
+            template.validationResult,
+            template.ignoredPatterns != null ? template.ignoredPatterns : List.of(),
+            template.rejectionReason,
+            template.rejectedAt
         );
     }
 
@@ -233,10 +245,13 @@ public class TemplateResource {
             String requestBody = objectMapper.writeValueAsString(requestJson);
 
             // Make HTTP request using standard Java HttpClient
-            HttpClient httpClient = HttpClient.newHttpClient();
+            HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
             HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(renderUrl + "/render/template"))
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(60))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
@@ -293,8 +308,34 @@ public class TemplateResource {
         }
 
         template.status = TemplateStatus.SUBMITTED;
+        // Clear rejection info when resubmitting
+        template.rejectionReason = null;
+        template.rejectedAt = null;
         template.persist();
 
+        return Response.ok(Map.of(
+            "id", template.id,
+            "status", template.status
+        )).build();
+    }
+
+    @POST
+    @Path("{id}/reject")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response reject(@PathParam("id") UUID id, RejectRequest request) {
+        Template template = Template.findById(id);
+        if (template == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+        if (template.status != TemplateStatus.SUBMITTED) {
+            throw new WebApplicationException(
+                "Template must be in SUBMITTED status to reject. Current: " + template.status,
+                Response.Status.BAD_REQUEST
+            );
+        }
+        template.status = TemplateStatus.DRAFT;
+        template.rejectionReason = request.reason();
+        template.rejectedAt = LocalDateTime.now();
+        template.persist();
         return Response.ok(Map.of(
             "id", template.id,
             "status", template.status
@@ -356,10 +397,13 @@ public class TemplateResource {
                 String deployBody = objectMapper.writeValueAsString(deployJson);
 
                 // Deploy to production via HTTP
-                HttpClient httpClient = HttpClient.newHttpClient();
+                HttpClient httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
                 HttpRequest deployRequest = HttpRequest.newBuilder()
                     .uri(URI.create(renderUrl + "/render/templates/import"))
                     .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(30))
                     .POST(HttpRequest.BodyPublishers.ofString(deployBody))
                     .build();
 
@@ -598,6 +642,325 @@ public class TemplateResource {
             .build();
     }
 
+    // ===== Coverage & Regression Endpoints =====
+
+    @GET
+    @Path("{id}/coverage")
+    public CoverageAnalysisService.CoverageReport getCoverage(@PathParam("id") UUID id) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return coverageAnalysisService.analyze(id);
+    }
+
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/run-regression")
+    @Transactional
+    public RegressionResult runRegression(@PathParam("templateId") UUID templateId,
+                                          @PathParam("testDataSetId") UUID testDataSetId) {
+        Template template = Template.findById(templateId);
+        if (template == null || template.content == null || template.content.length == 0) {
+            throw new WebApplicationException("Template not found or empty", Response.Status.NOT_FOUND);
+        }
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId)) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+
+        if (tds.expectedPdf == null || tds.pdfHash == null) {
+            return new RegressionResult(testDataSetId, tds.name, false, false, false, null);
+        }
+
+        try {
+            byte[] actualPdf = renderPdf(template, tds);
+            List<String> ignoredPatterns = mergedIgnoredPatterns(template, tds);
+            boolean identicalWithoutIgnoring = pdfComparisonService.areVisuallyIdentical(tds.expectedPdf, actualPdf, List.of());
+            boolean passedWithIgnoring = identicalWithoutIgnoring
+                || pdfComparisonService.areVisuallyIdentical(tds.expectedPdf, actualPdf, ignoredPatterns);
+            boolean hasAcceptedDeviations = passedWithIgnoring && !identicalWithoutIgnoring;
+            return new RegressionResult(testDataSetId, tds.name, true, passedWithIgnoring, hasAcceptedDeviations, null);
+        } catch (Exception e) {
+            return new RegressionResult(testDataSetId, tds.name, true, false, false,
+                "Fehler: " + e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/regression-diff")
+    @Produces("application/pdf")
+    public Response regressionDiff(@PathParam("templateId") UUID templateId,
+                                   @PathParam("testDataSetId") UUID testDataSetId) {
+        Template template = Template.findById(templateId);
+        if (template == null || template.content == null || template.content.length == 0) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId)) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        if (tds.expectedPdf == null) {
+            throw new WebApplicationException("Kein Expected PDF gespeichert", Response.Status.BAD_REQUEST);
+        }
+
+        try {
+            byte[] actualPdf = renderPdf(template, tds);
+            byte[] diffPdf = pdfComparisonService.generateDiffPdf(tds.expectedPdf, actualPdf);
+            if (diffPdf == null)
+                throw new WebApplicationException("Diff-Generierung fehlgeschlagen", Response.Status.INTERNAL_SERVER_ERROR);
+            return Response.ok(diffPdf)
+                .header("Content-Disposition", "inline; filename=\"diff-" + tds.name + ".pdf\"")
+                .build();
+        } catch (WebApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new WebApplicationException("Fehler: " + e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Renders the template with the TestDataSet's data and saves the result as the new expected PDF.
+     * Replaces the browser-side render approach (which fails due to CORS/routing).
+     */
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/save-rendered-as-expected")
+    @Transactional
+    public Response saveRenderedAsExpected(@PathParam("templateId") UUID templateId,
+                                           @PathParam("testDataSetId") UUID testDataSetId) {
+        Template template = Template.findById(templateId);
+        if (template == null || template.content == null || template.content.length == 0)
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId))
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        try {
+            byte[] pdf = renderPdf(template, tds);
+            testDataSetService.saveExpectedPdf(testDataSetId, pdf);
+            return Response.ok().build();
+        } catch (WebApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new WebApplicationException("Render-Fehler: " + e.getMessage(),
+                Response.Status.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @POST
+    @Path("{id}/run-all-regressions")
+    @Transactional
+    public List<RegressionResult> runAllRegressions(@PathParam("id") UUID id) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        List<TestDataSet> testDataSets = TestDataSet.list("template.id", id);
+        List<RegressionResult> results = new java.util.ArrayList<>();
+        for (TestDataSet tds : testDataSets) {
+            results.add(runRegression(id, tds.id));
+        }
+        return results;
+    }
+
+    @POST
+    @Path("{id}/testdata/from-suggestion")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response createFromSuggestion(@PathParam("id") UUID id,
+                                         CoverageAnalysisService.TestDataSuggestion suggestion) {
+        Template template = Template.findById(id);
+        if (template == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        TestDataSet tds = testDataSetService.createTestDataSet(id, suggestion.suggestedName(), suggestion.suggestedData());
+        return Response.status(Response.Status.CREATED)
+            .entity(TestDataSetDTO.fromEntity(tds))
+            .build();
+    }
+
+    // ===== Inline Diff Pages =====
+
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/regression-diff-pages")
+    public Response regressionDiffPages(@PathParam("templateId") UUID templateId,
+                                        @PathParam("testDataSetId") UUID testDataSetId) {
+        Template template = Template.findById(templateId);
+        if (template == null || template.content == null || template.content.length == 0)
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId))
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        if (tds.expectedPdf == null)
+            throw new WebApplicationException("Kein Expected PDF gespeichert", Response.Status.BAD_REQUEST);
+
+        try {
+            byte[] actualPdf = renderPdf(template, tds);
+            List<String> ignoredPatterns = mergedIgnoredPatterns(template, tds);
+            PdfComparisonService.DiffPagesReport report =
+                pdfComparisonService.generateDiffPages(tds.expectedPdf, actualPdf, ignoredPatterns);
+            if (report == null)
+                throw new WebApplicationException("Diff-Generierung fehlgeschlagen", Response.Status.INTERNAL_SERVER_ERROR);
+            return Response.ok(report).build();
+        } catch (WebApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new WebApplicationException("Fehler: " + e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // ===== Ignored Patterns =====
+
+    @PUT
+    @Path("{id}/ignored-patterns")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateIgnoredPatterns(@PathParam("id") UUID id, IgnoredPatternsRequest request) {
+        Template template = Template.findById(id);
+        if (template == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+        template.ignoredPatterns = request.patterns() != null ? request.patterns() : List.of();
+        template.persist();
+        return Response.ok().build();
+    }
+
+    // ===== Notes (per TestDataSet) =====
+
+    @PUT
+    @Path("{templateId}/testdata/{testDataSetId}/notes")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateNotes(@PathParam("templateId") UUID templateId,
+                                @PathParam("testDataSetId") UUID testDataSetId,
+                                NotesRequest request) {
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId))
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        tds.notes = request.notes();
+        tds.updatedAt = java.time.Instant.now();
+        tds.persist();
+        return Response.ok().build();
+    }
+
+    // ===== New Draft from failed regression =====
+
+    @POST
+    @Path("{id}/new-draft")
+    @Transactional
+    public Response createNewDraft(@PathParam("id") UUID id) {
+        Template current = Template.findById(id);
+        if (current == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+
+        // Find highest version for this template name
+        Object maxVersionObj = Template.find(
+            "SELECT MAX(t.version) FROM Template t WHERE t.name = ?1", current.name
+        ).project(Integer.class).firstResult();
+        int nextVersion = (maxVersionObj instanceof Integer mv ? mv : current.version) + 1;
+
+        Template draft = new Template();
+        draft.name = current.name;
+        draft.version = nextVersion;
+        draft.content = current.content;
+        draft.status = TemplateStatus.DRAFT;
+        draft.type = current.type;
+        draft.validFrom = LocalDateTime.now();
+        draft.ignoredPatterns = current.ignoredPatterns != null ? new java.util.ArrayList<>(current.ignoredPatterns) : new java.util.ArrayList<>();
+        draft.persist();
+
+        // Copy all TestDataSets (including expectedPdf) to the new draft
+        List<TestDataSet> existingTds = TestDataSet.list("template.id", current.id);
+        for (TestDataSet src : existingTds) {
+            TestDataSet copy = new TestDataSet();
+            copy.template = draft;
+            copy.name = src.name;
+            copy.testData = src.testData;
+            copy.expectedPdf = src.expectedPdf;
+            copy.pdfHash = src.pdfHash;
+            copy.notes = src.notes;
+            copy.persist();
+        }
+
+        return Response.status(Response.Status.CREATED)
+            .entity(new TemplateSummary(draft.id, draft.name, draft.createdAt,
+                draft.status, false, draft.type, draft.version))
+            .build();
+    }
+
+    // ===== Helper =====
+
+    /** Kombiniert Template-weite und TestDataSet-eigene Ignore-Patterns. */
+    private List<String> mergedIgnoredPatterns(Template template, TestDataSet tds) {
+        List<String> merged = new java.util.ArrayList<>();
+        if (template.ignoredPatterns != null) merged.addAll(template.ignoredPatterns);
+        if (tds != null && tds.ignoredPatterns != null) merged.addAll(tds.ignoredPatterns);
+        return merged;
+    }
+
+    /**
+     * Fügt ein Ignore-Pattern hinzu — entweder für den einzelnen TestDataSet oder für alle (Template-Ebene).
+     */
+    @POST
+    @Path("{templateId}/testdata/{testDataSetId}/ignore-block")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response ignoreBlock(@PathParam("templateId") UUID templateId,
+                                @PathParam("testDataSetId") UUID testDataSetId,
+                                IgnoreBlockRequest request) {
+        Template template = Template.findById(templateId);
+        if (template == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+        TestDataSet tds = TestDataSet.findById(testDataSetId);
+        if (tds == null || !tds.template.id.equals(templateId))
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+
+        String pattern = request.pattern();
+        if (pattern == null || pattern.isBlank())
+            throw new WebApplicationException("Pattern darf nicht leer sein", Response.Status.BAD_REQUEST);
+
+        if (request.scope().equals("all")) {
+            if (template.ignoredPatterns == null) template.ignoredPatterns = new java.util.ArrayList<>();
+            if (!template.ignoredPatterns.contains(pattern)) template.ignoredPatterns.add(pattern);
+            template.persist();
+        } else {
+            if (tds.ignoredPatterns == null) tds.ignoredPatterns = new java.util.ArrayList<>();
+            if (!tds.ignoredPatterns.contains(pattern)) tds.ignoredPatterns.add(pattern);
+            tds.updatedAt = java.time.Instant.now();
+            tds.persist();
+        }
+        return Response.ok().build();
+    }
+
+    public record IgnoreBlockRequest(String pattern, String scope) {} // scope: "this" | "all"
+
+    private byte[] renderPdf(Template template, TestDataSet tds) throws Exception {
+        String base64Template = Base64.getEncoder().encodeToString(template.content);
+        com.fasterxml.jackson.databind.node.ObjectNode requestJson = objectMapper.createObjectNode();
+        requestJson.put("template", base64Template);
+        requestJson.set("data", tds.testData);
+        requestJson.put("outputType", "pdf");
+        String requestBody = objectMapper.writeValueAsString(requestJson);
+
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+            .uri(URI.create(renderUrl + "/render/template"))
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofSeconds(60))
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build();
+        HttpResponse<byte[]> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
+        if (httpResponse.statusCode() >= 400)
+            throw new WebApplicationException("Render-Fehler: " + httpResponse.statusCode(), Response.Status.INTERNAL_SERVER_ERROR);
+        return httpResponse.body();
+    }
+
+    public record RegressionResult(
+        UUID testDataSetId,
+        String testDataSetName,
+        boolean hasExpectedPdf,
+        boolean passed,
+        boolean hasAcceptedDeviations,  // passed=true, aber nur wegen ignorierten Abweichungen
+        String errorMessage
+    ) {}
+
+    public record IgnoredPatternsRequest(List<String> patterns) {}
+    public record NotesRequest(String notes) {}
+
     public record TemplateSummary(UUID id, String name, LocalDateTime createdAt, TemplateStatus status, boolean isValid, TemplateType type, Integer version) {}
 
     public record TemplateDetails(
@@ -605,10 +968,14 @@ public class TemplateResource {
         String name,
         LocalDateTime createdAt,
         TemplateStatus status,
-        ValidationResult validationResult
+        ValidationResult validationResult,
+        List<String> ignoredPatterns,
+        String rejectionReason,
+        LocalDateTime rejectedAt
     ) {}
 
     public record StatusUpdateRequest(TemplateStatus newStatus) {}
+    public record RejectRequest(String reason) {}
 
     public record DuplicateRequest(String name) {}
 
@@ -623,7 +990,8 @@ public class TemplateResource {
         boolean hasExpectedPdf,
         String pdfHash,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        String notes
     ) {
         public static TestDataSetDTO fromEntity(TestDataSet entity) {
             return new TestDataSetDTO(
@@ -633,7 +1001,8 @@ public class TemplateResource {
                 entity.expectedPdf != null,
                 entity.pdfHash,
                 entity.createdAt,
-                entity.updatedAt
+                entity.updatedAt,
+                entity.notes
             );
         }
     }

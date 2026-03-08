@@ -47,7 +47,7 @@ class TemplateValidatorTest {
         properties.set("customer", customerProp);
         schema.set("properties", properties);
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertTrue(result.isValid());
         assertNotNull(result.schema());
@@ -66,7 +66,7 @@ class TemplateValidatorTest {
         var emptySchema = mapper.createObjectNode();
         emptySchema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(false, emptySchema, errors, warnings);
+        ValidationResult result = new ValidationResult(false, emptySchema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertFalse(result.isValid());
         assertEquals(1, result.errors().size());
@@ -85,7 +85,7 @@ class TemplateValidatorTest {
         var schema = mapper.createObjectNode();
         schema.put("type", "object");
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertTrue(result.isValid());
         assertEquals(2, result.warnings().size());
@@ -119,7 +119,7 @@ class TemplateValidatorTest {
         properties.set("positions", positionsArray);
         schema.set("properties", properties);
 
-        ValidationResult result = new ValidationResult(true, schema, errors, warnings);
+        ValidationResult result = new ValidationResult(true, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         assertTrue(result.isValid());
         assertEquals("array", result.schema().get("properties").get("positions").get("type").asText());

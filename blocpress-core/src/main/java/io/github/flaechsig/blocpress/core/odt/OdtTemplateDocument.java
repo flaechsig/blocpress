@@ -95,6 +95,42 @@ public class OdtTemplateDocument implements TemplateDocument {
     }
 
     /**
+     * Detects repetition group array paths from the ODT structure alone (without JSON data).
+     * Scans text:section and table:table-row elements. If an element contains 2+ user fields
+     * that all share the same top-level prefix (e.g. "positions.name" + "positions.price" → "positions"),
+     * that prefix is treated as an array path.
+     */
+    @SneakyThrows
+    public Set<String> detectRepetitionGroupPaths() {
+        Set<String> result = new java.util.LinkedHashSet<>();
+
+        List<TemplateElement> candidates = new ArrayList<>();
+        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), "text:section"));
+        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), "table:table-row"));
+
+        for (TemplateElement candidate : candidates) {
+            List<TemplateElement> fields = candidate.collectUserFields();
+            if (fields.size() < 2) continue;
+
+            // Collect the first-level prefix of each field name
+            Set<String> prefixes = new java.util.LinkedHashSet<>();
+            for (TemplateElement field : fields) {
+                String name = field.getName();
+                if (name != null && name.contains(".")) {
+                    prefixes.add(name.split("\\.")[0]);
+                }
+            }
+
+            // If all fields in this element share exactly one top-level prefix → repetition group
+            if (prefixes.size() == 1) {
+                result.add(prefixes.iterator().next());
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Duplicates a template element, creating a new instance with the same structure and place it
      * directly after the original element.
      *
@@ -169,6 +205,20 @@ public class OdtTemplateDocument implements TemplateDocument {
                 .forEach(n -> fields.add(n));
 
         return fields;
+    }
+
+    /**
+     * Collects all declared user fields from {@code text:user-field-decls}.
+     * This is the canonical list of every field defined in the template — including
+     * fields that are only referenced in conditions (text:conditional-text) and therefore
+     * may not appear as {@code text:user-field-get} elements in the document body.
+     * The element's {@code office:string-value} attribute carries the declared example value.
+     */
+    @SneakyThrows
+    public List<TemplateElement> collectUserFieldDeclarations() {
+        return OdtHelper.getNodes(document.getContentRoot(), "text:user-field-decl").stream()
+                .map(e -> (TemplateElement) e)
+                .toList();
     }
 
     /**

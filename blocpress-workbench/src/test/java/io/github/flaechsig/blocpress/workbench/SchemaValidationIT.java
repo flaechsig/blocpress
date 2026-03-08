@@ -29,10 +29,10 @@ class SchemaValidationIT {
     @Test
     @Transactional
     void templateTableHasRequiredColumns() {
-        // Query the database schema directly
+        // Query the database schema directly — use LOWER() for H2/PostgreSQL compatibility
         var query = em.createNativeQuery(
-            "SELECT column_name FROM information_schema.columns " +
-            "WHERE table_schema = 'workbench' AND table_name = 'template'"
+            "SELECT LOWER(column_name) FROM information_schema.columns " +
+            "WHERE LOWER(table_schema) IN ('workbench', 'public') AND LOWER(table_name) = 'template'"
         );
 
         @SuppressWarnings("unchecked")
@@ -55,8 +55,8 @@ class SchemaValidationIT {
     @Transactional
     void testDataSetTableHasRequiredColumns() {
         var query = em.createNativeQuery(
-            "SELECT column_name FROM information_schema.columns " +
-            "WHERE table_schema = 'workbench' AND table_name = 'test_data_set'"
+            "SELECT LOWER(column_name) FROM information_schema.columns " +
+            "WHERE LOWER(table_schema) IN ('workbench', 'public') AND LOWER(table_name) = 'test_data_set'"
         );
 
         @SuppressWarnings("unchecked")
@@ -81,7 +81,7 @@ class SchemaValidationIT {
         // Check for composite unique constraint on (name, version)
         var query = em.createNativeQuery(
             "SELECT constraint_name FROM information_schema.table_constraints " +
-            "WHERE table_schema = 'workbench' AND table_name = 'template' " +
+            "WHERE LOWER(table_schema) IN ('workbench', 'public') AND LOWER(table_name) = 'template' " +
             "AND constraint_type = 'UNIQUE'"
         );
 

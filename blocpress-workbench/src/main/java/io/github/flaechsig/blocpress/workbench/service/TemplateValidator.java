@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.net.URL;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,8 +38,14 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class TemplateValidator {
 
+    private static final Logger LOG = Logger.getLogger(TemplateValidator.class);
+
     private static final Pattern VALID_FIELD_NAME =
         Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$");
+
+    /** Matches dot-notation paths inside condition expressions, e.g. customer.gender in 'customer.gender == "FEMALE"' */
+    private static final Pattern FIELD_PATH_IN_CONDITION =
+        Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+");
 
     @Inject
     public ObjectMapper objectMapper;
@@ -51,6 +59,8 @@ public class TemplateValidator {
         List<String> fieldNames = new ArrayList<>();
         List<String> arrayPaths = new ArrayList<>();
         Map<String, String> fieldValues = new HashMap<>();  // fieldName -> text content value
+        Set<String> conditionExpressions = new LinkedHashSet<>();
+        Set<String> detectedArrayPaths = new HashSet<>();
         JsonNode schema = null;
 
         Path tempFile = null;
@@ -62,8 +72,19 @@ public class TemplateValidator {
 
             TemplateDocument doc = TemplateDocument.load(templateUrl);
 
-            // Step 2: Extract and validate user fields
-            List<TemplateElement> extractedFields = doc.collectUserFields();
+            // Step 2: Extract and validate user fields.
+            // Prefer text:user-field-decl declarations — they list ALL fields including those
+            // only referenced in conditions (e.g. customer.gender used in Conditional Text).
+            // Fall back to text:user-field-get usages for templates without explicit declarations.
+            List<TemplateElement> extractedFields;
+            if (doc instanceof io.github.flaechsig.blocpress.core.odt.OdtTemplateDocument odtDocForDecl) {
+                extractedFields = odtDocForDecl.collectUserFieldDeclarations();
+                if (extractedFields.isEmpty()) {
+                    extractedFields = doc.collectUserFields();
+                }
+            } else {
+                extractedFields = doc.collectUserFields();
+            }
             Set<String> uniqueFields = new HashSet<>();
 
             for (TemplateElement field : extractedFields) {
@@ -86,64 +107,33 @@ public class TemplateValidator {
             }
             fieldNames.addAll(uniqueFields);
 
-            // Step 3: Identify repetition groups (loops)
-            // Note: doc.findRepeatGroups() uses emptyData and won't detect arrays from template structure alone.
-            // Use conservative heuristic: only recognize known array field names with multiple fields.
-
-            Set<String> knownArrayNames = Set.of(
-                // Standard plurals
-                "positions", "items", "lines", "rows", "details", "entries",
-                // Business domain specific
-                "products", "articles", "lineItems", "orderItems", "invoiceItems",
-                "addresses", "payments", "documents", "attachments",
-                "shipments", "packages", "expenses", "transactions",
-                "members", "participants", "attendees", "employees",
-                "permissions", "roles", "connections", "relations"
-            );
-
-            Set<String> fieldPrefixes = new HashSet<>();
-            for (String fieldName : fieldNames) {
-                if (fieldName.contains(".")) {
-                    int lastDotIndex = fieldName.lastIndexOf(".");
-                    String prefix = fieldName.substring(0, lastDotIndex);
-                    fieldPrefixes.add(prefix);
-                }
-            }
-
-            // Count how many fields each prefix has and check against known array names
-            Set<String> detectedArrayPaths = new HashSet<>();
-            for (String prefix : fieldPrefixes) {
-                int count = 0;
-                for (String fieldName : fieldNames) {
-                    if (fieldName.startsWith(prefix + ".")) {
-                        count++;
-                    }
-                }
-                // Only treat as array if it's a known array name AND has 2+ fields
-                if (knownArrayNames.contains(prefix) && count >= 2) {
-                    detectedArrayPaths.add(prefix);
-                }
+            // Step 3: Identify repetition groups via structural detection.
+            // Scan text:section and table:table-row elements: if all user fields within an element
+            // share the same top-level prefix, that prefix is an array path.
+            if (doc instanceof io.github.flaechsig.blocpress.core.odt.OdtTemplateDocument odtDoc) {
+                detectedArrayPaths.addAll(odtDoc.detectRepetitionGroupPaths());
             }
 
             arrayPaths.addAll(detectedArrayPaths);
 
-            System.out.println("DEBUG: Found array paths (heuristic): " + arrayPaths);
-            System.out.println("DEBUG: Field names: " + fieldNames);
+            LOG.debugf("Found array paths (structural): %s", arrayPaths);
+            LOG.debugf("Field names: %s", fieldNames);
 
-            // Step 4: Generate JSON-Schema from fields and arrays
-            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues);
-            System.out.println("DEBUG: Generated schema: " + schema);
-
-            // Step 5: Extract and validate conditions (syntax only)
+            // Step 4: Extract and validate conditions (syntax only), collect field paths from them
             List<TemplateElement> conditionalElements = doc.collectConditionalTemplateElements();
             for (TemplateElement element : conditionalElements) {
-                String elementName = element.getName();
+                // Use text:condition attribute (JEXL expression) — not text:name (section name)
+                String elementName = (element instanceof OdtTemplateElement odtEl)
+                        ? odtEl.getCondition()
+                        : element.getName();
+                if (elementName == null || elementName.isBlank()) continue;
                 boolean syntaxValid = true;
                 String errorMessage = null;
 
                 // Try to validate condition syntax
                 try {
                     JexlConditionEvaluator.evaluate(elementName);
+                    conditionExpressions.add(elementName);
                 } catch (IllegalArgumentException e) {
                     syntaxValid = false;
                     errorMessage = e.getMessage();
@@ -153,6 +143,7 @@ public class TemplateValidator {
                     ));
                 } catch (Exception e) {
                     // Ignore other exceptions (they might be context-related)
+                    conditionExpressions.add(elementName);
                 }
 
                 if (!syntaxValid) {
@@ -161,7 +152,23 @@ public class TemplateValidator {
                         "Condition '" + elementName + "' has syntax error: " + errorMessage
                     ));
                 }
+
+                // Extract field paths referenced in condition expressions so they appear in the schema.
+                // E.g. 'customer.gender == "FEMALE"' → add "customer.gender" to fieldNames.
+                var matcher = FIELD_PATH_IN_CONDITION.matcher(elementName);
+                while (matcher.find()) {
+                    String path = matcher.group();
+                    if (!uniqueFields.contains(path) && VALID_FIELD_NAME.matcher(path).matches()) {
+                        uniqueFields.add(path);
+                        fieldNames.add(path);
+                        LOG.debugf("Added condition field path to schema: %s", path);
+                    }
+                }
             }
+
+            // Step 5: Generate JSON-Schema from fields (incl. condition fields) and arrays
+            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues);
+            LOG.debugf("Generated schema: %s", schema);
 
         } catch (Exception e) {
             errors.add(new ValidationResult.ValidationMessage(
@@ -193,7 +200,9 @@ public class TemplateValidator {
             isValid,
             schema,
             errors,
-            warnings
+            warnings,
+            new ArrayList<>(conditionExpressions),
+            new ArrayList<>(detectedArrayPaths)
         );
     }
 
@@ -212,7 +221,7 @@ public class TemplateValidator {
             }
         } catch (Exception e) {
             // Log but don't fail if we can't extract the value
-            System.out.println("DEBUG: Could not extract field value: " + e.getMessage());
+            LOG.debugf("Could not extract field value: %s", e.getMessage());
         }
         return null;
     }

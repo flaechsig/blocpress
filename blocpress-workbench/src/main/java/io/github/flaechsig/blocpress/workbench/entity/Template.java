@@ -15,6 +15,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.ColumnDefault;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "template", uniqueConstraints = @UniqueConstraint(columnNames = {"name", "valid_from", "version"}))
@@ -66,8 +68,28 @@ public class Template extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     public ValidationResult validationResult;
 
+    /** Regex-Muster für Textblöcke, die beim Regressionsvergleich ignoriert werden sollen. */
+    @Column(name = "ignored_patterns", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    public List<String> ignoredPatterns = new ArrayList<>();
+
+    /** Begründung für die Ablehnung (gesetzt bei SUBMITTED → REJECTED). */
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    public String rejectionReason;
+
+    /** Zeitpunkt der Ablehnung. */
+    @Column(name = "rejected_at")
+    public LocalDateTime rejectedAt;
+
     @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<TestDataSet> testDataSets = new ArrayList<>();
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 
     /**
      * Finds the latest active version of a template by name.

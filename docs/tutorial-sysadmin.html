@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sysadmin Tutorial – Blocpress</title>
+    <meta name="description" content="10-minute tutorial for sysadmins: deploy Blocpress with Docker Compose, configure PostgreSQL and JWT, and approve your first template.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://flaechsig.github.io/blocpress/tutorial-sysadmin.html">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 48px 48px 36px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .badge-strip {
+            background: #1a3266;
+            border-radius: 0 0 16px 16px;
+            padding: 14px 48px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 3rem;
+        }
+
+        .badge-strip span {
+            background: rgba(255,255,255,0.12);
+            color: #c8d8ff;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        .terminal {
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.82rem;
+        }
+
+        .terminal-bar {
+            background: #21262d;
+            padding: 10px 14px;
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .terminal-bar .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .terminal-bar .dot.red    { background: #ff5f57; }
+        .terminal-bar .dot.yellow { background: #febc2e; }
+        .terminal-bar .dot.green  { background: #28c840; }
+        .terminal-bar .title {
+            flex: 1;
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.75rem;
+        }
+
+        .terminal-body {
+            margin: 0;
+            padding: 20px 22px;
+            color: #e6edf3;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .t-prompt  { color: #3fb950; }
+        .t-method  { color: #79c0ff; }
+        .t-flag    { color: #d2a8ff; }
+        .t-value   { color: #a5d6ff; }
+        .t-comment { color: #8b949e; font-style: italic; }
+        .t-success { color: #3fb950; }
+        .t-key     { color: #ff9f0a; }
+        .t-str     { color: #a5d6ff; }
+        .t-yaml-key { color: #79c0ff; }
+        .t-yaml-val { color: #a5d6ff; }
+
+        .feature-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .feature-card:hover { transform: translateY(-5px); }
+
+        .accent { color: #2a5298; }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: #2a5298;
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .step-block {
+            border-left: 3px solid #2a5298;
+            padding-left: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .code-block {
+            position: relative;
+        }
+
+        .code-block .btn-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .code-block:hover .btn-copy { opacity: 1; }
+
+        .tip-box {
+            background: #eef3ff;
+            border-left: 4px solid #2a5298;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin-top: 1rem;
+            font-size: 0.92rem;
+        }
+
+        .tip-box strong { color: #2a5298; }
+
+        .warn-box {
+            background: #fff8ec;
+            border-left: 4px solid #ff9f0a;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin-top: 1rem;
+            font-size: 0.92rem;
+        }
+
+        .warn-box strong { color: #b36b00; }
+
+        .env-table td:first-child {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.82rem;
+            white-space: nowrap;
+            background: #f8f9fa;
+        }
+
+        kbd {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+<div class="container py-5">
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <p class="mb-1" style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                    <a href="index.html" style="color: rgba(255,255,255,0.7);">← Back to overview</a>
+                </p>
+                <h1 class="fw-bold" style="font-size: 1.6rem; line-height: 1.35;">
+                    Tutorial: Sysadmin
+                </h1>
+                <p class="mt-3" style="color: rgba(255,255,255,0.85); font-size: 1.05rem;">
+                    Deploy Blocpress in 10 minutes with Docker Compose —
+                    Render API, Workbench, and PostgreSQL.
+                </p>
+                <div class="d-flex gap-3 flex-wrap mt-4">
+                    <span class="badge bg-light text-dark px-3 py-2">&#128337; ~10 minutes</span>
+                    <span class="badge bg-light text-dark px-3 py-2">&#128051; Docker Compose</span>
+                    <span class="badge bg-light text-dark px-3 py-2">&#128274; JWT auth</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="terminal">
+                    <div class="terminal-bar">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="title">docker compose up -d</span>
+                    </div>
+                    <pre class="terminal-body"><span class="t-prompt">$</span> docker compose up -d
+<span class="t-comment">✓ Container blocpress-db        Started</span>
+<span class="t-comment">✓ Container blocpress-render    Started</span>
+<span class="t-comment">✓ Container blocpress-workbench Started</span>
+
+<span class="t-prompt">$</span> curl http://localhost:8080/q/health
+<span class="t-success">{ "status": "UP" }</span>
+
+<span class="t-prompt">$</span> curl http://localhost:8081/q/health
+<span class="t-success">{ "status": "UP" }</span></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="badge-strip">
+        <span>Step 1: Prerequisites</span>
+        <span>Step 2: docker-compose.yml</span>
+        <span>Step 3: Configure JWT</span>
+        <span>Step 4: Start &amp; verify</span>
+        <span>Step 5: Approve first template</span>
+        <span>Step 6: Production</span>
+    </div>
+
+    <div class="col-lg-8 mx-auto">
+
+        <!-- ARCHITECTURE -->
+        <h2 class="accent mb-3">Architecture overview</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card feature-card p-3 h-100 text-center">
+                    <div style="font-size: 2rem;">&#128209;</div>
+                    <strong>blocpress-render</strong>
+                    <p class="small text-muted mb-0 mt-1">Port 8080 — Render API (ODT→PDF/RTF), JWT-secured name-based endpoints</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-3 h-100 text-center">
+                    <div style="font-size: 2rem;">&#128736;</div>
+                    <strong>blocpress-workbench</strong>
+                    <p class="small text-muted mb-0 mt-1">Port 8081 — Workbench UI for template designers, validation, approval workflow</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card p-3 h-100 text-center">
+                    <div style="font-size: 2rem;">&#128451;</div>
+                    <strong>PostgreSQL</strong>
+                    <p class="small text-muted mb-0 mt-1">Two schemas: <code>workbench</code> (development) and <code>production</code> (approved templates)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tip-box mb-5">
+            <strong>Deployment principle:</strong> Templates are developed in the Workbench
+            and automatically copied via HTTP into the <code>production</code> schema on
+            approval (<em>APPROVED</em>). The Render API reads exclusively from
+            <code>production</code> — a clean separation between development and production.
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h2>Check prerequisites</h2>
+            </div>
+
+            <ul>
+                <li>Docker Engine ≥ 24 and Docker Compose v2 (<code>docker compose version</code>)</li>
+                <li>Free ports: <strong>5432</strong> (PostgreSQL), <strong>8080</strong> (render), <strong>8081</strong> (workbench)</li>
+                <li>Internet access for the initial Docker pull (offline-capable afterwards)</li>
+            </ul>
+
+            <div class="code-block mt-3">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker --version        # Docker version 24.x or newer
+docker compose version  # Docker Compose version v2.x or newer</pre>
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h2>Create docker-compose.yml</h2>
+            </div>
+
+            <p>
+                Create a new directory <code>blocpress/</code> and place the following
+                <code>docker-compose.yml</code> inside:
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm" style="font-size: 0.8rem; overflow-x: auto;">services:
+
+  db:
+    image: postgres:16
+    container_name: blocpress-db
+    environment:
+      POSTGRES_DB: blocpress
+      POSTGRES_USER: blocpress
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blocpress"]
+      interval: 5s
+      retries: 10
+
+  render:
+    image: flaechsig/blocpress-render:latest
+    container_name: blocpress-render
+    ports:
+      - "8080:8080"
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/blocpress?currentSchema=production
+      QUARKUS_DATASOURCE_USERNAME: blocpress
+      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
+      MP_JWT_VERIFY_PUBLICKEY: ${JWT_PUBLIC_KEY}
+      MP_JWT_VERIFY_ISSUER: ${JWT_ISSUER}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  workbench:
+    image: flaechsig/blocpress-workbench:latest
+    container_name: blocpress-workbench
+    ports:
+      - "8081:8081"
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/blocpress?currentSchema=workbench
+      QUARKUS_DATASOURCE_USERNAME: blocpress
+      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
+      RENDER_URL: http://render:8080
+      MP_JWT_VERIFY_PUBLICKEY: ${JWT_PUBLIC_KEY}
+      MP_JWT_VERIFY_ISSUER: ${JWT_ISSUER}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pg_data:</pre>
+            </div>
+
+            <p class="mt-3">
+                Also create a <code>.env</code> file in the same directory
+                (see step 3 for JWT values):
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">DB_PASSWORD=your-secure-password-here
+JWT_PUBLIC_KEY=...
+JWT_ISSUER=https://your-idp.example.com</pre>
+            </div>
+
+            <div class="warn-box">
+                <strong>Security:</strong> The <code>.env</code> file contains secrets — never
+                commit it to Git! Add <code>.env</code> to your <code>.gitignore</code>.
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h2>Configure JWT authentication</h2>
+            </div>
+
+            <p>
+                Blocpress validates JWTs using a public key (RS256).
+                You can either use your existing Identity Provider (Keycloak, Okta,
+                Azure AD, …) or generate a local key pair for testing.
+            </p>
+
+            <h3 class="h6 mt-3">Option A: Existing Identity Provider</h3>
+            <p>
+                Enter the PEM-encoded public key of your IdP as <code>JWT_PUBLIC_KEY</code>
+                and set <code>JWT_ISSUER</code> to the issuer value from the token claims.
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...
+JWT_ISSUER=https://auth.example.com/realms/myrealm</pre>
+            </div>
+
+            <h3 class="h6 mt-4">Option B: Generate a test key pair</h3>
+            <p>
+                For development and initial testing you can generate an RSA key pair yourself:
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm"># Generate private key
+openssl genrsa -out private.pem 2048
+
+# Extract public key (→ use as JWT_PUBLIC_KEY)
+openssl rsa -in private.pem -pubout -out public.pem
+
+# Write public.pem content into .env:
+JWT_PUBLIC_KEY=$(cat public.pem | tr -d '\n' | sed 's/-----BEGIN PUBLIC KEY-----/-----BEGIN PUBLIC KEY-----\\n/' | sed 's/-----END PUBLIC KEY-----/\\n-----END PUBLIC KEY-----/')
+JWT_ISSUER=https://dev.local</pre>
+            </div>
+
+            <h3 class="h6 mt-4">Reference: All environment variables</h3>
+            <table class="table table-sm env-table mt-2">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                        <th>Default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>DB_PASSWORD</td>
+                        <td>PostgreSQL password</td>
+                        <td><code>changeme</code></td>
+                    </tr>
+                    <tr>
+                        <td>JWT_PUBLIC_KEY</td>
+                        <td>RSA public key (PEM, newlines escaped as \n)</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>JWT_ISSUER</td>
+                        <td>Allowed JWT issuer value</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>RENDER_URL</td>
+                        <td>Internal URL of the Render API (Workbench only)</td>
+                        <td><code>http://render:8080</code></td>
+                    </tr>
+                    <tr>
+                        <td>QUARKUS_PROFILE</td>
+                        <td><code>prod</code> enforces DDL validate instead of update</td>
+                        <td><code>dev</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">4</span>
+                <h2>Start &amp; health check</h2>
+            </div>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker compose up -d</pre>
+            </div>
+
+            <p class="mt-3">Verify both services are healthy:</p>
+
+            <div class="terminal mt-3">
+                <div class="terminal-bar">
+                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    <span class="title">Health checks</span>
+                </div>
+                <pre class="terminal-body"><span class="t-comment"># Render API</span>
+<span class="t-prompt">$</span> curl http://localhost:8080/q/health
+<span class="t-success">{"status":"UP","checks":[{"name":"Database connections health check","status":"UP"}]}</span>
+
+<span class="t-comment"># Workbench API</span>
+<span class="t-prompt">$</span> curl http://localhost:8081/q/health
+<span class="t-success">{"status":"UP","checks":[{"name":"Database connections health check","status":"UP"}]}</span>
+
+<span class="t-comment"># Swagger UI for the Render API</span>
+<span class="t-prompt">$</span> open http://localhost:8080/q/swagger-ui
+
+<span class="t-comment"># Workbench UI (open in browser)</span>
+<span class="t-prompt">$</span> open http://localhost:8081</pre>
+            </div>
+
+            <h3 class="h6 mt-4">View logs</h3>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker compose logs -f render workbench</pre>
+            </div>
+
+            <div class="tip-box">
+                <strong>First start takes longer:</strong> Docker images are pulled from the
+                registry once. LibreOffice in the render container needs a moment for font
+                initialization on startup — this is normal.
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">5</span>
+                <h2>Approve your first template (Reviewer role)</h2>
+            </div>
+
+            <p>
+                Once a template designer has submitted a template for approval
+                (status <code>SUBMITTED</code>), it appears in the Workbench UI under
+                <strong>"Pending approval"</strong>. As a reviewer:
+            </p>
+
+            <ol>
+                <li>Select the template and review the details</li>
+                <li>Check the test data previews</li>
+                <li>Run the regression test (<strong>"Run all"</strong>)</li>
+                <li>If there are concerns: <strong>"Reject"</strong> with a reason</li>
+                <li>To approve: <strong>"Approve"</strong> → status changes to <code>APPROVED</code></li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Automatic deploy:</strong> Approval automatically triggers an HTTP
+                call from the Workbench to the Render API. The template is physically copied
+                into the <code>production</code> schema and immediately available under
+                <code>POST /api/render/{name}</code> — no manual step required.
+            </div>
+
+            <h3 class="h6 mt-4">Render a template via API (after approval)</h3>
+
+            <div class="terminal mt-2">
+                <div class="terminal-bar">
+                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    <span class="title">Name-based rendering</span>
+                </div>
+                <pre class="terminal-body"><span class="t-comment"># With JWT token in Authorization header</span>
+<span class="t-prompt">$</span> <span class="t-method">curl</span> -X POST \
+    <span class="t-value">http://localhost:8080/api/render/invoice</span> \
+    <span class="t-flag">-H</span> <span class="t-value">"Authorization: Bearer $JWT_TOKEN"</span> \
+    <span class="t-flag">-H</span> <span class="t-value">"Accept: application/pdf"</span> \
+    <span class="t-flag">-H</span> <span class="t-value">"Content-Type: application/json"</span> \
+    <span class="t-flag">-d</span> <span class="t-value">'{"customer":{"name":"Acme Corp"},"lineItems":[]}'</span> \
+    <span class="t-flag">-o</span> <span class="t-value">invoice.pdf</span>
+
+<span class="t-success">✓  invoice.pdf  (89 KB)  200 OK</span></pre>
+            </div>
+        </div>
+
+        <!-- STEP 6 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">6</span>
+                <h2>Production operation</h2>
+            </div>
+
+            <h3 class="h6 mb-2">Apply updates</h3>
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker compose pull
+docker compose up -d</pre>
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Back up PostgreSQL data</h3>
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker exec blocpress-db pg_dump -U blocpress blocpress > backup_$(date +%Y%m%d).sql</pre>
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Reverse proxy (nginx)</h3>
+            <p class="small">
+                Recommended for production: nginx as a reverse proxy in front of both services.
+                Workbench at <code>/workbench/</code>, Render API at <code>/</code> or
+                its own subdomain.
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm" style="font-size: 0.8rem;">server {
+    listen 443 ssl;
+    server_name blocpress.example.com;
+
+    # Render API
+    location /api/render/ {
+        proxy_pass http://localhost:8080/api/render/;
+        proxy_set_header Host $host;
+    }
+
+    # Workbench
+    location /workbench/ {
+        proxy_pass http://localhost:8081/;
+        proxy_set_header Host $host;
+    }
+}</pre>
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Scaling</h3>
+            <p>
+                The Render API is stateless — multiple instances can run in parallel.
+                The Workbench requires a single instance (state stored in PostgreSQL).
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">docker compose up -d --scale render=3</pre>
+            </div>
+
+            <div class="warn-box">
+                <strong>Important:</strong> Set <code>QUARKUS_PROFILE=prod</code> in production
+                so Hibernate does not auto-migrate the schema (<code>validate</code>
+                instead of <code>update</code>). Schema updates are then only applied via
+                <code>init-schemas.sql</code>.
+            </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="card feature-card p-4 mb-5" style="background: #eef3ff; border: none;">
+            <h2 class="h5 accent mb-3">&#9989; Summary</h2>
+            <ol class="mb-0">
+                <li>Docker Engine and Docker Compose v2 installed</li>
+                <li><code>docker-compose.yml</code> with three services: db, render, workbench</li>
+                <li><code>.env</code> with DB password and JWT configuration created</li>
+                <li><code>docker compose up -d</code> started, health checks green</li>
+                <li>As reviewer: approve submitted templates in the Workbench</li>
+                <li>Approved templates immediately available via <code>/api/render/{name}</code></li>
+            </ol>
+        </div>
+
+        <!-- FURTHER READING -->
+        <h2 class="accent mb-3">Further resources</h2>
+        <div class="row g-3 mb-5">
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128209; Designer tutorial</strong>
+                    <p class="small text-muted mb-2 mt-1">How do template designers create ODT templates and submit them for approval?</p>
+                    <a href="tutorial-designer.html" class="btn btn-outline-primary btn-sm">Open tutorial</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128218; Swagger UI</strong>
+                    <p class="small text-muted mb-2 mt-1">Interactive API documentation after startup at <code>/q/swagger-ui</code></p>
+                    <a href="https://github.com/flaechsig/blocpress" class="btn btn-outline-primary btn-sm">Open GitHub</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128230; Docker Hub</strong>
+                    <p class="small text-muted mb-2 mt-1">Latest images: <code>flaechsig/blocpress-render</code> and <code>flaechsig/blocpress-workbench</code></p>
+                    <a href="https://hub.docker.com/u/flaechsig" class="btn btn-outline-primary btn-sm">Docker Hub</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card feature-card p-3 h-100">
+                    <strong>&#128196; Quickstart</strong>
+                    <p class="small text-muted mb-2 mt-1">Test the stateless Render API — no JWT, no database setup required</p>
+                    <a href="index.html" class="btn btn-outline-primary btn-sm">Home</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="text-center mt-3 pt-4 border-top">
+        <p>© 2026 Blocpress – Open Source ODT to PDF Rendering Engine &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress">GitHub</a> &nbsp;·&nbsp;
+            <a href="https://github.com/flaechsig/blocpress/releases">Release Notes</a> &nbsp;·&nbsp;
+            <a href="index.html">Home</a>
+        </p>
+    </footer>
+
+</div>
+
+<script>
+function copyCode(btn) {
+    const block = btn.parentElement;
+    const text = block.dataset.copy || block.querySelector('pre').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+}
+</script>
+
+</body>
+</html>

@@ -42,6 +42,14 @@ public class TestDataSet extends PanacheEntityBase {
     @Column(name = "updated_at")
     public Instant updatedAt;
 
+    @Column(columnDefinition = "text")
+    public String notes;
+
+    /** Regex-Muster die nur für diesen Testfall ignoriert werden (ergänzt Template-Muster). */
+    @Column(name = "ignored_patterns", columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    public java.util.List<String> ignoredPatterns = new java.util.ArrayList<>();
+
     public TestDataSet() {
         this.id = UUID.randomUUID();
         this.createdAt = Instant.now();
