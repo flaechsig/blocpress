@@ -38,7 +38,7 @@
       },
       "description": "Open-source Java document rendering engine that converts LibreOffice ODT templates to PDF, RTF, and ODT via REST API. Built on Quarkus and Java 21.",
       "url": "https://flaechsig.github.io/blocpress/",
-      "softwareVersion": "2.0.0",
+      "softwareVersion": "2.1.0",
       "license": "https://github.com/flaechsig/blocpress/blob/main/LICENSE",
       "codeRepository": "https://github.com/flaechsig/blocpress",
       "programmingLanguage": "Java"
@@ -197,7 +197,7 @@
                         Release Notes
                     </a>
                     <span class="badge bg-light text-dark fs-6 fw-semibold px-3 py-2"
-                          style="border-radius: 8px;">v2.0.0</span>
+                          style="border-radius: 8px;">v2.1.0</span>
                 </div>
             </div>
 
@@ -277,7 +277,7 @@
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
                 <h2 class="h4 accent">Template Workbench</h2>
-                <p>Browser-based UI for template designers: upload ODT templates, run validation, manage versions, and publish approved templates to production.</p>
+                <p>Browser-based UI for template designers: upload ODT templates, run validation, manage test datasets, analyze coverage, run regression tests, and publish approved templates to production.</p>
             </div>
         </div>
 
@@ -291,7 +291,7 @@
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
                 <h2 class="h4 accent">Docker Ready</h2>
-                <p>Single Docker image with built-in LibreOffice, health check, and JWT authentication. Deploy on-premise in minutes — no cloud dependency.</p>
+                <p>All-in-one Quickstart image bundles Studio, Workbench, Render, and PostgreSQL in a single container. Start the full stack with one <code>docker run</code> command — no cloud dependency.</p>
             </div>
         </div>
 
@@ -313,14 +313,15 @@
     <p><strong>1. Run the container</strong></p>
     <div class="code-block">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">docker run --name blocpress-render -d -p 8080:8080 flaechsig/blocpress-render</pre>
+        <pre class="bg-white p-3 rounded shadow-sm">docker run -d -p 8080:8080 -p 8081:8081 --name blocpress flaechsig/blocpress-studio-quickstart:latest</pre>
     </div>
     <p class="text-muted small mt-2">
-        The stateless render endpoint (<code>POST /api/render/template</code>) requires no authentication.
-        For name-based rendering (<code>POST /api/render/{name}</code>), a JWT Bearer token is required.
-        The image ships with a built-in dev key and issuer. To use your own identity provider, override via
-        environment variables: <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
-        <code>-e MP_JWT_VERIFY_ISSUER="..."</code>
+        The Quickstart image bundles <strong>Studio</strong> (workbench UI on port 8080),
+        <strong>Render</strong> (REST API on port 8081), and <strong>PostgreSQL</strong> in a single container.
+        A built-in dev JWT keypair is included — override via
+        <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
+        <code>-e MP_JWT_VERIFY_ISSUER="..."</code> for production use.
+        Open <a href="http://localhost:8080">http://localhost:8080</a> for the workbench UI.
     </p>
 
     <p class="mt-3"><strong>2. Download a sample</strong></p>
@@ -344,20 +345,20 @@
     </div>
 
     <p><strong>3. Generate a PDF</strong></p>
-    <div class="code-block" data-copy="curl -X POST http://localhost:8080/api/render/template \
+    <div class="code-block" data-copy="curl -X POST http://localhost:8081/api/render/template \
   -H &quot;Accept: application/pdf&quot; \
   -F &quot;template=@welcome.odt&quot; \
   -F &quot;data=@welcome.json&quot; \
   -o welcome.pdf">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8080/api/render/template \ <b>&#x2460;</b>
+        <pre class="bg-white p-3 rounded shadow-sm">curl -X POST http://localhost:8081/api/render/template \ <b>&#x2460;</b>
   -H "Accept: application/pdf" \ <b>&#x2461;</b>
   -F "template=@welcome.odt" \ <b>&#x2462;</b>
   -F "data=@welcome.json" \ <b>&#x2463;</b>
   -o welcome.pdf <b>&#x2464;</b></pre>
     </div>
     <ol class="small text-muted mt-2">
-        <li>Stateless render endpoint — no authentication required</li>
+        <li>Stateless render endpoint on port 8081 — no authentication required</li>
         <li>Desired output format (<code>application/pdf</code>, <code>application/rtf</code>, or <code>application/vnd.oasis.opendocument.text</code>)</li>
         <li>ODT template file — see the <a href="/README.adoc">README</a> for authoring details</li>
         <li>JSON data file with template values</li>
