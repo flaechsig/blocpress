@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.flaechsig</groupId>
+        <artifactId>blocpress-parent</artifactId>
+        <version>2.2.0</version>
+    </parent>
+
+    <artifactId>blocpress-e2e</artifactId>
+    <packaging>jar</packaging>
+    <name>blocpress e2e</name>
+    <description>End-to-end tests against the all-in-one studio container with JaCoCo coverage collection</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <jacoco.version>0.8.11</jacoco.version>
+        <testcontainers.version>1.20.6</testcontainers.version>
+        <!-- Override via: mvn verify -pl blocpress-e2e -Dstudio.image=myrepo/blocpress:custom -->
+        <studio.image>flaechsig/blocpress-studio-quickstart:latest</studio.image>
+        <!-- E2E tests off by default — enable: mvn verify -pl blocpress-e2e -De2e.skip=false -->
+        <e2e.skip>true</e2e.skip>
+        <!-- Combined report always on (uses whatever exec files are available) -->
+        <e2e.report.skip>false</e2e.report.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.4.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- JaCoCo core for TCP dump from running container JVMs -->
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>org.jacoco.core</artifactId>
+            <version>${jacoco.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.12</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- No unit tests in this module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine></argLine>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+
+            <!-- Copy JaCoCo agent JAR to target/ — gets mounted read-only into the container -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-jacoco-agent</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.jacoco</groupId>
+                                    <artifactId>org.jacoco.agent</artifactId>
+                                    <version>${jacoco.version}</version>
+                                    <classifier>runtime</classifier>
+                                    <type>jar</type>
+                                    <destFileName>jacocoagent.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Failsafe runs the IT classes against the running container -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <skipITs>${e2e.skip}</skipITs>
+                    <argLine></argLine>
+                    <systemPropertyVariables>
+                        <jacoco.agent.jar>${project.build.directory}/jacoco/jacocoagent.jar</jacoco.agent.jar>
+                        <jacoco.exec.dir>${project.build.directory}</jacoco.exec.dir>
+                        <studio.image>${studio.image}</studio.image>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Disable all parent JaCoCo executions (we collect via TCP, not JVM agent) -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution><id>prepare-agent</id><phase>none</phase></execution>
+                    <execution><id>prepare-agent-integration</id><phase>none</phase></execution>
+                    <execution><id>merge-coverage-data</id><phase>none</phase></execution>
+                    <execution><id>report</id><phase>none</phase></execution>
+                    <execution><id>check</id><phase>none</phase></execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Multi-module E2E Coverage Report via JaCoCo Ant task.
+                Reads exec files dumped from container JVMs in @AfterAll,
+                correlates against workbench/render/core class + source files.
+                Output: target/site/jacoco-e2e/index.html
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-e2e-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${e2e.report.skip}</skip>
+                            <target>
+                                <taskdef name="jacoco-report"
+                                         classname="org.jacoco.ant.ReportTask"
+                                         classpathref="maven.plugin.classpath"/>
+                                <mkdir dir="${project.build.directory}/site/jacoco-e2e"/>
+                                <jacoco-report>
+                                    <executiondata>
+                                        <!--
+                                            E2E coverage: dumped from running container JVMs via TCP.
+                                            Only present after: mvn verify -pl blocpress-e2e -De2e.skip=false
+                                        -->
+                                        <fileset dir="${project.build.directory}"
+                                                 erroronmissingdir="false">
+                                            <include name="jacoco-workbench.exec"/>
+                                            <include name="jacoco-render.exec"/>
+                                        </fileset>
+                                        <!--
+                                            Unit + integration test coverage from the regular module builds.
+                                            Present after: mvn verify (on full project or individual modules)
+                                        -->
+                                        <fileset dir="${project.basedir}/../blocpress-workbench/target"
+                                                 erroronmissingdir="false">
+                                            <include name="jacoco.exec"/>
+                                        </fileset>
+                                        <fileset dir="${project.basedir}/../blocpress-render/target"
+                                                 erroronmissingdir="false">
+                                            <include name="jacoco.exec"/>
+                                        </fileset>
+                                        <fileset dir="${project.basedir}/../blocpress-core/target"
+                                                 erroronmissingdir="false">
+                                            <include name="jacoco.exec"/>
+                                        </fileset>
+                                    </executiondata>
+                                    <structure name="Blocpress E2E Coverage">
+                                        <group name="blocpress-workbench">
+                                            <classfiles>
+                                                <fileset dir="${project.basedir}/../blocpress-workbench/target/classes"
+                                                         erroronmissingdir="false"/>
+                                            </classfiles>
+                                            <sourcefiles>
+                                                <fileset dir="${project.basedir}/../blocpress-workbench/src/main/java"/>
+                                            </sourcefiles>
+                                        </group>
+                                        <group name="blocpress-render">
+                                            <classfiles>
+                                                <fileset dir="${project.basedir}/../blocpress-render/target/classes"
+                                                         erroronmissingdir="false"/>
+                                            </classfiles>
+                                            <sourcefiles>
+                                                <fileset dir="${project.basedir}/../blocpress-render/src/main/java"/>
+                                            </sourcefiles>
+                                        </group>
+                                        <group name="blocpress-core">
+                                            <classfiles>
+                                                <fileset dir="${project.basedir}/../blocpress-core/target/classes"
+                                                         erroronmissingdir="false"/>
+                                            </classfiles>
+                                            <sourcefiles>
+                                                <fileset dir="${project.basedir}/../blocpress-core/src/main/java"/>
+                                            </sourcefiles>
+                                        </group>
+                                    </structure>
+                                    <html destdir="${project.build.directory}/site/jacoco-e2e"/>
+                                    <xml destfile="${project.build.directory}/site/jacoco-e2e/jacoco.xml"/>
+                                    <csv destfile="${project.build.directory}/site/jacoco-e2e/jacoco.csv"/>
+                                </jacoco-report>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>org.jacoco.ant</artifactId>
+                        <version>${jacoco.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+</project>

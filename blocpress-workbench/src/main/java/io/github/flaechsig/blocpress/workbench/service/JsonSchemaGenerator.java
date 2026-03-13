@@ -34,12 +34,14 @@ public class JsonSchemaGenerator {
      * @param fieldNames List of field names in dot-notation (e.g., "customer.name", "items")
      * @param arrayPaths List of array paths (e.g., "items", "customer.addresses")
      * @param fieldValues Map of field names to their default values from ODT
+     * @param fieldTypes Map of field names to their JSON schema types derived from ODT value-type
      * @return JSON-Schema as JsonNode
      */
-    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths, Map<String, String> fieldValues) {
+    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths, Map<String, String> fieldValues, Map<String, String> fieldTypes) {
         Set<String> uniqueFields = new HashSet<>(fieldNames);
         Set<String> arrayPathsSet = new HashSet<>(arrayPaths);
         Map<String, String> values = Objects.requireNonNullElseGet(fieldValues, HashMap::new);
+        Map<String, String> types = Objects.requireNonNullElseGet(fieldTypes, HashMap::new);
 
         ObjectNode schema = objectMapper.createObjectNode();
         schema.put("type", "object");
@@ -50,23 +52,35 @@ public class JsonSchemaGenerator {
         // Build nested structure from dot-notation fields
         for (String fieldName : uniqueFields) {
             String[] parts = fieldName.split("\\.");
-            addPropertyToSchema(properties, parts, 0, arrayPathsSet, values);
+            addPropertyToSchema(properties, parts, 0, arrayPathsSet, values, types);
         }
 
         return schema;
     }
 
     /**
+     * Generate JSON-Schema from template fields and repetition groups.
+     *
+     * @param fieldNames List of field names in dot-notation (e.g., "customer.name", "items")
+     * @param arrayPaths List of array paths (e.g., "items", "customer.addresses")
+     * @param fieldValues Map of field names to their default values from ODT
+     * @return JSON-Schema as JsonNode
+     */
+    public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths, Map<String, String> fieldValues) {
+        return generateSchema(fieldNames, arrayPaths, fieldValues, new HashMap<>());
+    }
+
+    /**
      * Legacy method for backward compatibility. Calls generateSchema with empty fieldValues.
      */
     public JsonNode generateSchema(List<String> fieldNames, List<String> arrayPaths) {
-        return generateSchema(fieldNames, arrayPaths, new HashMap<>());
+        return generateSchema(fieldNames, arrayPaths, new HashMap<>(), new HashMap<>());
     }
 
     /**
      * Recursively add property to schema, handling nested objects and arrays.
      */
-    private void addPropertyToSchema(ObjectNode parentProperties, String[] parts, int depth, Set<String> arrayPaths, Map<String, String> fieldValues) {
+    private void addPropertyToSchema(ObjectNode parentProperties, String[] parts, int depth, Set<String> arrayPaths, Map<String, String> fieldValues, Map<String, String> fieldTypes) {
         if (depth >= parts.length) {
             return;
         }
@@ -98,10 +112,11 @@ public class JsonSchemaGenerator {
                     parentProperties.set(partName, prop);
                 }
             } else {
-                // Infer type from field name (heuristic)
+                // Use explicit ODT type if available; fall back to name-based heuristic
                 if (existingProp == null) {
                     prop = objectMapper.createObjectNode();
-                    String type = inferType(partName);
+                    String odtType = fieldTypes.get(fullPath);
+                    String type = (odtType != null) ? odtType : inferType(partName);
                     prop.put("type", type);
 
                     // Add default value if available
@@ -147,7 +162,7 @@ public class JsonSchemaGenerator {
                 }
 
                 // Add remaining parts as properties of array items
-                addPropertyToSchema(itemProperties, parts, depth + 1, arrayPaths, fieldValues);
+                addPropertyToSchema(itemProperties, parts, depth + 1, arrayPaths, fieldValues, fieldTypes);
             } else {
                 // Regular nested object
                 ObjectNode prop;
@@ -169,7 +184,7 @@ public class JsonSchemaGenerator {
                 }
 
                 // Recursively add remaining parts
-                addPropertyToSchema(nestedProperties, parts, depth + 1, arrayPaths, fieldValues);
+                addPropertyToSchema(nestedProperties, parts, depth + 1, arrayPaths, fieldValues, fieldTypes);
             }
         }
     }
@@ -234,21 +249,22 @@ public class JsonSchemaGenerator {
         String lower = fieldName.toLowerCase();
 
         // Numeric type keywords - CONSERVATIVE: only clear cases
+        // NOTE: all comparisons use `lower` (already lowercased), so keywords must be lowercase too.
         // Excluded: "number", "count" (often text identifiers like invoice.number)
         if (lower.contains("price") || lower.contains("amount") || lower.contains("quantity") ||
             lower.contains("total") || lower.contains("rate") || lower.contains("discount") ||
             lower.contains("tax") || lower.contains("fee") || lower.contains("cost") ||
-            lower.contains("salary") || lower.contains("paymentTerms") ||
+            lower.contains("salary") || lower.contains("paymentterms") ||
             // Time/Duration (clear numeric context)
-            lower.contains("daysTerms") || lower.contains("daysTerm") ||
+            lower.contains("daysterms") || lower.contains("dayterm") || lower.contains("termsdays") ||
             lower.contains("percentage") || lower.contains("percent") ||
             // Measurements
             lower.contains("weight") || lower.contains("height") || lower.contains("width") ||
             lower.contains("depth") || lower.contains("volume") || lower.contains("area") ||
             lower.contains("temperature") ||
             // Accounting/Finance
-            lower.contains("netTotal") || lower.contains("grossTotal") || lower.contains("subtotal") ||
-            lower.contains("unitPrice") || lower.contains("listPrice")) {
+            lower.contains("nettotal") || lower.contains("grosstotal") || lower.contains("subtotal") ||
+            lower.contains("unitprice") || lower.contains("listprice")) {
             return "number";
         }
 

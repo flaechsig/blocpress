@@ -204,14 +204,24 @@ Bausteinverwaltung und Content Search.
 | icon:check-circle[role=green] DONE
 
 | UC-19
-| Content Search (Volltextsuche über alle Templates): Suchfeld in der Workbench-UI, sucht über Template-Name, Beschreibung, Feldnamen und — nach Extraktion — über den Textinhalt des ODT. Ergebnisse mit Highlighting, filterbar nach Status (DRAFT / APPROVED).
+| Content Search: Suchfeld in der Workbench-UI (Dashboard), Volltextsuche über Name, Feldnamen, Bedingungen und extrahierten ODT-Text. Multi-Match mit Fuzzy-Suche, Highlighting (`<mark>`-Tags), Typ-Filter (Template/Baustein). Ergebnisse ersetzen die Tab-Ansicht, ESC/leeres Feld bringt Tab-Ansicht zurück. Klick auf Treffer öffnet direkt die Template-Detailansicht.
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TI-7
-| Elasticsearch-Integration: Quarkus Elasticsearch-Client (REST High-Level Client). Index `blocpress-templates` mit Feldern `name`, `description`, `status`, `extractedText`, `fields[]`, `conditions[]`. Dokument wird bei Upload/Validierung indiziert, bei Status-Änderung aktualisiert, bei Löschung entfernt. Elasticsearch läuft als separater Container (Quickstart-Image optional mit ES-Profil).
+| Elasticsearch-Integration (`quarkus-elasticsearch-rest-client`). Index `blocpress-templates` mit Feldern `name` (german analyzer), `type`, `status`, `version` (keyword/integer), `fieldNames`, `conditions`, `extractedText` (german analyzer), `updatedAt`. `ElasticsearchIndexService`: index/updateStatus/delete, best-effort (Fehler → LOG.warn, kein DB-Rollback). `OdtTextExtractor` in `blocpress-core` (`core.odt`-Package). ES im Quickstart-Image (supervisord, priority=5) und in docker-compose als eigener Service. Testcontainers-IT (`SearchIT` + `ElasticsearchTestResource`).
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
+
+| —
+| Prefix-/Typeahead-Suche: `match_phrase_prefix`-Query auf `name` und `extractedText` — Eingabe von "bloc" findet "blocpress" sofort; kombiniert mit bestehendem Fuzzy-Multi-Match.
+| 3
+| icon:check-circle[role=green] DONE
+
+| —
+| Vollständige Workbench JaCoCo-Coverage via `quarkus-jacoco` Extension — Messung deckt `@QuarkusTest`-Code korrekt ab (QuarkusClassLoader-Problem behoben).
+| 3
+| icon:check-circle[role=green] DONE
 |===
 
 <<<
@@ -357,38 +367,3 @@ der SCS-Module.
 | 2
 | icon:check-circle[role=green] DONE
 |===
-
-<<<
-== Abhaengigkeiten
-
-[plantuml, backlog-dependencies, svg]
-----
-@startuml
-skinparam componentStyle rectangle
-
-component "Epic 1\nRendering Engine\n(teilweise DONE)" as E1 #lightgreen
-component "Epic 2\nStorage & Persistence" as E2
-component "Epic 3\nWorkbench" as E3
-component "Epic 4\nProof & Freigabe" as E4
-component "Epic 5\nAdministration" as E5
-component "Epic 6\nPortal & Frontends" as E6
-
-E1 <-- E2 : benoetigt DB\nfuer Template-ID
-E2 <-- E3 : benoetigt Schemas
-E2 <-- E4 : benoetigt Schemas
-E2 <-- E5 : benoetigt Schema admin
-E3 <-- E4 : liefert Templates\nzur Pruefung
-E3 <-- E6 : Web Component\nbp-workbench
-E4 <-- E6 : Web Component\nbp-proof
-E5 <-- E6 : Web Component\nbp-admin
-@enduml
-----
-
-*Reihenfolge:*
-
-. *Epic 6* (Studio) -- Minimale Portal-Shell als Einstiegspunkt (Navigation, JWT)
-. *Epic 3* (Workbench) -- Erster fachlicher Anwendungsfall fuer Template-Designer (UC-1: Upload)
-. *Epic 1* (Rendering Engine) -- Offene Punkte (Template-ID-Rendering, Caching) nach Bedarf
-. *Epic 4* (Proof & Freigabe) -- Aufbauend auf Workbench
-. *Epic 5* (Administration) -- RBAC und Audit-Logging
-. _Epic 2 (Storage & Persistence) entsteht inkrementell beim Aufbau der Epics 3, 4, 5_

@@ -94,8 +94,23 @@ public class RenderResource {
             Files.write(tempFile, renderRequest.getTemplate());
             var json = mapper.valueToTree(renderRequest.getData());
             return mergeAndTransform(tempFile, json, format);
+        } catch (IllegalStateException e) {
+            // LibreOfficeProcessor throws IllegalStateException when soffice exits non-zero
+            // or does not produce the expected output file. Return 500 with the error details
+            // so the caller (workbench) can include the real cause in its error response.
+            logger.error("Document rendering failed: {}", e.getMessage());
+            throw new WebApplicationException(
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                            .entity(e.getMessage())
+                            .type(MediaType.TEXT_PLAIN)
+                            .build());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            logger.error("I/O error during document rendering: {}", e.getMessage());
+            throw new WebApplicationException(
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                            .entity("I/O error: " + e.getMessage())
+                            .type(MediaType.TEXT_PLAIN)
+                            .build());
         }
     }
 

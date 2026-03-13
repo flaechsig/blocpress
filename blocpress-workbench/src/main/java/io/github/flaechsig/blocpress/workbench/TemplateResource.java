@@ -6,6 +6,7 @@ import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
 import io.github.flaechsig.blocpress.workbench.entity.TestDataSet;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.github.flaechsig.blocpress.workbench.service.CoverageAnalysisService;
+import io.github.flaechsig.blocpress.workbench.service.ElasticsearchIndexService;
 import io.github.flaechsig.blocpress.workbench.service.PdfComparisonService;
 import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
 import io.github.flaechsig.blocpress.workbench.service.TestDataSetService;
@@ -26,6 +27,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 import org.jboss.resteasy.reactive.RestForm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -44,9 +47,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Path("workbench/templates")
+@Path("/api/workbench/templates")
 @Produces(MediaType.APPLICATION_JSON)
 public class TemplateResource {
+
+    private static final Logger log = LoggerFactory.getLogger(TemplateResource.class);
 
     @Inject
     TemplateValidator validator;
@@ -59,6 +64,9 @@ public class TemplateResource {
 
     @Inject
     PdfComparisonService pdfComparisonService;
+
+    @Inject
+    ElasticsearchIndexService elasticsearchIndexService;
 
     @Inject
     com.fasterxml.jackson.databind.ObjectMapper objectMapper;
@@ -96,6 +104,7 @@ public class TemplateResource {
         template.type = templateType;
         template.validationResult = validationResult;
         template.persist();
+        elasticsearchIndexService.index(template);
 
         return Response.status(Response.Status.CREATED)
                 .entity(Map.of(
@@ -251,6 +260,7 @@ public class TemplateResource {
             HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(renderUrl + "/render/template"))
                 .header("Content-Type", "application/json")
+                .header("Accept", "application/pdf")
                 .timeout(Duration.ofSeconds(60))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
@@ -259,10 +269,11 @@ public class TemplateResource {
 
             if (httpResponse.statusCode() >= 400) {
                 String errorMsg = new String(httpResponse.body());
-                throw new WebApplicationException(
-                    "Render service error (" + httpResponse.statusCode() + "): " + errorMsg,
-                    Response.Status.BAD_GATEWAY
-                );
+                log.error("Render service returned {} for template {}: {}", httpResponse.statusCode(), id, errorMsg);
+                throw new WebApplicationException(Response.status(Response.Status.BAD_GATEWAY)
+                    .entity(Map.of("error", "Render service error (" + httpResponse.statusCode() + "): " + errorMsg))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build());
             }
 
             String contentType = httpResponse.headers().firstValue("Content-Type").orElse("application/pdf");
@@ -277,10 +288,11 @@ public class TemplateResource {
         } catch (WebApplicationException e) {
             throw e;  // Re-throw as-is
         } catch (Exception e) {
-            throw new WebApplicationException(
-                "Failed to render preview: " + e.getMessage(),
-                Response.Status.INTERNAL_SERVER_ERROR
-            );
+            log.error("Preview failed for template {}: {}", id, e.getMessage(), e);
+            throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Failed to render preview: " + e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build());
         }
     }
 
@@ -350,6 +362,7 @@ public class TemplateResource {
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
+        elasticsearchIndexService.delete(template.id);
         template.delete();
         return Response.noContent().build();
     }
@@ -380,6 +393,7 @@ public class TemplateResource {
         }
 
         template.persist();
+        elasticsearchIndexService.updateStatus(template.id, template.status.name());
 
         // TI-2: Auto-deploy to production when transitioning to APPROVED
         if (request.newStatus() == TemplateStatus.APPROVED) {
@@ -940,12 +954,15 @@ public class TemplateResource {
         HttpRequest httpRequest = HttpRequest.newBuilder()
             .uri(URI.create(renderUrl + "/render/template"))
             .header("Content-Type", "application/json")
+            .header("Accept", "application/pdf")
             .timeout(Duration.ofSeconds(60))
             .POST(HttpRequest.BodyPublishers.ofString(requestBody))
             .build();
         HttpResponse<byte[]> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
-        if (httpResponse.statusCode() >= 400)
+        if (httpResponse.statusCode() >= 400) {
+            log.error("Render-Fehler bei renderPdf für template {}: {} — {}", template.id, httpResponse.statusCode(), new String(httpResponse.body()));
             throw new WebApplicationException("Render-Fehler: " + httpResponse.statusCode(), Response.Status.INTERNAL_SERVER_ERROR);
+        }
         return httpResponse.body();
     }
 

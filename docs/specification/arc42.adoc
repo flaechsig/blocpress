@@ -358,9 +358,9 @@ ScsModules --> Monitor
 | Reife relationale DB mit zwei Schemata: `workbench` für Entwicklung/Test und `production` für freigegebene Templates. Identische Tabellenstrukturen ermöglichen physische, kopie-basierte Stufenübergabe — nur freigegebene Templates werden nach production kopiert, um nachzuweisen, dass nur validierte Versionen in Produktion verwendet werden.
 | Zuverlässigkeit, Wartbarkeit, Compliance
 
-| *Elasticsearch für Content Search*
-| Hochperformante Volltextsuche, Relevanz-Ranking, Highlighting
-| Performance (< 2s Suchzeit)
+| *Elasticsearch 8.11 für Content Search*
+| Hochperformante Volltextsuche via `quarkus-elasticsearch-rest-client`. Index `blocpress-templates` mit german Analyzer für Freitext, keyword-Felder für Filter. `OdtTextExtractor` (blocpress-core) extrahiert Plaintext aus ODT-Bytes. Indexierung best-effort bei Upload/Status-Änderung/Löschung. Im Quickstart-Image als supervisord-Prozess, in docker-compose als eigener Service.
+| Performance (< 2s Suchzeit), UC-19
 
 | *Docker-Container*
 | Jedes SCS-Modul als eigener Container, unabhängig skalierbar
@@ -2190,7 +2190,7 @@ Synchrone Verarbeitung: API-Call wartet bis das Dokument fertig generiert ist un
 
 === ADR-004: Elasticsearch für Content Search
 
-*Status:* Akzeptiert
+*Status:* Umgesetzt (v2.2)
 
 *Kontext:*
 
@@ -2198,7 +2198,7 @@ Volltextsuche über alle Templates nach fachlichen Konstrukten. Optionen: Postgr
 
 *Entscheidung:*
 
-Elasticsearch ≥ 7.x
+Elasticsearch 8.11 via `quarkus-elasticsearch-rest-client` (Low-Level REST Client, kein Hibernate Search ORM).
 
 *Begründung:*
 
@@ -2208,11 +2208,18 @@ Elasticsearch ≥ 7.x
 * *Skalierbarkeit:* Horizontal skalierbar (mehrere Nodes)
 * *Reife:* Bewährte Technologie, große Community
 
+*Begründung für Low-Level REST Client (statt Hibernate Search ORM):*
+
+* Template-Entity ist JPA-seitig stabil — keine ORM-Annotierungen nötig
+* ODT-Textextraktion braucht Custom-Code (`OdtTextExtractor` in blocpress-core) — direkter Client gibt volle Kontrolle über Index-Schema
+* Einfacher mit Testcontainers testbar
+
 *Konsequenzen:*
 
-* Positiv: Exzellente Suchperformance und -qualität
-* Negativ: Zusätzliche Infrastruktur-Komponente, höhere Komplexität
-* Risiko: Eventual Consistency (Index kann wenige Sekunden verzögert sein)
+* Positiv: Exzellente Suchperformance und -qualität, volle Kontrolle über Query-Format
+* Positiv: `OdtTextExtractor` in blocpress-core wiederverwendbar für andere Module
+* Negativ: Zusätzliche Infrastruktur-Komponente, höhere Komplexität im Quickstart-Image
+* Risiko: Eventual Consistency (Index kann wenige Sekunden nach Upload durchsuchbar sein)
 
 === ADR-005: LibreOffice headless statt Cloud-Conversion-Service
 

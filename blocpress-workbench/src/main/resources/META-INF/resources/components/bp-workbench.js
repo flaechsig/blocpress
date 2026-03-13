@@ -1233,6 +1233,66 @@ export class BpWorkbench extends LitElement {
             color: #6d4c00;
             line-height: 1.5;
         }
+
+        /* ---- Elasticsearch Search Bar (UC-19) ---- */
+        .es-search-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .es-search-bar input[type=search] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .es-search-bar input[type=search]:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+        }
+        .es-search-bar select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+            cursor: pointer;
+        }
+        .es-results {
+            margin-bottom: 16px;
+        }
+        .es-results-header {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .es-hit {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .es-hit:hover { background: #f5f8ff; border-color: #1a73e8; }
+        .es-hit-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .es-hit-title mark { background: #fff176; border-radius: 2px; padding: 0 2px; }
+        .es-hit-meta { display: flex; gap: 8px; align-items: center; }
+        .es-hit-snippet {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.5;
+        }
+        .es-hit-snippet mark { background: #fff176; border-radius: 2px; padding: 0 2px; }
     `;
 
     constructor() {
@@ -1306,6 +1366,12 @@ export class BpWorkbench extends LitElement {
         this._rejectDialogOpen = false;
         this._rejectReason = '';
         this._rejecting = false;
+        // Elasticsearch full-text search (UC-19)
+        this._esQuery = '';
+        this._esResults = null;   // null = inactive, {} = active (even if empty)
+        this._esTypeFilter = '';
+        this._esDebounce = null;
+        this._esSearching = false;
     }
 
     connectedCallback() {
@@ -1376,6 +1442,117 @@ export class BpWorkbench extends LitElement {
         `;
     }
 
+    // -----------------------------------------------------------------------
+    // Elasticsearch full-text search (UC-19 / TI-7)
+    // -----------------------------------------------------------------------
+
+    _renderSearchBar() {
+        return html`
+            <div class="es-search-bar">
+                <input type="search"
+                       placeholder="Volltextsuche über alle Templates und Bausteine..."
+                       .value="${this._esQuery}"
+                       @input="${this._onEsInput.bind(this)}"
+                       @keydown="${e => { if (e.key === 'Escape') this._clearEsSearch(); }}">
+                <select @change="${e => { this._esTypeFilter = e.target.value; if (this._esQuery.length >= 2) this._executeEsSearch(); }}">
+                    <option value="">Alle Typen</option>
+                    <option value="TEMPLATE">Templates</option>
+                    <option value="BAUSTEIN">Bausteine</option>
+                </select>
+            </div>
+            ${this._esResults !== null ? this._renderSearchResults() : ''}
+        `;
+    }
+
+    _onEsInput(e) {
+        this._esQuery = e.target.value;
+        clearTimeout(this._esDebounce);
+        if (this._esQuery.length < 2) {
+            this._esResults = null;
+            this.requestUpdate();
+            return;
+        }
+        this._esDebounce = setTimeout(() => this._executeEsSearch(), 300);
+    }
+
+    async _executeEsSearch() {
+        this._esSearching = true;
+        this.requestUpdate();
+        try {
+            const params = new URLSearchParams({ q: this._esQuery });
+            if (this._esTypeFilter) params.append('type', this._esTypeFilter);
+            const res = await fetch(
+                `${this._getApiBase()}/api/workbench/search?${params}`,
+                this.jwt ? { headers: { Authorization: `Bearer ${this.jwt}` } } : {}
+            );
+            this._esResults = res.ok ? await res.json() : { total: 0, hits: [] };
+        } catch (_) {
+            this._esResults = { total: 0, hits: [] };
+        }
+        this._esSearching = false;
+        this.requestUpdate();
+    }
+
+    _clearEsSearch() {
+        this._esQuery = '';
+        this._esResults = null;
+        this.requestUpdate();
+    }
+
+    _renderSearchResults() {
+        if (this._esSearching) {
+            return html`<div class="es-results"><p class="es-results-header">Suche läuft…</p></div>`;
+        }
+        const total = this._esResults?.total ?? 0;
+        const hits = this._esResults?.hits ?? [];
+        return html`
+            <div class="es-results">
+                <div class="es-results-header">
+                    ${total === 0
+                        ? html`Keine Treffer für <em>"${this._esQuery}"</em>`
+                        : html`${total} Treffer für <em>"${this._esQuery}"</em>`}
+                    &nbsp;·&nbsp;
+                    <a href="#" @click="${e => { e.preventDefault(); this._clearEsSearch(); }}">Suche zurücksetzen</a>
+                </div>
+                ${hits.map(hit => html`
+                    <div class="es-hit" @click="${() => this._openHitTemplate(hit)}">
+                        <div class="es-hit-title" .innerHTML="${this._highlightField(hit, 'name', hit.name)}"></div>
+                        <div class="es-hit-meta">
+                            <span class="status-badge status-${hit.status?.toLowerCase()}">${hit.status}</span>
+                            <span class="type-badge">${hit.type}</span>
+                            <span style="color:#999; font-size:12px;">v${hit.version}</span>
+                        </div>
+                        ${this._highlightField(hit, 'extractedText', '') ? html`
+                            <div class="es-hit-snippet"
+                                 .innerHTML="${this._highlightField(hit, 'extractedText', '')}">
+                            </div>` : ''}
+                    </div>
+                `)}
+            </div>
+        `;
+    }
+
+    _highlightField(hit, field, fallback) {
+        const frags = hit.highlight?.[field];
+        return (frags && frags.length > 0) ? frags[0] : fallback;
+    }
+
+    _openHitTemplate(hit) {
+        const template = this._templates.find(t => t.id === hit.id);
+        if (template) {
+            this._clearEsSearch();
+            this._selectTemplate(template);
+        } else {
+            // Template not in current list view (different type tab) — switch and open
+            this._clearEsSearch();
+            this._activeType = hit.type;
+            this._loadTemplates().then(() => {
+                const t = this._templates.find(t => t.id === hit.id);
+                if (t) this._selectTemplate(t);
+            });
+        }
+    }
+
     _renderDashboard() {
         const filteredTemplates = this._filterTemplates();
 
@@ -1389,28 +1566,32 @@ export class BpWorkbench extends LitElement {
                     </button>
                 </div>
 
-                <div class="type-tabs">
-                    <button class="type-tab ${this._activeType === 'TEMPLATE' ? 'active' : ''}"
-                        @click=${() => this._switchActiveType('TEMPLATE')}>
-                        Templates
-                    </button>
-                    <button class="type-tab ${this._activeType === 'BAUSTEIN' ? 'active' : ''}"
-                        @click=${() => this._switchActiveType('BAUSTEIN')}>
-                        Bausteine
-                    </button>
-                </div>
+                ${this._renderSearchBar()}
 
-                <div class="status-filter">
-                    ${this._renderFilterButtons()}
-                </div>
+                ${this._esResults === null ? html`
+                    <div class="type-tabs">
+                        <button class="type-tab ${this._activeType === 'TEMPLATE' ? 'active' : ''}"
+                            @click=${() => this._switchActiveType('TEMPLATE')}>
+                            Templates
+                        </button>
+                        <button class="type-tab ${this._activeType === 'BAUSTEIN' ? 'active' : ''}"
+                            @click=${() => this._switchActiveType('BAUSTEIN')}>
+                            Bausteine
+                        </button>
+                    </div>
 
-                <div class="template-list">
-                    ${filteredTemplates.length === 0 ? html`
-                        <div class="empty-state">
-                            <p>Keine ${typeLabel}s mit Status "${this._statusFilter === 'ALL' ? 'beliebig' : this._statusFilter}"</p>
-                        </div>
-                    ` : this._groupTemplatesByName(filteredTemplates).map(g => this._renderTemplateGroup(g))}
-                </div>
+                    <div class="status-filter">
+                        ${this._renderFilterButtons()}
+                    </div>
+
+                    <div class="template-list">
+                        ${filteredTemplates.length === 0 ? html`
+                            <div class="empty-state">
+                                <p>Keine ${typeLabel}s mit Status "${this._statusFilter === 'ALL' ? 'beliebig' : this._statusFilter}"</p>
+                            </div>
+                        ` : this._groupTemplatesByName(filteredTemplates).map(g => this._renderTemplateGroup(g))}
+                    </div>
+                ` : ''}
 
                 ${this._uploadMode ? this._renderUploadForm() : ''}
 

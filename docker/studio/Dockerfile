@@ -6,16 +6,18 @@
 #   - blocpress-render    (Render API, port 8081)
 #   - blocpress-workbench (Workbench UI, internal port 8082)
 #   - PostgreSQL 16       (internal, not exposed)
+#   - Elasticsearch 8.11  (internal, port 9200 exposed for dev access)
 #
 # Build from project root:
 #   mvn clean package -DskipTests
-#   docker build -f docker/studio/Dockerfile -t flaechsig/blocpress-studio:latest .
+#   docker build -f docker/studio/Dockerfile -t flaechsig/blocpress-studio-quickstart:latest .
 #
 # Run:
-#   docker run -d -p 8080:8080 -p 8081:8081 --name blocpress-studio flaechsig/blocpress-studio:latest
+#   docker run -d -p 8080:8080 -p 8081:8081 -p 9200:9200 --name blocpress flaechsig/blocpress-studio-quickstart:latest
 #
 # Workbench UI:  http://localhost:8080
 # Render API:    http://localhost:8081
+# Elasticsearch: http://localhost:9200
 # Dev JWT token: docs/samples/quickstart/token.txt
 # =============================================================================
 
@@ -56,6 +58,30 @@ RUN set -eux; \
     sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
 
 # ---------------------------------------------------------------------------
+# Elasticsearch 8.11 (full-text search, UC-19 / TI-7)
+# Runs as dedicated system user — ES 8.x refuses to start as root
+# ---------------------------------------------------------------------------
+RUN set -eux; \
+    curl -fsSL https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.11.0-linux-x86_64.tar.gz \
+        -o /tmp/es.tar.gz; \
+    tar -xzf /tmp/es.tar.gz -C /opt; \
+    mv /opt/elasticsearch-8.11.0 /opt/elasticsearch; \
+    rm /tmp/es.tar.gz; \
+    useradd -r -s /bin/false -d /opt/elasticsearch elasticsearch; \
+    mkdir -p /opt/elasticsearch/data /opt/elasticsearch/logs; \
+    chown -R elasticsearch:elasticsearch /opt/elasticsearch
+
+# ES configuration: single-node, no security (dev quickstart)
+RUN printf 'cluster.name: blocpress\n\
+node.name: quickstart\n\
+discovery.type: single-node\n\
+xpack.security.enabled: false\n\
+network.host: 127.0.0.1\n\
+path.data: /opt/elasticsearch/data\n\
+path.logs: /opt/elasticsearch/logs\n' \
+    > /opt/elasticsearch/config/elasticsearch.yml
+
+# ---------------------------------------------------------------------------
 # PostgreSQL: trust-based local auth (dev only — no passwords needed)
 # ---------------------------------------------------------------------------
 RUN echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/16/main/pg_hba.conf && \
@@ -90,7 +116,7 @@ ENV MP_JWT_VERIFY_PUBLICKEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsKU92I7
 ENV MP_JWT_VERIFY_ISSUER="https://blocpress.dev"
 ENV HOME=/tmp
 
-EXPOSE 8080 8081
+EXPOSE 8080 8081 9200
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s \
   CMD curl -sf http://localhost:8080/q/health/ready || exit 1

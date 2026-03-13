@@ -5,7 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - 2026-03-13
+
+### Added
+
+- **Elasticsearch Volltextsuche (UC-19 / TI-7)** — Suchfeld im Workbench-Dashboard durchsucht alle Templates und Bausteine über Name, Feldnamen, Bedingungen und extrahierten ODT-Text.
+  - Multi-Match-Query mit german Analyzer, Fuzzy-Suche und `<mark>`-Highlighting
+  - Typ-Filter (Templates / Bausteine), Ergebnisse ersetzen die Tab-Ansicht
+  - Klick auf Treffer öffnet direkt die Template-Detailansicht
+  - ESC oder leeres Feld bringt die normale Listenansicht zurück
+- **`OdtTextExtractor`** (blocpress-core, Package `core.odt`) — extrahiert lesbaren Plaintext aus ODT-Bytes via odfdom, kein Größenlimit
+- **`ElasticsearchIndexService`** — best-effort Indexierung bei Upload, Status-Änderung und Löschung; Fehler werden geloggt ohne DB-Rollback
+- **`SearchResource`** — `GET /api/workbench/search?q=...&type=...` mit JSON-Response `{total, hits[]}`
+- **Elasticsearch im Quickstart-Image** — ES 8.11 läuft als supervisord-Prozess (priority=5) im All-in-one Image; workbench wartet auf ES-Readiness vor Start
+- **Elasticsearch in docker-compose** — eigener Service `blocpress-elasticsearch` mit Health-Check und Volume `elasticsearch_data`
+- **Integration-Test `SearchIT`** — Testcontainers-basiert mit eigenem `ElasticsearchTestResource` Lifecycle Manager
+- **Integration tests for preview endpoint (`PreviewIT`)** — Four `@QuarkusTest` cases covering:
+  happy path (200 + PDF content-type), render-500 → workbench-502, render-422 → workbench-502,
+  and unknown template → 404. Uses `MockRenderServerResource` (JDK built-in `HttpServer` on a
+  random port) so tests run without Docker or LibreOffice.
+- **E2E regression test for invoice template** — `StudioE2EIT` orders 9 and 10 upload
+  `invoice.odt` and render a preview with real numeric fields (`paymentTermsDays: 14`,
+  `unitPrice: 9.99`, etc.), serving as a regression guard for the `NumberFormatException` bug.
+
+### Fixed
+
+- **502 Bad Gateway on preview** — `LibreOfficeProcessor` throws `IllegalStateException` (not
+  `IOException`) when the LibreOffice process exits with a non-zero code. `RenderResource` only
+  caught `IOException`, so the exception propagated uncaught, Quarkus returned an HTML 500 page,
+  and the workbench converted any ≥ 400 render response to 502. Fixed by adding an explicit
+  `IllegalStateException` catch that returns a proper HTTP 500 with a plain-text body.
+- **`NumberFormatException` on numeric ODT fields** — `JsonSchemaGenerator.inferType()` compared
+  mixed-case keywords (e.g. `"paymentTerms"`, `"netTotal"`, `"unitPrice"`) against a
+  `toLowerCase()`-d string, so all checks always failed and numeric fields were typed as
+  `"string"`. The sample JSON generator then produced string placeholders like
+  `"paymentTermsDays_example"` instead of a number. Fixed by correcting all keyword literals to
+  lowercase. Root cause: `"paymentTermsDays_example"` in render request caused a
+  `NumberFormatException` in the render service.
+- **ODT default values not used for sample JSON** — Numeric, boolean and date field values stored
+  in the ODT declaration (`office:value`, `office:boolean-value`, `office:date-value`) were not
+  read; only `office:string-value` was checked. `OdtTemplateElement` now reads all four ODF value
+  attributes in priority order and exposes the ODF `value-type` via `getValueType()`.
+  `TemplateValidator` maps the ODF type (`float`, `boolean`, etc.) to JSON Schema types and passes
+  a `fieldTypes` map to `JsonSchemaGenerator`, giving ODT-declared types priority over the
+  name-based heuristic. Result: the auto-generated sample JSON now uses the actual default values
+  from the template (e.g. `"paymentTermsDays": 7` instead of a string placeholder).
+- **Prefix / typeahead search returning no results** — Elasticsearch `multi_match` with
+  `fuzziness: AUTO` does not perform prefix matching. Typing `"bloc"` did not find `"blocpress"`
+  because the edit distance (5) exceeds the AUTO threshold (2 for 4-char queries). Fixed by
+  combining the existing `multi_match` with `match_phrase_prefix` queries on `name` (boost 5)
+  and `extractedText` (boost 1), so incremental typing immediately produces results.
+- **Workbench JaCoCo coverage at 13%** — Quarkus's custom `QuarkusClassLoader` bypasses the
+  standard `-javaagent` JaCoCo instrumentation. Added the `io.quarkus:quarkus-jacoco` extension
+  (test scope) and configured `quarkus.jacoco.data-file=target/jacoco-quarkus.exec` so the
+  parent POM's `jacoco-*.exec` glob picks it up during the merge goal.
 
 ---
 

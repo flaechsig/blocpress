@@ -59,6 +59,7 @@ public class TemplateValidator {
         List<String> fieldNames = new ArrayList<>();
         List<String> arrayPaths = new ArrayList<>();
         Map<String, String> fieldValues = new HashMap<>();  // fieldName -> text content value
+        Map<String, String> fieldTypes = new HashMap<>();   // fieldName -> JSON schema type
         Set<String> conditionExpressions = new LinkedHashSet<>();
         Set<String> detectedArrayPaths = new HashSet<>();
         JsonNode schema = null;
@@ -95,6 +96,12 @@ public class TemplateValidator {
                 String fieldValue = extractFieldValue(field);
                 if (fieldValue != null && !fieldValue.isBlank()) {
                     fieldValues.put(name, fieldValue);
+                }
+
+                // Extract field type from ODT value-type attribute
+                String fieldType = extractFieldType(field);
+                if (fieldType != null) {
+                    fieldTypes.put(name, fieldType);
                 }
 
                 // Check field name format
@@ -167,7 +174,7 @@ public class TemplateValidator {
             }
 
             // Step 5: Generate JSON-Schema from fields (incl. condition fields) and arrays
-            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues);
+            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues, fieldTypes);
             LOG.debugf("Generated schema: %s", schema);
 
         } catch (Exception e) {
@@ -222,6 +229,35 @@ public class TemplateValidator {
         } catch (Exception e) {
             // Log but don't fail if we can't extract the value
             LOG.debugf("Could not extract field value: %s", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the JSON schema type of a user field from the ODT office:value-type attribute.
+     * Maps ODF value types to JSON schema types:
+     * - "float", "percentage", "currency" → "number"
+     * - "boolean" → "boolean"
+     * - everything else (string, date, time, null) → "string"
+     *
+     * @param field the template element representing a user field
+     * @return the JSON schema type ("number", "boolean", or "string"), or null if not determinable
+     */
+    private String extractFieldType(TemplateElement field) {
+        try {
+            if (field instanceof OdtTemplateElement odtElement) {
+                String valueType = odtElement.getValueType();
+                if (valueType == null) {
+                    return null;
+                }
+                return switch (valueType) {
+                    case "float", "percentage", "currency" -> "number";
+                    case "boolean" -> "boolean";
+                    default -> "string";
+                };
+            }
+        } catch (Exception e) {
+            LOG.debugf("Could not extract field type: %s", e.getMessage());
         }
         return null;
     }

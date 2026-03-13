@@ -47,7 +47,7 @@ public class Template extends PanacheEntityBase {
     public Integer version = 1;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "bytea")
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
 

@@ -37,8 +37,11 @@ services:
       QUARKUS_DATASOURCE_PASSWORD: workbench
       RENDER_URL: http://render:8080
       QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:4200,http://localhost:8081,http://localhost:8080,http://localhost:4200"
+      ELASTICSEARCH_HOSTS: elasticsearch:9200
     depends_on:
       postgres:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8081/q/health/ready"]
@@ -77,6 +80,28 @@ services:
       - blocpress
     restart: unless-stopped
 
+  # Elasticsearch - Full-Text Search Engine (UC-19 / TI-7)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: blocpress-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - blocpress
+    restart: unless-stopped
+
   # Studio Service - Template Designer Web UI (Port 4200)
   studio:
     build:
@@ -104,6 +129,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:

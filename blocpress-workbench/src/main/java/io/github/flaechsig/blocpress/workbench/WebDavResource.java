@@ -21,14 +21,14 @@ import java.util.List;
  * WebDAV endpoint for accessing templates and Bausteine via HTTP.
  *
  * URL-Schema:
- *   GET/PUT  /webdav/bausteine/{name}.odt          → latest DRAFT (read-write)
- *   GET      /webdav/released/bausteine/{name}.odt → latest APPROVED (read-only)
- *   GET/PUT  /webdav/templates/{name}.odt          → latest DRAFT (read-write)
- *   GET      /webdav/released/templates/{name}.odt → latest APPROVED (read-only)
- *   PROPFIND /webdav/{collection}/                 → directory listing (207)
- *   OPTIONS  /webdav/                              → DAV: 1
+ *   GET/PUT  /api/webdav/bausteine/{name}.odt          → latest DRAFT (read-write)
+ *   GET      /api/webdav/released/bausteine/{name}.odt → latest APPROVED (read-only)
+ *   GET/PUT  /api/webdav/templates/{name}.odt          → latest DRAFT (read-write)
+ *   GET      /api/webdav/released/templates/{name}.odt → latest APPROVED (read-only)
+ *   PROPFIND /api/webdav/{collection}/                 → directory listing (207)
+ *   OPTIONS  /api/webdav/                              → DAV: 1
  */
-@Path("webdav")
+@Path("/api/webdav")
 public class WebDavResource {
 
     private static final String ODT_CONTENT_TYPE = "application/vnd.oasis.opendocument.text";

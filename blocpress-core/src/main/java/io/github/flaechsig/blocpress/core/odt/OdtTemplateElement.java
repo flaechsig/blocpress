@@ -52,11 +52,31 @@ public class OdtTemplateElement implements TemplateElement {
         return element.getAttribute("text:condition");
     }
 
+    private static final String OFFICE_NS = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+
+    /**
+     * Returns the {@code office:value-type} attribute of this element (e.g. "float", "string",
+     * "boolean", "date", "percentage", "currency", "time"), or {@code null} if not set.
+     *
+     * @return the value type string, or null
+     */
+    public String getValueType() {
+        if (element == null) {
+            return null;
+        }
+        String vt = element.getAttributeNS(OFFICE_NS, "value-type");
+        if (vt == null || vt.isBlank()) {
+            vt = element.getAttribute("office:value-type");
+        }
+        return (vt != null && !vt.isBlank()) ? vt : null;
+    }
+
     /**
      * Gets the text content of this element.
      * For {@code text:user-field-get} elements this is the rendered/default value.
-     * For {@code text:user-field-decl} elements the value lives in the
-     * {@code office:string-value} attribute (the element itself has no text content).
+     * For {@code text:user-field-decl} elements the value lives in one of the
+     * {@code office:string-value}, {@code office:value}, {@code office:boolean-value}, or
+     * {@code office:date-value} attributes depending on the field's value type.
      *
      * @return the value, or null if not available
      */
@@ -68,11 +88,29 @@ public class OdtTemplateElement implements TemplateElement {
         if (content != null && !content.isBlank()) {
             return content.strip();
         }
-        // text:user-field-decl stores the declared/example value here
-        String declared = element.getAttributeNS(
-                "urn:oasis:names:tc:opendocument:xmlns:office:1.0", "string-value");
+        // text:user-field-decl stores the declared/example value here.
+        // Reading order: string-value → value (float) → boolean-value → date-value
+        String declared = element.getAttributeNS(OFFICE_NS, "string-value");
         if (declared == null || declared.isBlank()) {
             declared = element.getAttribute("office:string-value");
+        }
+        if (declared == null || declared.isBlank()) {
+            declared = element.getAttributeNS(OFFICE_NS, "value");
+            if (declared == null || declared.isBlank()) {
+                declared = element.getAttribute("office:value");
+            }
+        }
+        if (declared == null || declared.isBlank()) {
+            declared = element.getAttributeNS(OFFICE_NS, "boolean-value");
+            if (declared == null || declared.isBlank()) {
+                declared = element.getAttribute("office:boolean-value");
+            }
+        }
+        if (declared == null || declared.isBlank()) {
+            declared = element.getAttributeNS(OFFICE_NS, "date-value");
+            if (declared == null || declared.isBlank()) {
+                declared = element.getAttribute("office:date-value");
+            }
         }
         return (declared != null && !declared.isBlank()) ? declared.strip() : null;
     }
