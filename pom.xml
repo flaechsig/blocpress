@@ -28,6 +28,22 @@
 
     <build>
         <plugins>
+            <!-- Stellt git.branch für den trigger-release-Profil bereit -->
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.1</version>
+                <executions>
+                    <execution>
+                        <id>git-info</id>
+                        <phase>initialize</phase>
+                        <goals><goal>revision</goal></goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skipPoms>false</skipPoms>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -296,6 +312,108 @@
     </scm>
 
     <profiles>
+        <!--
+            Release-Trigger: Startet den GitHub Actions Release-Workflow via gh CLI.
+            Verwendung:
+              mvn validate -Ptrigger-release -Drelease.version=2.3.0 -Drelease.next=2.4.0
+        -->
+        <profile>
+            <id>trigger-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>push-branch</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>push</argument>
+                                        <argument>origin</argument>
+                                        <argument>HEAD</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>trigger-workflow</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>gh</executable>
+                                    <arguments>
+                                        <argument>workflow</argument>
+                                        <argument>run</argument>
+                                        <argument>release.yml</argument>
+                                        <argument>--ref</argument>
+                                        <argument>${git.branch}</argument>
+                                        <argument>-f</argument>
+                                        <argument>version=${release.version}</argument>
+                                        <argument>-f</argument>
+                                        <argument>next_version=${release.next}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>watch-workflow</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>-c</argument>
+                                        <argument>sleep 5 &amp;&amp; gh run watch $(gh run list --workflow=release.yml --limit=1 --json databaseId -q '.[0].databaseId')</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>switch-to-main</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>checkout</argument>
+                                        <argument>main</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>pull-main</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>pull</argument>
+                                        <argument>origin</argument>
+                                        <argument>main</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>delete-local-branch</id>
+                                <phase>validate</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>git</executable>
+                                    <arguments>
+                                        <argument>branch</argument>
+                                        <argument>-d</argument>
+                                        <argument>${git.branch}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>release</id>
             <build>

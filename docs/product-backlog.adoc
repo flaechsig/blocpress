@@ -367,3 +367,40 @@ der SCS-Module.
 | 2
 | icon:check-circle[role=green] DONE
 |===
+
+<<<
+[[epic-7]]
+== Epic 7: Build- und Release-Automatisierung
+
+_GitHub Actions CI/CD-Pipeline für automatisierte Releases auf Maven Central, Docker Hub und GitHub._
+
+[cols="1,3,1,1" options="header"]
+|===
+| Ref | Story | Prio | Status
+
+| —
+| CI-Workflow (`ci.yml`): Build + Unit-Tests + Integration-Tests bei jedem Push auf `main` / `workbench-*` und bei Pull Requests (Testcontainers, Docker)
+| 1
+| icon:check-circle[role=green] DONE
+
+| —
+| Release-Workflow (`release.yml`): `workflow_dispatch` mit Version-Inputs — vollautomatisch: Version bump (pom.xml + Landing Page), Tests, Maven Central, Docker Hub (:X.Y.Z + :latest), Git-Tag, Branch-Merge nach main, Branch löschen, SNAPSHOT-Version vorbereiten, GitHub Release aus CHANGELOG
+| 1
+| icon:check-circle[role=green] DONE
+
+| —
+| `mvn validate -Ptrigger-release`: Ein-Befehl-Release vom Terminal via `exec-maven-plugin` + `gh` CLI — pusht Branch, startet Workflow, wartet auf Fertigstellung, wechselt auf main, löscht lokalen Branch
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Docker Hub README automatisch aktualisieren: `peter-evans/dockerhub-description` Action liest `docs/dockerhub.md` und pusht bei jedem Release
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| Nur `blocpress-core` auf Maven Central (GPG-signiert via `central-publishing-maven-plugin`, `-Prelease`-Profil) — Quarkus-Apps bleiben als Docker-Images
+| 1
+| icon:check-circle[role=green] DONE
+
+|===

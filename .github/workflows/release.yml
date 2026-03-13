@@ -115,6 +115,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Docker Hub README aktualisieren
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: flaechsig/blocpress-studio-quickstart
+          readme-filepath: docs/dockerhub.md
+
       # ------------------------------------------------------------------
       # Tag setzen & Branch in main mergen
       # ------------------------------------------------------------------

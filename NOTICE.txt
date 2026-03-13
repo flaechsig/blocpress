@@ -3,23 +3,79 @@ blocpress
 Copyright 2026 Hans Flächsig
 
 This product is licensed under the Apache License, Version 2.0.
-
-This product includes software developed by
-The Apache Software Foundation (http://www.apache.org/).
+See the LICENSE file for the full license text.
 
 This product uses the following third-party libraries:
 
-- ODF Toolkit (odfdom-java)
-  Licensed under the Apache License, Version 2.0
+-------------------------------------------------------------------------------
+Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+-------------------------------------------------------------------------------
 
-- Jackson Datatype JSR310
-  Licensed under the Apache License, Version 2.0
+- Quarkus Framework (io.quarkus)
+  Copyright Red Hat, Inc. and contributors
+  https://quarkus.io
 
-- Apache Commons JEXL
-  Licensed under the Apache License, Version 2.0
+- ODF Toolkit — odfdom-java (org.odftoolkit)
+  Copyright The Document Foundation
+  https://odftoolkit.org
 
-- Apache Commons IO
-  Licensed under the Apache License, Version 2.0
+- Apache Commons JEXL (org.apache.commons:commons-jexl3)
+  Copyright The Apache Software Foundation
+  https://commons.apache.org/proper/commons-jexl/
 
-- Lombok
-  Licensed under the MIT License
+- Apache Commons IO (commons-io)
+  Copyright The Apache Software Foundation
+  https://commons.apache.org/proper/commons-io/
+
+- Apache Commons Lang (org.apache.commons:commons-lang3)
+  Copyright The Apache Software Foundation
+  https://commons.apache.org/proper/commons-lang/
+
+- Apache PDFBox (org.apache.pdfbox)
+  Copyright The Apache Software Foundation
+  https://pdfbox.apache.org
+
+- Jackson (com.fasterxml.jackson)
+  Copyright FasterXML, LLC
+  https://github.com/FasterXML/jackson
+
+- Elasticsearch REST Client (org.elasticsearch.client)
+  Copyright Elasticsearch B.V.
+  https://www.elastic.co
+
+- SmallRye JWT (io.smallrye)
+  Copyright Red Hat, Inc. and contributors
+  https://smallrye.io
+
+- networknt JSON Schema Validator (com.networknt:json-schema-validator)
+  Copyright Network New Technologies Inc.
+  https://github.com/networknt/json-schema-validator
+
+- JaCoCo (org.jacoco)
+  Copyright EclEmma and contributors
+  https://www.jacoco.org
+
+-------------------------------------------------------------------------------
+GNU Lesser General Public License, Version 2.1
+(https://www.gnu.org/licenses/lgpl-2.1.html)
+-------------------------------------------------------------------------------
+
+- Hibernate ORM (org.hibernate.orm)
+  Copyright Red Hat, Inc. and contributors
+  https://hibernate.org
+
+-------------------------------------------------------------------------------
+BSD 2-Clause License
+-------------------------------------------------------------------------------
+
+- PostgreSQL JDBC Driver (org.postgresql)
+  Copyright The PostgreSQL Global Development Group
+  https://jdbc.postgresql.org
+
+-------------------------------------------------------------------------------
+MIT License
+-------------------------------------------------------------------------------
+
+- Lombok (org.projectlombok)
+  Copyright The Project Lombok Authors
+  https://projectlombok.org

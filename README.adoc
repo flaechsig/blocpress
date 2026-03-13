@@ -319,8 +319,7 @@ mvn clean package -DskipTests
 mvn test -pl blocpress-core
 
 # Generate Maven site with coverage reports
-mvn clean test site
-./aggregate-site.sh
+mvn clean test site site:stage
 # Then open: target/site/index.html
 ----
 
@@ -332,19 +331,38 @@ To generate site reports with aggregated module coverage:
 
 [source,bash]
 ----
-mvn clean test site
-./aggregate-site.sh
+mvn clean test site site:stage
 ----
 
 This will:
 1. Run all unit tests and generate coverage data
 2. Create Maven site reports for all modules
-3. Aggregate module reports into the parent site
-4. Open `target/site/index.html` to view all reports
+3. Aggregate module reports into the parent site (`target/staging/`)
+4. Open `target/staging/index.html` to view all reports
 
 The Coverage menu includes links to:
 - **Core** — Core library coverage
 - **Render** — REST API and rendering module
 - **Workbench** — Template development workspace
 - **Studio** — Portal shell
+
+=== Releasing
+
+Releases are fully automated via GitHub Actions. Prerequisites: `gh` CLI installed and authenticated.
+
+[source,bash]
+----
+# On a workbench-X.Y branch, after committing all changes and updating CHANGELOG.md:
+mvn validate -Ptrigger-release -Drelease.version=2.3.0 -Drelease.next=2.4.0
+----
+
+The workflow automatically:
+
+* Sets the version in all `pom.xml` files and `docs/index.html`
+* Runs build + tests
+* Publishes `blocpress-core` to Maven Central (GPG-signed)
+* Builds and pushes the Docker image to Docker Hub (`:X.Y.Z` + `:latest`)
+* Creates a Git tag, merges the branch into `main`, deletes the branch
+* Bumps `main` to the next `SNAPSHOT` version
+* Creates a GitHub Release with the CHANGELOG excerpt
 

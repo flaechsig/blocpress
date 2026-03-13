@@ -459,7 +459,7 @@ Die Übergabe erfolgt als Kopie: Das Template wird vom workbench-Schema in das p
 === Organisatorische Entscheidungen
 
 * *Entwicklungsprozess:* Agil Kanban
-* *CI/CD:* Automatische Tests bei jedem Commit, je SCS-Modul
+* *CI/CD:* GitHub Actions — CI bei jedem Commit/PR, vollautomatischer Release per `mvn validate -Ptrigger-release` (workflow_dispatch: Version bump, Tests, Maven Central, Docker Hub, GitHub Release, Branch-Merge)
 * *Dokumentation:* arc42 für Architektur, Javadoc für Code, OpenAPI für REST-API
 * *Team-Ownership:* Jedes SCS-Modul kann von einem eigenen Team verantwortet werden
 
@@ -1711,6 +1711,79 @@ NOTE: Die übrigen SCS-Module (workbench, proof, admin) werden analog konfigurie
 * *Performance:* SSD-Storage für PostgreSQL, Connection Pooling pro Modul, Load Balancing für render
 * *Überwachbarkeit:* Liveness-/Readiness-Probes je Modul, OpenTelemetry für Traces/Metriken/Logs (optional)
 * *Unabhängigkeit:* Jedes SCS-Modul kann unabhängig deployed und aktualisiert werden
+
+=== Build- und Release-Pipeline (GitHub Actions)
+
+Zwei Workflows steuern CI und Release vollautomatisch.
+
+==== CI-Workflow (`ci.yml`)
+
+Wird bei jedem Push auf `main` oder `workbench-*` sowie bei Pull Requests ausgelöst.
+
+* Unit-Tests: `mvn clean test -pl blocpress-core,blocpress-workbench`
+* Integration-Tests mit Testcontainers (Docker): `mvn verify -DskipUTs`
+
+==== Release-Workflow (`release.yml`)
+
+Wird manuell per `workflow_dispatch` ausgelöst — entweder in der GitHub UI oder über die Kommandozeile:
+
+[source,bash]
+----
+mvn validate -Ptrigger-release -Drelease.version=2.3.0 -Drelease.next=2.4.0
+----
+
+Der Workflow führt folgende Schritte sequenziell aus:
+
+[cols="1,3" options="header"]
+|===
+| Schritt | Aktion
+
+| Version setzen
+| `mvn versions:set -DnewVersion=X.Y.Z` in allen pom.xml + Landing Page (`docs/index.html`) aktualisieren, committen
+
+| Build & Test
+| Unit-Tests + Integration-Tests (inkl. Testcontainers)
+
+| Maven Central
+| `blocpress-core` signiert (GPG) und deployed via `central-publishing-maven-plugin` (`-Prelease`)
+
+| Docker Hub
+| Quickstart-Image gebaut und gepusht als `:X.Y.Z` + `:latest`; Docker Hub README aus `docs/dockerhub.md` aktualisiert
+
+| Git-Tag
+| `vX.Y.Z` gesetzt und gepusht
+
+| Merge
+| Workbench-Branch → `main` (no-ff), Branch danach gelöscht
+
+| Nächste Version
+| `mvn versions:set -DnewVersion=X.Y+1.0-SNAPSHOT` auf `main` committen
+
+| GitHub Release
+| Erstellt mit dem Abschnitt `[X.Y.Z]` aus `CHANGELOG.md` als Release-Notes
+|===
+
+*Benötigte Repository Secrets:*
+
+[cols="1,2" options="header"]
+|===
+| Secret | Quelle
+
+| `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_TOKEN`
+| central.sonatype.com → Account → Generate User Token
+
+| `GPG_PRIVATE_KEY` / `GPG_PASSPHRASE`
+| Lokaler GPG-Key (`gpg --armor --export-secret-keys`)
+
+| `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`
+| hub.docker.com → Account Settings → Personal Access Tokens
+|===
+
+*Versionskonvention:*
+
+* `main` trägt immer eine SNAPSHOT-Version (z.B. `2.3.0-SNAPSHOT`) — sichtbarer Indikator für Entwicklungsstand
+* Release-Tags (`v2.2.0`) zeigen auf den Commit ohne `-SNAPSHOT`
+* Nur `blocpress-core` wird auf Maven Central veröffentlicht — die Quarkus-Apps (render, workbench, studio) sind Deployable-Artefakte, keine Libraries
 
 <<<<
 [[section-concepts]]
