@@ -1,23 +1,31 @@
 name: Release
 
-# Triggered by pushing a version tag, e.g. git tag v2.2.0 && git push --tags
+# Trigger: GitHub UI → Actions → Release → "Run workflow"
+# Input: version (e.g. 2.3.0) and next_version (e.g. 2.4.0)
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release-Version (z.B. 2.3.0)'
+        required: true
+      next_version:
+        description: 'Nächste Entwicklungsversion ohne -SNAPSHOT (z.B. 2.4.0)'
+        required: true
 
 jobs:
-  # -------------------------------------------------------------------------
-  # 1. Build & test everything
-  # -------------------------------------------------------------------------
-  build:
-    name: Build & Test
+  release:
+    name: Release v${{ inputs.version }}
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.value }}
+    permissions:
+      contents: write   # push commits + tags + create GitHub Release
 
     steps:
+      # ------------------------------------------------------------------
+      # Checkout & Tools
+      # ------------------------------------------------------------------
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # vollständige History für den Merge
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
@@ -25,57 +33,53 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-
-      - name: Extract version from tag
-        id: version
-        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Build all modules (skip tests for speed — tests ran on CI)
-        run: mvn clean package -DskipTests
-
-      - name: Upload workbench artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: quarkus-apps
-          path: |
-            blocpress-workbench/target/quarkus-app/
-            blocpress-render/target/quarkus-app/
-            blocpress-studio/target/quarkus-app/
-          retention-days: 1
-
-  # -------------------------------------------------------------------------
-  # 2. Publish blocpress-core to Maven Central
-  #    (blocpress-core is the shared library — the only artifact consumers need)
-  # -------------------------------------------------------------------------
-  publish-maven:
-    name: Publish to Maven Central
-    runs-on: ubuntu-latest
-    needs: build
-    environment: release   # optional: require manual approval in GitHub UI
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 21 with Maven Central server
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-          # Injects <server id="central"> into ~/.m2/settings.xml
           server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
-      - name: Import GPG key
+      - name: Git-Konfiguration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ------------------------------------------------------------------
+      # Version setzen & committen (pom.xml + Landing Page)
+      # ------------------------------------------------------------------
+      - name: Version auf ${{ inputs.version }} setzen
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
+
+      - name: Landing Page aktualisieren
+        run: |
+          OLD=$(grep -oP '"softwareVersion": "\K[^"]+' docs/index.html | head -1)
+          sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" docs/index.html
+          sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" docs/index.html
+
+      - name: Version committen
+        run: |
+          git add -A
+          git commit -m "release: v${{ inputs.version }}"
+
+      # ------------------------------------------------------------------
+      # Build & Test
+      # ------------------------------------------------------------------
+      - name: Build & Unit-Tests
+        run: mvn clean test -pl blocpress-core,blocpress-workbench
+
+      - name: Integration-Tests
+        run: mvn verify -pl blocpress-core,blocpress-workbench -DskipUTs
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      # ------------------------------------------------------------------
+      # Maven Central — nur blocpress-core
+      # ------------------------------------------------------------------
+      - name: GPG-Key importieren
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Deploy blocpress-core to Maven Central
-        # --also-make builds the parent POM first (required for dependency resolution)
-        # -Prelease activates GPG signing + central-publishing-maven-plugin
+      - name: blocpress-core nach Maven Central deployen
         run: >
           mvn deploy
           -pl blocpress-core
@@ -87,67 +91,69 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-  # -------------------------------------------------------------------------
-  # 3. Build & push Docker image to Docker Hub
-  # -------------------------------------------------------------------------
-  publish-docker:
-    name: Push Docker image
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Build all Quarkus apps
+      # ------------------------------------------------------------------
+      # Docker Hub — Quickstart-Image
+      # ------------------------------------------------------------------
+      - name: Alle Module bauen (für Docker-Image)
         run: mvn clean package -DskipTests
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
+      - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Docker-Image bauen und pushen
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/studio/Dockerfile
           push: true
           tags: |
-            flaechsig/blocpress-studio-quickstart:${{ needs.build.outputs.version }}
+            flaechsig/blocpress-studio-quickstart:${{ inputs.version }}
             flaechsig/blocpress-studio-quickstart:latest
-          # Layer caching via GitHub Actions cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # -------------------------------------------------------------------------
-  # 4. Create GitHub Release with CHANGELOG excerpt
-  # -------------------------------------------------------------------------
-  github-release:
-    name: GitHub Release
-    runs-on: ubuntu-latest
-    needs: [ publish-maven, publish-docker ]
-    permissions:
-      contents: write   # required to create a release
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract release notes from CHANGELOG.md
-        id: notes
-        # Extracts the block between the first "## [x.y.z]" heading and the next one
+      # ------------------------------------------------------------------
+      # Tag setzen & Branch in main mergen
+      # ------------------------------------------------------------------
+      - name: Commit + Tag pushen
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          git push origin HEAD
+          git tag v${{ inputs.version }}
+          git push origin v${{ inputs.version }}
+
+      - name: In main mergen
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          git checkout main
+          git pull origin main
+          git merge --no-ff "$BRANCH" -m "Merge '$BRANCH' — Release v${{ inputs.version }}"
+          git push origin main
+
+      - name: Branch löschen
+        run: git push origin --delete ${{ github.ref_name }}
+
+      # ------------------------------------------------------------------
+      # Nächste Entwicklungsversion auf main vorbereiten
+      # ------------------------------------------------------------------
+      - name: Version auf ${{ inputs.next_version }}-SNAPSHOT setzen
+        run: mvn versions:set -DnewVersion=${{ inputs.next_version }}-SNAPSHOT -DgenerateBackupPoms=false
+
+      - name: Nächste Version committen
+        run: |
+          git add -A
+          git commit -m "chore: prepare v${{ inputs.next_version }}-SNAPSHOT"
+          git push origin main
+
+      # ------------------------------------------------------------------
+      # GitHub Release aus CHANGELOG erstellen
+      # ------------------------------------------------------------------
+      - name: Release-Notes aus CHANGELOG extrahieren
+        id: notes
+        run: |
+          VERSION="${{ inputs.version }}"
           NOTES=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
           {
             echo "content<<EOF"
@@ -155,11 +161,9 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      - name: GitHub Release erstellen
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "blocpress ${{ github.ref_name }}"
+          tag_name: v${{ inputs.version }}
+          name: "blocpress v${{ inputs.version }}"
           body: ${{ steps.notes.outputs.content }}
-          draft: false
-          prerelease: false
