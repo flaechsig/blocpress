@@ -18,7 +18,7 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <jacoco.version>0.8.11</jacoco.version>
-        <testcontainers.version>1.20.6</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Override via: mvn verify -pl blocpress-e2e -Dstudio.image=myrepo/blocpress:custom -->
         <studio.image>flaechsig/blocpress-studio-quickstart:latest</studio.image>
         <!-- E2E tests off by default — enable: mvn verify -pl blocpress-e2e -De2e.skip=false -->
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>2.0.12</version>
+            <version>1.7.36</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -127,6 +127,13 @@
                         <jacoco.exec.dir>${project.build.directory}</jacoco.exec.dir>
                         <studio.image>${studio.image}</studio.image>
                     </systemPropertyVariables>
+                    <environmentVariables>
+                        <!-- Explicit socket — survives Docker Desktop / rootless setups -->
+                        <DOCKER_HOST>unix:///var/run/docker.sock</DOCKER_HOST>
+                        <TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>/var/run/docker.sock</TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>
+                        <!-- Disable Ryuk cleanup sidecar — reduces startup overhead in dev/CI -->
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                    </environmentVariables>
                 </configuration>
                 <executions>
                     <execution>

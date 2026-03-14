@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -76,16 +75,20 @@ class RenderApiIT {
     static void setUp() throws Exception {
         Assumptions.assumeTrue(isDockerAvailable(), "Docker not available — skipping RenderApiIT");
 
-        container = new GenericContainer<>(DockerImageName.parse(IMAGE))
-                .withExposedPorts(RENDER_PORT)
-                .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("render"))
-                .waitingFor(
-                        Wait.forHttp("/q/health/ready")
-                                .forPort(RENDER_PORT)
-                                .forStatusCode(200)
-                                .withStartupTimeout(Duration.ofMinutes(4))
-                );
-        container.start();
+        try {
+            container = new GenericContainer<>(DockerImageName.parse(IMAGE))
+                    .withExposedPorts(RENDER_PORT)
+                    .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("render"))
+                    .waitingFor(
+                            Wait.forHttp("/q/health/ready")
+                                    .forPort(RENDER_PORT)
+                                    .forStatusCode(200)
+                                    .withStartupTimeout(Duration.ofMinutes(4))
+                    );
+            container.start();
+        } catch (IllegalStateException e) {
+            Assumptions.abort("Docker environment not usable — skipping RenderApiIT: " + e.getMessage());
+        }
 
         renderUrl = "http://" + container.getHost() + ":" + container.getMappedPort(RENDER_PORT);
 
@@ -104,12 +107,24 @@ class RenderApiIT {
     }
 
     private static boolean isDockerAvailable() {
-        try {
-            DockerClientFactory.instance().client();
-            return true;
-        } catch (Exception e) {
-            return false;
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            try {
+                Process p = new ProcessBuilder("docker", "info")
+                        .redirectErrorStream(true)
+                        .start();
+                if (p.waitFor() == 0) return true;
+            } catch (Exception e) {
+                // docker not on PATH or daemon not running
+            }
+            if (attempt < 5) {
+                LOG.info("Docker not ready yet (attempt {}/5), retrying in 3s...", attempt);
+                try { Thread.sleep(3000); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
         }
+        return false;
     }
 
     @Test

@@ -183,8 +183,8 @@ import java.net.URL;
 <span class="pc bpc" id="L183" title="2 of 4 branches missed.">        if (StringUtils.isBlank(name) || StringUtils.isBlank(prefix)) {</span>
 <span class="nc" id="L184">            return name;</span>
         }
-<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (!name.startsWith(prefix)) {</span>
-<span class="nc" id="L187">            return name;</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (!name.startsWith(prefix)) {</span>
+<span class="fc" id="L187">            return name;</span>
         }
 
 <span class="fc" id="L190">        String remainder = name.substring(prefix.length());</span>

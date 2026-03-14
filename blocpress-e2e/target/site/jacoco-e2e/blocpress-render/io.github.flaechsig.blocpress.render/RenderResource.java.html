@@ -86,8 +86,8 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
     @PermitAll
     public File renderDocumentJson(RenderRequest renderRequest) {
 <span class="fc" id="L88">        logger.info(&quot;Rendering document from base64-encoded template&quot;);</span>
-<span class="pc bpc" id="L89" title="2 of 3 branches missed.">        OutputFormat format = switch (renderRequest.getOutputType()) {</span>
-<span class="nc" id="L90">            case PDF -&gt; OutputFormat.PDF;</span>
+<span class="pc bpc" id="L89" title="1 of 3 branches missed.">        OutputFormat format = switch (renderRequest.getOutputType()) {</span>
+<span class="fc" id="L90">            case PDF -&gt; OutputFormat.PDF;</span>
 <span class="nc" id="L91">            case RTF -&gt; RTF;</span>
 <span class="fc" id="L92">            case ODT -&gt; ODT;</span>
         };
@@ -120,47 +120,53 @@ import static io.github.flaechsig.blocpress.core.OutputFormat.RTF;
     @jakarta.ws.rs.Path(&quot;/{name}&quot;)
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({&quot;application/pdf&quot;, &quot;application/rtf&quot;, &quot;application/vnd.oasis.opendocument.text&quot;})
+    @PermitAll
     public File renderDocumentByName(
             @PathParam(&quot;name&quot;) String name,
             RenderByNameRequest renderByNameRequest) {
-<span class="nc" id="L126">        logger.info(&quot;Rendering document from template name: {}&quot;, name);</span>
+<span class="fc" id="L127">        logger.info(&quot;Rendering document from template name: {}&quot;, name);</span>
         try {
-<span class="nc bnc" id="L128" title="All 4 branches missed.">            OutputFormat format = switch (renderByNameRequest.getOutputType().toString().toLowerCase()) {</span>
-<span class="nc" id="L129">                case &quot;pdf&quot; -&gt; OutputFormat.PDF;</span>
-<span class="nc" id="L130">                case &quot;rtf&quot; -&gt; RTF;</span>
-<span class="nc" id="L131">                case &quot;odt&quot; -&gt; ODT;</span>
-<span class="nc" id="L132">                default -&gt; throw new IllegalArgumentException(</span>
-<span class="nc" id="L133">                        &quot;Invalid output type: &quot; + renderByNameRequest.getOutputType());</span>
+<span class="pc bpc" id="L129" title="3 of 4 branches missed.">            OutputFormat format = switch (renderByNameRequest.getOutputType().toString().toLowerCase()) {</span>
+<span class="fc" id="L130">                case &quot;pdf&quot; -&gt; OutputFormat.PDF;</span>
+<span class="nc" id="L131">                case &quot;rtf&quot; -&gt; RTF;</span>
+<span class="nc" id="L132">                case &quot;odt&quot; -&gt; ODT;</span>
+<span class="nc" id="L133">                default -&gt; throw new IllegalArgumentException(</span>
+<span class="pc" id="L134">                        &quot;Invalid output type: &quot; + renderByNameRequest.getOutputType());</span>
             };
-<span class="nc" id="L135">            var dataNode = mapper.valueToTree(renderByNameRequest.getData());</span>
-<span class="nc" id="L136">            byte[] templateContent = templateCache.getTemplateContentByName(name);</span>
-<span class="nc" id="L137">            Path tempFile = Files.createTempFile(&quot;template-&quot; + name, &quot;.odt&quot;);</span>
-<span class="nc" id="L138">            Files.write(tempFile, templateContent);</span>
-<span class="nc" id="L139">            return mergeAndTransform(tempFile, dataNode, format);</span>
-<span class="nc" id="L140">        } catch (TemplateNotFoundException e) {</span>
-<span class="nc" id="L141">            logger.warn(&quot;Template not found or not approved: {}&quot;, name);</span>
-<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (e.getMessage().contains(&quot;not approved&quot;)) {</span>
-<span class="nc" id="L143">                throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);</span>
+<span class="fc" id="L136">            var dataNode = mapper.valueToTree(renderByNameRequest.getData());</span>
+<span class="fc" id="L137">            byte[] templateContent = templateCache.getTemplateContentByName(name);</span>
+<span class="fc" id="L138">            Path tempFile = Files.createTempFile(&quot;template-&quot; + name, &quot;.odt&quot;);</span>
+<span class="fc" id="L139">            Files.write(tempFile, templateContent);</span>
+<span class="fc" id="L140">            return mergeAndTransform(tempFile, dataNode, format);</span>
+<span class="nc" id="L141">        } catch (TemplateNotFoundException e) {</span>
+<span class="nc" id="L142">            logger.warn(&quot;Template not found or not approved: {}&quot;, name);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if (e.getMessage().contains(&quot;not approved&quot;)) {</span>
+<span class="nc" id="L144">                throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);</span>
             } else {
-<span class="nc" id="L145">                throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);</span>
+<span class="nc" id="L146">                throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);</span>
             }
-<span class="nc" id="L147">        } catch (IOException e) {</span>
-<span class="nc" id="L148">            logger.error(&quot;Failed to fetch or render template {}: {}&quot;, name, e.getMessage(), e);</span>
-<span class="nc" id="L149">            throw new WebApplicationException(&quot;Failed to render document: &quot; + e.getMessage(),</span>
+<span class="nc" id="L148">        } catch (IOException e) {</span>
+<span class="nc" id="L149">            logger.error(&quot;Failed to fetch or render template {}: {}&quot;, name, e.getMessage(), e);</span>
+<span class="nc" id="L150">            throw new WebApplicationException(&quot;Failed to render document: &quot; + e.getMessage(),</span>
+                    Response.Status.INTERNAL_SERVER_ERROR);
+<span class="nc" id="L152">        } catch (Exception e) {</span>
+<span class="nc" id="L153">            logger.error(&quot;Unexpected error rendering template by name '{}': {} — {}&quot;, name,</span>
+<span class="nc" id="L154">                    e.getClass().getName(), e.getMessage(), e);</span>
+<span class="nc" id="L155">            throw new WebApplicationException(&quot;Unexpected error: &quot; + e.getClass().getSimpleName() + &quot;: &quot; + e.getMessage(),</span>
                     Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
 
     private File mergeAndTransform(Path templatePath, JsonNode json, OutputFormat format) throws IOException {
-<span class="fc" id="L155">        var odt = templatePath.toUri().toURL();</span>
-<span class="fc" id="L156">        logger.info(&quot;Calling merge&quot;);</span>
-<span class="fc" id="L157">        var merge = RenderEngine.mergeTemplate(odt, json);</span>
-<span class="fc" id="L158">        logger.info(&quot;Calling transform&quot;);</span>
-<span class="fc" id="L159">        var result = libreOfficePool.convert(merge, format);</span>
-<span class="fc" id="L160">        logger.info(&quot;Build output&quot;);</span>
-<span class="fc" id="L161">        Path output = Files.createTempFile(&quot;output&quot;, &quot;.&quot; + format.getSuffix());</span>
-<span class="fc" id="L162">        Files.write(output, result);</span>
-<span class="fc" id="L163">        return output.toFile();</span>
+<span class="fc" id="L161">        var odt = templatePath.toUri().toURL();</span>
+<span class="fc" id="L162">        logger.info(&quot;Calling merge&quot;);</span>
+<span class="fc" id="L163">        var merge = RenderEngine.mergeTemplate(odt, json);</span>
+<span class="fc" id="L164">        logger.info(&quot;Calling transform&quot;);</span>
+<span class="fc" id="L165">        var result = libreOfficePool.convert(merge, format);</span>
+<span class="fc" id="L166">        logger.info(&quot;Build output&quot;);</span>
+<span class="fc" id="L167">        Path output = Files.createTempFile(&quot;output&quot;, &quot;.&quot; + format.getSuffix());</span>
+<span class="fc" id="L168">        Files.write(output, result);</span>
+<span class="fc" id="L169">        return output.toFile();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -120,6 +120,7 @@ public class RenderResource {
     @jakarta.ws.rs.Path("/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({"application/pdf", "application/rtf", "application/vnd.oasis.opendocument.text"})
+    @PermitAll
     public File renderDocumentByName(
             @PathParam("name") String name,
             RenderByNameRequest renderByNameRequest) {
@@ -147,6 +148,11 @@ public class RenderResource {
         } catch (IOException e) {
             logger.error("Failed to fetch or render template {}: {}", name, e.getMessage(), e);
             throw new WebApplicationException("Failed to render document: " + e.getMessage(),
+                    Response.Status.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            logger.error("Unexpected error rendering template by name '{}': {} — {}", name,
+                    e.getClass().getName(), e.getMessage(), e);
+            throw new WebApplicationException("Unexpected error: " + e.getClass().getSimpleName() + ": " + e.getMessage(),
                     Response.Status.INTERNAL_SERVER_ERROR);
         }
     }

@@ -310,9 +310,9 @@ public final class UserFieldFormatter {
             try {
 <span class="fc bfc" id="L311" title="All 2 branches covered.">                if (&quot;number:number&quot;.equals(child.getTagName())) {</span>
 <span class="fc" id="L312">                    var textContent = child.getAttribute(&quot;number:decimal-places&quot;);</span>
-<span class="pc bpc" id="L313" title="1 of 2 branches missed.">                    decimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">                    decimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
 <span class="fc" id="L314">                    textContent = child.getAttribute(&quot;number:min-decimal-places&quot;);</span>
-<span class="pc bpc" id="L315" title="1 of 2 branches missed.">                    minimalDecimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">                    minimalDecimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
 <span class="fc" id="L316">                    textContent = child.getAttribute(&quot;number:min-integer-digits&quot;);</span>
 <span class="pc bpc" id="L317" title="1 of 2 branches missed.">                    minIntegerDigits = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
 <span class="fc" id="L318">                    textContent = child.getAttribute(&quot;number:grouping&quot;);</span>
