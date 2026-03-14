@@ -96,6 +96,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Async Rendering: Scheduled polling worker (UC-23) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
         <!-- LibreOffice Worker Pool (UC: LO Pool) -->
         <dependency>
             <groupId>org.jodconverter</groupId>

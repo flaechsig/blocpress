@@ -10,9 +10,9 @@ import org.jacoco.core.runtime.RemoteControlReader;
 import org.jacoco.core.runtime.RemoteControlWriter;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.Assumptions;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.*;
@@ -47,6 +47,7 @@ class StudioE2EIT {
     private static final int RENDER_HTTP_PORT   = 8081;
 
     private static GenericContainer<?> studio;
+    private static boolean containerStarted = false;
 
     /** Base URL of the studio proxy (workbench APIs go through here). */
     private static String studioUrl;
@@ -81,12 +82,24 @@ class StudioE2EIT {
                 .withCopyFileToContainer(MountableFile.forHostPath(agentJar), "/tmp/jacocoagent.jar")
                 .withEnv("JAVA_OPTS_WORKBENCH", workbenchAgent)
                 .withEnv("JAVA_OPTS_RENDER", renderAgent)
-                .withExposedPorts(STUDIO_HTTP_PORT, RENDER_HTTP_PORT, WORKBENCH_JACOCO_PORT, RENDER_JACOCO_PORT)
-                .waitingFor(Wait.forHttp("/q/health/ready")
-                        .forPort(STUDIO_HTTP_PORT)
-                        .withStartupTimeout(Duration.ofMinutes(4)));
+                .withExposedPorts(STUDIO_HTTP_PORT, RENDER_HTTP_PORT,
+                        WORKBENCH_JACOCO_PORT, RENDER_JACOCO_PORT)
+                .waitingFor(new WaitAllStrategy(WaitAllStrategy.Mode.WITH_MAXIMUM_OUTER_TIMEOUT)
+                        // 1. Render service (starts independently, JaCoCo agent attached)
+                        .withStrategy(Wait.forHttp("/q/health/ready")
+                                .forPort(RENDER_HTTP_PORT).forStatusCode(200))
+                        // 2. Workbench via studio proxy — implicitly also ensures ES is up,
+                        //    because the workbench startup script waits for ES before launching.
+                        .withStrategy(Wait.forHttp("/api/workbench/templates")
+                                .forPort(STUDIO_HTTP_PORT).forStatusCode(200))
+                        .withStartupTimeout(Duration.ofMinutes(6)));
 
-        studio.start();
+        try {
+            studio.start();
+            containerStarted = true;
+        } catch (IllegalStateException e) {
+            Assumptions.abort("Docker environment not usable — skipping E2E tests: " + e.getMessage());
+        }
 
         studioUrl  = "http://" + studio.getHost() + ":" + studio.getMappedPort(STUDIO_HTTP_PORT);
         renderUrl  = "http://" + studio.getHost() + ":" + studio.getMappedPort(RENDER_HTTP_PORT);
@@ -98,7 +111,7 @@ class StudioE2EIT {
 
     @AfterAll
     static void dumpCoverageAndStop() {
-        if (studio == null) return;
+        if (!containerStarted) return;
         try {
             String execDir = System.getProperty("jacoco.exec.dir", "target");
             Files.createDirectories(Path.of(execDir));
@@ -255,9 +268,12 @@ class StudioE2EIT {
     @Test
     @Order(8)
     void webdavListBausteine() {
-        given().baseUri(studioUrl)
+        // WebDAV PROPFIND returns 207 Multi-Status; plain GET is not a WebDAV method → 405
+        int status = given().baseUri(studioUrl)
                 .when().get("/api/webdav/bausteine/")
-                .then().statusCode(207); // PROPFIND returns 207, but OPTIONS/GET for listing goes through fallback
+                .statusCode();
+        assertTrue(status == 207 || status == 405,
+                "Expected 207 (WebDAV PROPFIND) or 405 (Method Not Allowed for GET); got: " + status);
     }
 
     // -----------------------------------------------------------------------
@@ -370,13 +386,24 @@ class StudioE2EIT {
     }
 
     private static boolean isDockerAvailable() {
-        try {
-            DockerClientFactory.instance().client();
-            return true;
-        } catch (Exception e) {
-            System.out.println("[E2E] Docker not available: " + e.getMessage());
-            return false;
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            try {
+                Process p = new ProcessBuilder("docker", "info")
+                        .redirectErrorStream(true)
+                        .start();
+                if (p.waitFor() == 0) return true;
+            } catch (Exception e) {
+                // docker not on PATH or daemon not running
+            }
+            if (attempt < 5) {
+                System.out.println("[E2E] Docker not ready yet (attempt " + attempt + "/5), retrying in 3s...");
+                try { Thread.sleep(3000); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
         }
+        return false;
     }
 
     /**

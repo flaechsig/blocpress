@@ -1,10 +1,8 @@
 package io.github.flaechsig.blocpress.render;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -34,7 +32,6 @@ public class ProductionTemplate extends PanacheEntityBase {
     @Column(nullable = false)
     public Integer version;
 
-    @Basic(fetch = FetchType.LAZY)
     @Column(nullable = false)
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
@@ -48,7 +45,7 @@ public class ProductionTemplate extends PanacheEntityBase {
      * @return Currently active template, or null if not found
      */
     public static ProductionTemplate findLatestActiveByName(String name) {
-        return find("name = ?1 AND valid_from <= CURRENT_TIMESTAMP ORDER BY valid_from DESC, version DESC", name)
+        return find("name = ?1 AND validFrom <= CURRENT_TIMESTAMP ORDER BY validFrom DESC, version DESC", name)
                 .firstResult();
     }
 }

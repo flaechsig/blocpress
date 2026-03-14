@@ -49,22 +49,22 @@ import java.util.stream.IntStream;
 <span class="fc" id="L49">    private boolean poolAvailable = false;</span>
 
     void start(@Observes StartupEvent e) {
-<span class="nc" id="L52">        int[] ports = IntStream.range(0, workers).map(i -&gt; portStart + i).toArray();</span>
+<span class="fc" id="L52">        int[] ports = IntStream.range(0, workers).map(i -&gt; portStart + i).toArray();</span>
         try {
-<span class="nc" id="L54">            LocalOfficeManager.Builder builder = LocalOfficeManager.builder()</span>
-<span class="nc" id="L55">                    .portNumbers(ports)</span>
-<span class="nc" id="L56">                    .taskExecutionTimeout(120_000L)</span>
-<span class="nc" id="L57">                    .maxTasksPerProcess(200);</span>
-<span class="nc" id="L58">            officeHome.ifPresent(builder::officeHome);</span>
-<span class="nc" id="L59">            manager = builder.build();</span>
-<span class="nc" id="L60">            manager.start();</span>
-<span class="nc" id="L61">            poolAvailable = true;</span>
-<span class="nc" id="L62">            LOG.info(&quot;LibreOffice pool started: {} worker(s), ports {}-{}&quot;,</span>
-<span class="nc" id="L63">                    workers, portStart, portStart + workers - 1);</span>
+<span class="fc" id="L54">            LocalOfficeManager.Builder builder = LocalOfficeManager.builder()</span>
+<span class="fc" id="L55">                    .portNumbers(ports)</span>
+<span class="fc" id="L56">                    .taskExecutionTimeout(120_000L)</span>
+<span class="fc" id="L57">                    .maxTasksPerProcess(200);</span>
+<span class="fc" id="L58">            officeHome.ifPresent(builder::officeHome);</span>
+<span class="fc" id="L59">            manager = builder.build();</span>
+<span class="fc" id="L60">            manager.start();</span>
+<span class="fc" id="L61">            poolAvailable = true;</span>
+<span class="fc" id="L62">            LOG.info(&quot;LibreOffice pool started: {} worker(s), ports {}-{}&quot;,</span>
+<span class="fc" id="L63">                    workers, portStart, portStart + workers - 1);</span>
 <span class="nc" id="L64">        } catch (Exception ex) {</span>
 <span class="nc" id="L65">            LOG.warn(&quot;LibreOffice pool unavailable, falling back to CLI mode: {}&quot;, ex.getMessage());</span>
-<span class="nc" id="L66">        }</span>
-<span class="nc" id="L67">    }</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">    }</span>
 
     void stop(@Observes ShutdownEvent e) {
 <span class="nc bnc" id="L70" title="All 2 branches missed.">        if (manager != null) {</span>
@@ -82,38 +82,38 @@ import java.util.stream.IntStream;
      * Nutzt den Pool falls verfügbar, sonst CLI-Fallback.
      */
     public byte[] convert(byte[] odtBytes, OutputFormat format) throws IOException {
-<span class="pc bpc" id="L85" title="1 of 2 branches missed.">        if (!poolAvailable) {</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (!poolAvailable) {</span>
 <span class="fc" id="L86">            return LibreOfficeProcessor.refreshAndTransform(odtBytes, format);</span>
         }
 
-<span class="nc" id="L89">        Path inputFile = Files.createTempFile(&quot;lo-in-&quot;, &quot;.odt&quot;);</span>
-<span class="nc" id="L90">        Path outputFile = Files.createTempFile(&quot;lo-out-&quot;, &quot;.&quot; + format.getSuffix());</span>
+<span class="fc" id="L89">        Path inputFile = Files.createTempFile(&quot;lo-in-&quot;, &quot;.odt&quot;);</span>
+<span class="fc" id="L90">        Path outputFile = Files.createTempFile(&quot;lo-out-&quot;, &quot;.&quot; + format.getSuffix());</span>
         try {
-<span class="nc" id="L92">            Files.write(inputFile, odtBytes);</span>
-<span class="nc" id="L93">            DocumentFormat sourceFormat = DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
-<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (sourceFormat == null) {</span>
+<span class="fc" id="L92">            Files.write(inputFile, odtBytes);</span>
+<span class="fc" id="L93">            DocumentFormat sourceFormat = DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">            if (sourceFormat == null) {</span>
 <span class="nc" id="L95">                throw new IOException(&quot;ODT format not found in JodConverter registry&quot;);</span>
             }
-<span class="nc bnc" id="L97" title="All 3 branches missed.">            DocumentFormat targetFormat = switch (format) {</span>
-<span class="nc" id="L98">                case PDF -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;pdf&quot;);</span>
+<span class="pc bpc" id="L97" title="2 of 3 branches missed.">            DocumentFormat targetFormat = switch (format) {</span>
+<span class="fc" id="L98">                case PDF -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;pdf&quot;);</span>
 <span class="nc" id="L99">                case RTF -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;rtf&quot;);</span>
-<span class="nc" id="L100">                case ODT -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
+<span class="pc" id="L100">                case ODT -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
             };
-<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (targetFormat == null) {</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            if (targetFormat == null) {</span>
 <span class="nc" id="L103">                throw new IOException(&quot;Target format not found in JodConverter registry: &quot; + format);</span>
             }
-<span class="nc" id="L105">            LocalConverter.make(manager)</span>
-<span class="nc" id="L106">                    .convert(inputFile.toFile())</span>
-<span class="nc" id="L107">                    .as(sourceFormat)</span>
-<span class="nc" id="L108">                    .to(outputFile.toFile())</span>
-<span class="nc" id="L109">                    .as(targetFormat)</span>
-<span class="nc" id="L110">                    .execute();</span>
-<span class="nc" id="L111">            return Files.readAllBytes(outputFile);</span>
+<span class="fc" id="L105">            LocalConverter.make(manager)</span>
+<span class="fc" id="L106">                    .convert(inputFile.toFile())</span>
+<span class="fc" id="L107">                    .as(sourceFormat)</span>
+<span class="fc" id="L108">                    .to(outputFile.toFile())</span>
+<span class="fc" id="L109">                    .as(targetFormat)</span>
+<span class="fc" id="L110">                    .execute();</span>
+<span class="fc" id="L111">            return Files.readAllBytes(outputFile);</span>
 <span class="nc" id="L112">        } catch (OfficeException ex) {</span>
 <span class="nc" id="L113">            throw new IOException(&quot;LibreOffice conversion failed: &quot; + ex.getMessage(), ex);</span>
         } finally {
-<span class="nc" id="L115">            Files.deleteIfExists(inputFile);</span>
-<span class="nc" id="L116">            Files.deleteIfExists(outputFile);</span>
+<span class="fc" id="L115">            Files.deleteIfExists(inputFile);</span>
+<span class="fc" id="L116">            Files.deleteIfExists(outputFile);</span>
         }
     }
 }

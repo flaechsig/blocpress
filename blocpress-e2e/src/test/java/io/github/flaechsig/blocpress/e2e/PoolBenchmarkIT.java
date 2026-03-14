@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -65,7 +64,13 @@ class PoolBenchmarkIT {
 
         for (int workers : new int[]{1, 2, 3}) {
             LOG.info("=== Starting benchmark with {} worker(s) ===", workers);
-            BenchmarkResult result = runWithWorkers(workers, payloads);
+            BenchmarkResult result;
+            try {
+                result = runWithWorkers(workers, payloads);
+            } catch (IllegalStateException e) {
+                Assumptions.abort("Docker environment not usable — skipping benchmark: " + e.getMessage());
+                return;
+            }
             results.add(result);
             LOG.info("Workers={}: total={}s avg={}ms min={}ms max={}ms p95={}ms",
                     workers,
@@ -210,12 +215,24 @@ class PoolBenchmarkIT {
     }
 
     private static boolean isDockerAvailable() {
-        try {
-            DockerClientFactory.instance().client();
-            return true;
-        } catch (Exception e) {
-            return false;
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            try {
+                Process p = new ProcessBuilder("docker", "info")
+                        .redirectErrorStream(true)
+                        .start();
+                if (p.waitFor() == 0) return true;
+            } catch (Exception e) {
+                // docker not on PATH or daemon not running
+            }
+            if (attempt < 5) {
+                LOG.info("Docker not ready yet (attempt {}/5), retrying in 3s...", attempt);
+                try { Thread.sleep(3000); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
         }
+        return false;
     }
 
     private GenericContainer<?> buildContainer(int workers) {

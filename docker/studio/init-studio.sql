@@ -82,4 +82,20 @@ CREATE TABLE IF NOT EXISTS template (
 CREATE INDEX IF NOT EXISTS idx_template_name ON template(name);
 CREATE INDEX IF NOT EXISTS idx_template_valid_from ON template(valid_from DESC);
 
+CREATE TABLE IF NOT EXISTS render_job (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    template_name VARCHAR(255),
+    data JSONB NOT NULL,
+    output_type VARCHAR(10) NOT NULL DEFAULT 'pdf',
+    result BYTEA,
+    webhook_url VARCHAR(1000),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    error_message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_render_job_status ON render_job(status, created_at);
+
 ALTER TABLE template OWNER TO blocpress;
+ALTER TABLE render_job OWNER TO blocpress;

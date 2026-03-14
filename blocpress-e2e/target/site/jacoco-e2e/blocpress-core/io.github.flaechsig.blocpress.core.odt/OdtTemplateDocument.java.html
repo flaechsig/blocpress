@@ -108,24 +108,24 @@ public class OdtTemplateDocument implements TemplateDocument {
 <span class="fc" id="L108">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;text:section&quot;));</span>
 <span class="fc" id="L109">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;table:table-row&quot;));</span>
 
-<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        for (TemplateElement candidate : candidates) {</span>
-<span class="nc" id="L112">            List&lt;TemplateElement&gt; fields = candidate.collectUserFields();</span>
-<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (fields.size() &lt; 2) continue;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        for (TemplateElement candidate : candidates) {</span>
+<span class="fc" id="L112">            List&lt;TemplateElement&gt; fields = candidate.collectUserFields();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (fields.size() &lt; 2) continue;</span>
 
             // Collect the first-level prefix of each field name
-<span class="nc" id="L116">            Set&lt;String&gt; prefixes = new java.util.LinkedHashSet&lt;&gt;();</span>
-<span class="nc bnc" id="L117" title="All 2 branches missed.">            for (TemplateElement field : fields) {</span>
-<span class="nc" id="L118">                String name = field.getName();</span>
-<span class="nc bnc" id="L119" title="All 4 branches missed.">                if (name != null &amp;&amp; name.contains(&quot;.&quot;)) {</span>
-<span class="nc" id="L120">                    prefixes.add(name.split(&quot;\\.&quot;)[0]);</span>
+<span class="fc" id="L116">            Set&lt;String&gt; prefixes = new java.util.LinkedHashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            for (TemplateElement field : fields) {</span>
+<span class="fc" id="L118">                String name = field.getName();</span>
+<span class="pc bpc" id="L119" title="2 of 4 branches missed.">                if (name != null &amp;&amp; name.contains(&quot;.&quot;)) {</span>
+<span class="fc" id="L120">                    prefixes.add(name.split(&quot;\\.&quot;)[0]);</span>
                 }
-<span class="nc" id="L122">            }</span>
+<span class="fc" id="L122">            }</span>
 
             // If all fields in this element share exactly one top-level prefix → repetition group
-<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (prefixes.size() == 1) {</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">            if (prefixes.size() == 1) {</span>
 <span class="nc" id="L126">                result.add(prefixes.iterator().next());</span>
             }
-<span class="nc" id="L128">        }</span>
+<span class="fc" id="L128">        }</span>
 
 <span class="fc" id="L130">        return result;</span>
     }

@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.render;
 
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ public class TemplateCache {
      * @return Template binary content (ODT file)
      * @throws TemplateNotFoundException if template does not exist in production
      */
+    @Transactional
     @CacheResult(cacheName = "templates")
     public byte[] getTemplateContent(UUID templateId) {
         logger.info("Fetching template {} from production schema (cache miss)", templateId);
@@ -50,6 +52,7 @@ public class TemplateCache {
      * @return Template binary content (ODT file) of latest version
      * @throws TemplateNotFoundException if template does not exist in production
      */
+    @Transactional
     @CacheResult(cacheName = "templates")
     public byte[] getTemplateContentByName(String templateName) {
         logger.info("Fetching template {} from production schema (cache miss)", templateName);
