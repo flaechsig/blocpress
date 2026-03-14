@@ -252,6 +252,9 @@
                             <hotfixBranchPrefix>hotfix/</hotfixBranchPrefix>
                         </gitFlowConfig>
                         <pushRemote>false</pushRemote>
+                        <!-- Remote-Feature-Branch löschen bevor git branch -d,
+                             sonst verweigert git -d wegen ungemergtem upstream-Ref -->
+                        <deleteRemoteBranchOnFinish>true</deleteRemoteBranchOnFinish>
                         <skipTestProject>true</skipTestProject>
                     </configuration>
                 </plugin>
