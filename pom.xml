@@ -232,6 +232,29 @@
                     <artifactId>maven-antrun-plugin</artifactId>
                     <version>3.1.0</version>
                 </plugin>
+                <!--
+                    Gitflow-Workflow-Automatisierung.
+                    Feature-Branch anlegen:  mvn gitflow:feature-start
+                    Feature-Branch mergen:   mvn gitflow:feature-finish
+                    Release starten:         mvn gitflow:release-start
+                    Release abschließen:     mvn gitflow:release-finish
+                -->
+                <plugin>
+                    <groupId>com.amashchenko.maven.plugin</groupId>
+                    <artifactId>gitflow-maven-plugin</artifactId>
+                    <version>1.21.0</version>
+                    <configuration>
+                        <gitFlowConfig>
+                            <productionBranch>main</productionBranch>
+                            <developmentBranch>main</developmentBranch>
+                            <featureBranchPrefix>feature/</featureBranchPrefix>
+                            <releaseBranchPrefix>release/</releaseBranchPrefix>
+                            <hotfixBranchPrefix>hotfix/</hotfixBranchPrefix>
+                        </gitFlowConfig>
+                        <pushRemote>false</pushRemote>
+                        <skipTestProject>true</skipTestProject>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
