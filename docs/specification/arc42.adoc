@@ -271,7 +271,6 @@ node "Docker Host / Kubernetes" as Docker {
     component "blocpress-render\n(Quarkus)" as Render
   }
   database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproduction)" as DB
-  queue "RabbitMQ/Kafka" as MQ
   component "Elasticsearch ≥ 7.x" as ES
 }
 
@@ -286,9 +285,8 @@ Studio -down-> Admin : REST (intern)
 ExtApp -down-> Render : REST-API\nJSON over HTTPS
 
 Workbench -down-> DB : JDBC (Schema: workbench)
-Render -down-> DB : JDBC (Schema: production)
+Render -down-> DB : JDBC (Schema: production)\n+ render_job (async queue)
 Workbench -down-> ES : REST-API\nHTTP/JSON
-Render -down-> MQ : AMQP / Kafka Protocol
 ScsModules --> Monitor
 @enduml
 ----
@@ -489,7 +487,6 @@ package "blocpress Gesamtsystem" {
   component "blocpress-core\n(Shared Library)" as Core
 
   database "PostgreSQL\n(workbench | production)" as DB
-  queue "Message Queue\n(RabbitMQ)" as MQ
   component "Content Search\n(Elasticsearch)" as Search
 }
 
@@ -667,33 +664,50 @@ end note
 skinparam componentStyle rectangle
 
 package "blocpress-render (Quarkus)" {
-  component "REST-API\nController\n(öffentlich)" as API
-  component "Document\nService" as DS
-  component "LibreOffice\nProcessor" as LO
-  component "Storage\nService" as Storage
+  component "RenderResource\n(sync, öffentlich)" as API
+  component "AsyncRenderResource\n(UC-23: /api/render/jobs/*)" as AsyncAPI
+  component "RenderDashboardResource\n(/api/render/dashboard)" as Dashboard
+  component "RenderJobWorker\n(@Scheduled, alle 2s)" as Worker
+  component "TemplateCache\n(Caffeine, 10min TTL)" as Cache
+  component "LibreOffice\nPool" as LO
+  component "WebhookSender\n(VirtualThread)" as Webhook
   component "Repository\nLayer" as Repo
 }
 
 component "blocpress-core\n(Shared Library)" as Core
 
-API -down-> DS : aufrufen
-DS -down-> Core : Merge-Pipeline\n(TF-5 Schritt 1-4)
-DS -down-> LO : Format-Export\n(TF-5 Schritt 5)
-DS -down-> Storage : save/load
-DS -down-> Repo : read
+API -down-> Cache : getTemplateContent
+API -down-> Core : mergeTemplate
+API -down-> LO : convert
+
+AsyncAPI -down-> Repo : INSERT render_job (PENDING)
+Worker -down-> Repo : SKIP LOCKED claim
+Worker -down-> Core : mergeTemplate
+Worker -down-> LO : convert
+Worker -down-> Repo : UPDATE result/status
+Worker -down-> Webhook : sendAsync(webhookUrl)
+
+Cache -down-> Repo : findLatestActiveByName (cache miss)
 Repo -down-> "PostgreSQL\n(Schema: production)" : JDBC
+
+note right of Worker
+  @Scheduled(every="2s")
+  PostgreSQL SKIP LOCKED:
+  konkurrenzsicheres
+  Job-Claiming (ADR-008)
+end note
+
+note right of LO
+  LibreOffice ≥ 24
+  headless: Format-Export
+  ODT → PDF / RTF
+end note
 
 note right of Core
   ODT-Parsing, Merge-Pipeline:
   Text-Blöcke, Bedingungen,
   Schleifen, Feldersetzung
   (reines Java/odfdom)
-end note
-
-note right of LO
-  LibreOffice ≥ 24
-  headless: nur Format-Export
-  ODT → PDF / RTF
 end note
 
 @enduml
@@ -986,59 +1000,75 @@ end note
 @enduml
 ----
 
-=== Dokument über API generieren (asynchron)
+=== Dokument über API generieren (asynchron, UC-23)
 
-*Szenario:* Externe Anwendung generiert Dokument über blocpress-render (UC-10, TF-5)
+*Szenario:* Externe Anwendung generiert Dokument über den asynchronen Job-Queue-Endpunkt von blocpress-render (UC-23, TI-8). Implementiert mit PostgreSQL SKIP LOCKED statt Message Broker.
 
 [plantuml, laufzeit-doc-generation, svg]
 ----
 @startuml
 participant "Externe\nAnwendung" as App
-participant "blocpress-render\nREST-API\n(öffentlich)" as API
-participant "DocumentService\n(UC-10)" as UC
-participant "Message Queue" as MQ
-participant "DocumentWorker" as Worker
-participant "LibreOfficeProcessor\n(TF-5)" as LO
-participant "StorageService" as Storage
-participant "Repository\n(Schema: production)" as Repo
+participant "blocpress-render\nAsyncRenderResource" as API
+participant "RenderJobWorker\n(@Scheduled, alle 2s)" as Worker
+participant "RenderEngine\n(TF-5)" as Engine
+participant "LibreOfficeProcessor" as LO
+participant "WebhookSender\n(VirtualThread)" as Webhook
+participant "Repository\n(render_job Tabelle)" as Repo
 
-App -> API : POST /api/documents/generate\n{templateId, jsonData, format}
-API -> UC : generateDocument(...)
-UC -> Repo : createGenerationRecord()\nStatus: "In Bearbeitung"
-Repo --> UC : GenerationId
-UC -> MQ : sendMessage(generationId, templateId,\njsonData, format)
-MQ --> UC : MessageId
-UC --> API : GenerationId
-API --> App : 202 Accepted\n{generationId}
+App -> API : POST /api/render/jobs\n{templateName, data, outputType, webhookUrl?}
+API -> Repo : INSERT render_job (status=PENDING)
+Repo --> API : UUID jobId
+API --> App : 202 Accepted\n{id, status: "PENDING"}
 
-... Asynchrone Verarbeitung ...
+... Polling (optional) ...
 
-MQ -> Worker : consumeMessage
-Worker -> Repo : loadTemplate(templateId)
-Repo --> Worker : Template (incl. binary)
-Worker -> LO : generateDocument(template,\njsonData, format)
-LO -> LO : LibreOffice UNO-API:\n- Template öffnen\n- User-Fields befüllen\n- Wiederholungsgruppen iterieren\n- IF-Bedingungen auswerten\n- Export (ODT/PDF/RTF)
-LO --> Worker : documentBinary
-Worker -> Storage : save(documentBinary)
-Storage --> Worker : StorageId
-Worker -> Repo : updateGenerationRecord()\nStatus: "Erfolgreich"
+App -> API : GET /api/render/jobs/{id}
+API -> Repo : findById(jobId)
+Repo --> API : {status: "PENDING"}
+API --> App : {id, status: "PENDING"}
+
+... Asynchrone Verarbeitung (Worker pollt alle 2s) ...
+
+Worker -> Repo : UPDATE render_job SET status='PROCESSING'\nWHERE id = (SELECT id FROM render_job\nWHERE status='PENDING' ORDER BY created_at\nLIMIT 1 FOR UPDATE SKIP LOCKED)
+note right of Repo
+  SKIP LOCKED: Mehrere Worker-Instanzen
+  können gleichzeitig Jobs claimem
+  ohne sich gegenseitig zu blockieren
+end note
+Repo --> Worker : RenderJob (templateName, data, outputType)
+Worker -> Engine : mergeTemplate(templatePath, jsonData)
+Engine --> Worker : merged ODT
+Worker -> LO : convert(mergedOdt, format)
+LO --> Worker : result (PDF/ODT/RTF bytes)
+Worker -> Repo : UPDATE render_job SET status='DONE',\nresult=<bytes>, updated_at=now()
 Repo --> Worker : OK
 
-... Polling durch Anwendung ...
+alt webhookUrl vorhanden
+  Worker -> Webhook : sendAsync(webhookUrl, {jobId, status})
+  note right of Webhook
+    Fire-and-Forget via
+    Thread.ofVirtual().start()
+    Fehler werden geloggt,
+    nicht propagiert
+  end note
+end
 
-App -> API : GET /api/documents/{id}/status
-API -> Repo : findById(generationId)
-Repo --> API : Document (status, storageId)
-API --> App : {status: "Erfolgreich",\ndownloadUrl: "/api/documents/{id}/download"}
+... Ergebnis abholen ...
 
-App -> API : GET /api/documents/{id}/download
-API -> Storage : load(storageId)
-Storage --> API : documentBinary
+App -> API : GET /api/render/jobs/{id}
+API -> Repo : findById(jobId)
+Repo --> API : {status: "DONE"}
+API --> App : {id, status: "DONE"}
+
+App -> API : GET /api/render/jobs/{id}/result
+API -> Repo : findById(jobId)
+Repo --> API : result bytes
 API --> App : 200 OK\nContent-Type: application/pdf\nbinary stream
 
 note right of API
   blocpress-render:
-  Einzige öffentliche API
+  Async Endpoints: /api/render/jobs/*
+  Dashboard: GET /api/render/dashboard
   Liest aus Schema: production
 end note
 @enduml
@@ -1430,10 +1460,6 @@ node "Docker Host" {
     database "PostgreSQL ≥ 18\n(Schemata: workbench,\nproduction)" as DB
   }
 
-  node "rabbitmq Container" {
-    queue "RabbitMQ" as MQ
-  }
-
   node "elasticsearch Container" {
     component "Elasticsearch ≥ 7.x" as ES
   }
@@ -1448,7 +1474,6 @@ PR -down-> DB : JDBC (proof)
 RD -down-> DB : JDBC (production)
 AD -down-> DB : JDBC (admin)
 
-WB -right-> MQ : AMQP
 WB -down-> ES : HTTP
 WB ..> RD : REST (intern, Vorschau)
 PR ..> RD : REST (intern, Test)
@@ -1480,12 +1505,6 @@ services:
     ports:
       - "5432:5432"
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     environment:
@@ -1507,11 +1526,9 @@ services:
     build: ./blocpress-workbench
     depends_on:
       - postgresql
-      - rabbitmq
       - elasticsearch
     environment:
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgresql:5432/blocpress?currentSchema=workbench
-      RABBITMQ_HOST: rabbitmq
       ELASTICSEARCH_URL: http://elasticsearch:9200
       LIBREOFFICE_HOME: /usr/lib/libreoffice
       BLOCPRESS_RENDER_URL: http://blocpress-render:8083
@@ -1601,10 +1618,6 @@ cloud "Kubernetes Cluster" {
 
     component "Service:\npostgresql-svc" as DBSvc
 
-    rectangle "Deployment: rabbitmq" {
-      queue "RabbitMQ" as MQ
-    }
-
     rectangle "StatefulSet: elasticsearch" {
       component "ES Node 1" as ES1
       component "ES Node 2" as ES2
@@ -1626,7 +1639,6 @@ DBSvc -down-> DBPrimary
 DBSvc -down-> DBReplica
 DBPrimary -down-> PVC
 
-WBPod -right-> MQ : AMQP
 WBPod -down-> ES1 : HTTP
 
 Ingress -down-> StudioPod : HTTP (UI)
@@ -1849,19 +1861,24 @@ package "Schema: proof [geplant - blocpress-proof]" #LightGreen {
 
 package "Schema: production" #LightYellow {
   ENTITY "Template\n(Freigegeben)" as TPROD {
-    + id: Long
+    + id: UUID
     + name: String
     + version: Integer
-    + status: String = "Freigegeben"
-    + template_binary: bytea
+    + valid_from: Timestamp
+    + content: bytea
   }
 
-  ENTITY Dokumentengenerierung {
-    + id: Long
-    + json_daten: JSONB
-    + output_format: String
-    + generiertes_dokument: bytea
-    + status: String
+  ENTITY "RenderJob\n(UC-23)" as RJ {
+    + id: UUID
+    + status: VARCHAR(20)
+    + template_name: VARCHAR(255)
+    + data: JSONB
+    + output_type: VARCHAR(10)
+    + result: bytea
+    + webhook_url: VARCHAR(1000)
+    + created_at: Timestamp
+    + updated_at: Timestamp
+    + error_message: Text
   }
 }
 
@@ -1960,7 +1977,7 @@ Alle SCS-Module teilen sich eine PostgreSQL-Instanz, nutzen aber jeweils ein eig
 
 | `production`
 | blocpress-render
-| Template (Freigegeben), Dokumentengenerierung
+| Template (Freigegeben), RenderJob (async Job-Queue, UC-23)
 
 | `admin`
 | blocpress-admin
@@ -2237,9 +2254,9 @@ Quarkus Framework
 * Positiv: Bessere Container-Performance, niedrigere Infrastruktur-Kosten
 * Negativ: Kleineres Ökosystem als Spring Boot, weniger Extensions
 
-=== ADR-003: Synchrone Dokumentengenerierung
+=== ADR-003: Synchrone Dokumentengenerierung (Standard-Endpunkte)
 
-*Status:* Akzeptiert
+*Status:* Akzeptiert (ergänzt durch ADR-008 für asynchronen Modus)
 
 *Kontext:*
 
@@ -2247,19 +2264,19 @@ Dokumentengenerierung kann mehrere Sekunden dauern. Soll der REST-API-Call block
 
 *Entscheidung:*
 
-Synchrone Verarbeitung: API-Call wartet bis das Dokument fertig generiert ist und gibt das Ergebnis direkt zurück.
+Synchrone Verarbeitung als Standard: API-Call wartet bis das Dokument fertig generiert ist und gibt das Ergebnis direkt zurück. Für Batch- und Langläufer-Szenarien steht zusätzlich ein asynchroner Job-Queue-Modus zur Verfügung (ADR-008).
 
 *Begründung:*
 
-* *Einfachheit:* Kein asynchroner Mechanismus (Queue, Polling, Status-Endpunkt) notwendig
+* *Einfachheit:* Für Einzel-Generierungen kein asynchroner Mechanismus nötig
 * *Zuverlässigkeit:* Direkte Fehlerbehandlung möglich
-* *Ausreichend:* Für die aktuelle Last (Workbench-Vorschau, produktive Einzelgenerierung) ist synchrones Rendering schnell genug
+* *Ausreichend:* Für Workbench-Vorschau und produktive Einzelgenerierung ist synchrones Rendering schnell genug
 
 *Konsequenzen:*
 
-* Positiv: Einfachere Architektur, direktes Feedback
+* Positiv: Einfachere Architektur für den Standardfall, direktes Feedback
 * Negativ: Bei sehr langen Generierungen (> 60s) können HTTP-Timeouts auftreten
-* Mitigation: Timeout auf 60 Sekunden konfiguriert; für Batch-Szenarien kann später ergänzt werden
+* Mitigation: Timeout auf 60 Sekunden konfiguriert; Batch-Szenarien nutzen den asynchronen Job-Modus (ADR-008)
 
 === ADR-004: Elasticsearch für Content Search
 
@@ -2355,6 +2372,32 @@ Drei Datenstufen mit kopie-basierter Übergabe: workbench → proof → producti
 * Positiv: Bessere Wartbarkeit, unabhängige Deployments, gezielte Skalierung, klare Ownership
 * Negativ: Höhere Deployment-Komplexität (5 Container statt 1), Datenredundanz durch Kopien, Cross-Schema-Kommunikation über REST statt direkte DB-Zugriffe
 * Mitigation: Gemeinsame PostgreSQL-Instanz reduziert Infrastruktur-Overhead, Docker-Compose/Kubernetes-Konfiguration automatisiert Deployment
+
+=== ADR-008: PostgreSQL SKIP LOCKED statt Message Broker für asynchrones Rendering
+
+*Status:* Umgesetzt (v2.2)
+
+*Kontext:*
+
+UC-23 erfordert asynchrone Dokumentengenerierung für Batch-Läufe und Großdokumente. Optionen: Apache Kafka, RabbitMQ, oder PostgreSQL-basierte Job-Queue.
+
+*Entscheidung:*
+
+PostgreSQL-basierte Job-Queue mit `SELECT ... FOR UPDATE SKIP LOCKED LIMIT 1` (Tabelle `render_job` im production-Schema). `@Scheduled`-Worker in Quarkus pollt alle 2s und claimed den nächsten freien Job atomar. Webhook-Callbacks via Java Virtual Threads (Fire-and-Forget).
+
+*Begründung:*
+
+* *Keine zusätzliche Infrastruktur:* blocpress-render hat bereits eine PostgreSQL-Verbindung — kein separater Kafka/RabbitMQ-Container nötig
+* *SKIP LOCKED:* Konkurrenzsicheres Job-Claiming: Mehrere Worker-Instanzen können gleichzeitig Jobs claimem ohne Locks oder Deadlocks
+* *Einfachheit:* `@Scheduled` + Native Query — kein Reactive Messaging Framework, kein Schema-Registry, keine Consumer-Group-Konfiguration
+* *Ausreichend für aktuelle Last:* Bei < 100 Jobs/min ist eine 2s-Poll-Latenz akzeptabel
+* *Persistenz:* Job-Ergebnisse (result bytea) und Fehler (error_message) bleiben dauerhaft in der DB — kein separates Result-Storage nötig
+
+*Konsequenzen:*
+
+* Positiv: Kein neuer Infrastruktur-Overhead, transaktionale Job-Übergabe, einfache Fehlerdiagnose via SQL
+* Negativ: Polling-Overhead (2s Intervall), bei > 1.000 Jobs/min wäre Kafka performanter
+* Mitigation: Poll-Intervall via ENV `BLOCPRESS_ASYNC_POLL_INTERVAL` konfigurierbar; Migration zu Kafka möglich ohne API-Änderung
 
 === ADR-007: WebDAV-Endpoint für Baustein- und Template-Zugriff aus LibreOffice
 

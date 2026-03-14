@@ -84,14 +84,14 @@ Einzige öffentlich exponierte API des Systems.
 | icon:check-circle[role=green] DONE
 
 | UC-23
-| Asynchrones Rendering (Job-Queue): `POST /api/render/jobs` liefert Job-ID zurück, `GET /api/render/jobs/{id}` liefert Status (PENDING / RUNNING / DONE / FAILED) und Download-Link für fertige Dokumente. Großdokumente und Batch-Läufe blockieren nicht den HTTP-Thread.
+| Asynchrones Rendering (Job-Queue): `POST /api/render/jobs` liefert 202 Accepted + Job-ID zurück. `GET /api/render/jobs/{id}` liefert Status (PENDING / PROCESSING / DONE / FAILED). `GET /api/render/jobs/{id}/result` liefert das fertige Dokument als Download. Optional: `webhookUrl` für automatischen HTTP-Callback bei Job-Fertigstellung. Großdokumente und Batch-Läufe blockieren nicht den HTTP-Thread. Dashboard: `GET /api/render/dashboard` mit Statuszählen und Job-Liste.
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TI-8
-| Messaging-Infrastruktur für asynchrones Rendering: Quarkus Reactive Messaging mit Apache Kafka (oder AMQP/RabbitMQ als Alternative). Render-Jobs werden als Events auf einen Topic geschrieben; ein Consumer-Pool verarbeitet sie. Job-Status persistiert in der workbench-DB (Tabelle `render_job`).
+| Async-Rendering-Infrastruktur: PostgreSQL-basierte Job-Queue (Tabelle `render_job` im production-Schema) mit `SELECT ... FOR UPDATE SKIP LOCKED` für konkurrenzsicheres Job-Claiming ohne Message Broker. `@Scheduled`-Worker (`RenderJobWorker`) pollt alle 2s und verarbeitet den nächsten PENDING-Job. Webhook-Callbacks via `Thread.ofVirtual()` (Fire-and-Forget). Kein Kafka/RabbitMQ erforderlich — PostgreSQL reicht für die aktuelle Last.
 | 2
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 |===
 
@@ -401,6 +401,16 @@ _GitHub Actions CI/CD-Pipeline für automatisierte Releases auf Maven Central, D
 | —
 | Nur `blocpress-core` auf Maven Central (GPG-signiert via `central-publishing-maven-plugin`, `-Prelease`-Profil) — Quarkus-Apps bleiben als Docker-Images
 | 1
+| icon:check-circle[role=green] DONE
+
+| —
+| E2E-Testsuite (`blocpress-e2e`): `StudioE2EIT` mit Testcontainers gegen das Studio-Quickstart-Image — 10 Szenarien (Health, Upload, List, Preview, Search, Submit/Approve-Workflow, Render-by-Name, WebDAV, Invoice-Regression). JaCoCo-Abdeckung via TCP-Dump aus laufenden Container-JVMs (Port 6300/6301). Separate `RenderApiIT` (6) und `PoolBenchmarkIT` (1).
+| 2
+| icon:check-circle[role=green] DONE
+
+| —
+| E2E-Infrastruktur-Fixes (v2.2): Testcontainers-Upgrade auf 1.21.4 (Docker 29.x API-Kompatibilität), `WaitAllStrategy` mit Workbench-Proxy-Check statt direktem ES-Cluster-Health, robuste Docker-Verfügbarkeitsprüfung (5 Versuche via `ProcessBuilder`), `TESTCONTAINERS_RYUK_DISABLED=true` für CI-Stabilität.
+| 2
 | icon:check-circle[role=green] DONE
 
 |===
