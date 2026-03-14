@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ElasticsearchIndexService.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-workbench</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.workbench.service</a> &gt; <span class="el_source">ElasticsearchIndexService.java</span></div><h1>ElasticsearchIndexService.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.workbench.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.flaechsig.blocpress.core.odt.OdtTextExtractor;
+import io.github.flaechsig.blocpress.workbench.entity.Template;
+import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.util.EntityUtils;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.jboss.logging.Logger;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Manages the Elasticsearch index for full-text search over templates and Bausteine.
+ *
+ * &lt;p&gt;All operations are best-effort: if Elasticsearch is unavailable, a warning is logged
+ * but no exception is thrown and the database transaction is not affected.&lt;/p&gt;
+ *
+ * &lt;p&gt;EDC reference: TI-7 (Elasticsearch API), UC-19 (Nach Begriff suchen)&lt;/p&gt;
+ */
+@ApplicationScoped
+<span class="fc" id="L33">public class ElasticsearchIndexService {</span>
+
+<span class="fc" id="L35">    private static final Logger LOG = Logger.getLogger(ElasticsearchIndexService.class);</span>
+
+    @Inject
+    RestClient restClient;
+
+    @Inject
+    ObjectMapper objectMapper;
+
+    @ConfigProperty(name = &quot;elasticsearch.index.name&quot;, defaultValue = &quot;blocpress-templates&quot;)
+    String indexName;
+
+<span class="fc" id="L46">    private final OdtTextExtractor textExtractor = new OdtTextExtractor();</span>
+
+    @PostConstruct
+    void ensureIndex() {
+        try {
+<span class="fc" id="L51">            Response response = restClient.performRequest(new Request(&quot;HEAD&quot;, &quot;/&quot; + indexName));</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">            if (response.getStatusLine().getStatusCode() == 404) {</span>
+<span class="fc" id="L53">                createIndex();</span>
+            }
+<span class="fc" id="L55">        } catch (Exception e) {</span>
+<span class="fc" id="L56">            LOG.warnf(&quot;Could not check/create Elasticsearch index '%s': %s&quot;, indexName, e.getMessage());</span>
+            try {
+<span class="nc" id="L58">                createIndex();</span>
+<span class="fc" id="L59">            } catch (Exception ex) {</span>
+<span class="fc" id="L60">                LOG.warnf(&quot;Elasticsearch index creation failed (ES may not be running): %s&quot;, ex.getMessage());</span>
+<span class="nc" id="L61">            }</span>
+<span class="fc" id="L62">        }</span>
+<span class="fc" id="L63">    }</span>
+
+    private void createIndex() throws Exception {
+<span class="fc" id="L66">        String mapping = &quot;&quot;&quot;</span>
+                {
+                  &quot;settings&quot;: {
+                    &quot;analysis&quot;: {
+                      &quot;analyzer&quot;: { &quot;german_standard&quot;: { &quot;type&quot;: &quot;german&quot; } }
+                    }
+                  },
+                  &quot;mappings&quot;: {
+                    &quot;properties&quot;: {
+                      &quot;templateId&quot;:    { &quot;type&quot;: &quot;keyword&quot; },
+                      &quot;name&quot;:          { &quot;type&quot;: &quot;text&quot;, &quot;analyzer&quot;: &quot;german&quot;,
+                                         &quot;fields&quot;: { &quot;keyword&quot;: { &quot;type&quot;: &quot;keyword&quot; } } },
+                      &quot;type&quot;:          { &quot;type&quot;: &quot;keyword&quot; },
+                      &quot;status&quot;:        { &quot;type&quot;: &quot;keyword&quot; },
+                      &quot;version&quot;:       { &quot;type&quot;: &quot;integer&quot; },
+                      &quot;fieldNames&quot;:    { &quot;type&quot;: &quot;text&quot;, &quot;analyzer&quot;: &quot;standard&quot; },
+                      &quot;conditions&quot;:    { &quot;type&quot;: &quot;text&quot;, &quot;analyzer&quot;: &quot;standard&quot; },
+                      &quot;extractedText&quot;: { &quot;type&quot;: &quot;text&quot;, &quot;analyzer&quot;: &quot;german&quot; },
+                      &quot;updatedAt&quot;:     { &quot;type&quot;: &quot;date&quot; }
+                    }
+                  }
+                }
+                &quot;&quot;&quot;;
+<span class="fc" id="L89">        Request req = new Request(&quot;PUT&quot;, &quot;/&quot; + indexName);</span>
+<span class="fc" id="L90">        req.setEntity(new StringEntity(mapping, ContentType.APPLICATION_JSON));</span>
+<span class="fc" id="L91">        restClient.performRequest(req);</span>
+<span class="fc" id="L92">        LOG.infof(&quot;Elasticsearch index '%s' created.&quot;, indexName);</span>
+<span class="fc" id="L93">    }</span>
+
+    /**
+     * Indexes or updates a template document in Elasticsearch.
+     * Extracts plain text from ODT content for full-text search.
+     */
+    public void index(Template template) {
+        try {
+<span class="fc" id="L101">            String extractedText = &quot;&quot;;</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            if (template.content != null) {</span>
+<span class="fc" id="L103">                extractedText = textExtractor.extract(template.content);</span>
+            }
+
+<span class="fc" id="L106">            List&lt;String&gt; fieldNames = List.of();</span>
+<span class="fc" id="L107">            List&lt;String&gt; conditions = List.of();</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">            if (template.validationResult != null) {</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">                if (template.validationResult.schema() != null) {</span>
+<span class="fc" id="L110">                    fieldNames = extractFieldNames(template.validationResult);</span>
+                }
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">                if (template.validationResult.conditions() != null) {</span>
+<span class="fc" id="L113">                    conditions = template.validationResult.conditions();</span>
+                }
+            }
+
+<span class="fc" id="L117">            ObjectNode doc = objectMapper.createObjectNode();</span>
+<span class="fc" id="L118">            doc.put(&quot;templateId&quot;, template.id.toString());</span>
+<span class="fc" id="L119">            doc.put(&quot;name&quot;, template.name);</span>
+<span class="fc" id="L120">            doc.put(&quot;type&quot;, template.type.name());</span>
+<span class="fc" id="L121">            doc.put(&quot;status&quot;, template.status.name());</span>
+<span class="fc" id="L122">            doc.put(&quot;version&quot;, template.version);</span>
+<span class="fc" id="L123">            doc.put(&quot;extractedText&quot;, extractedText);</span>
+<span class="fc" id="L124">            doc.put(&quot;updatedAt&quot;, Instant.now().toString());</span>
+<span class="fc" id="L125">            doc.set(&quot;fieldNames&quot;, objectMapper.valueToTree(fieldNames));</span>
+<span class="fc" id="L126">            doc.set(&quot;conditions&quot;, objectMapper.valueToTree(conditions));</span>
+
+<span class="fc" id="L128">            Request req = new Request(&quot;PUT&quot;, &quot;/&quot; + indexName + &quot;/_doc/&quot; + template.id);</span>
+<span class="fc" id="L129">            req.setEntity(new StringEntity(objectMapper.writeValueAsString(doc),</span>
+                    ContentType.APPLICATION_JSON));
+<span class="fc" id="L131">            restClient.performRequest(req);</span>
+<span class="fc" id="L132">            LOG.debugf(&quot;Indexed template '%s' (%s)&quot;, template.name, template.id);</span>
+<span class="fc" id="L133">        } catch (Exception e) {</span>
+<span class="fc" id="L134">            LOG.warnf(&quot;Failed to index template '%s': %s&quot;, template.id, e.getMessage());</span>
+<span class="fc" id="L135">        }</span>
+<span class="fc" id="L136">    }</span>
+
+    /**
+     * Updates only the status field of an existing index document.
+     */
+    public void updateStatus(UUID templateId, String newStatus) {
+        try {
+<span class="fc" id="L143">            String body = &quot;&quot;&quot;</span>
+                    { &quot;doc&quot;: { &quot;status&quot;: &quot;%s&quot;, &quot;updatedAt&quot;: &quot;%s&quot; } }
+<span class="fc" id="L145">                    &quot;&quot;&quot;.formatted(newStatus, Instant.now());</span>
+<span class="fc" id="L146">            Request req = new Request(&quot;POST&quot;, &quot;/&quot; + indexName + &quot;/_update/&quot; + templateId);</span>
+<span class="fc" id="L147">            req.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));</span>
+<span class="nc" id="L148">            restClient.performRequest(req);</span>
+<span class="nc" id="L149">            LOG.debugf(&quot;Updated status for template '%s' → %s&quot;, templateId, newStatus);</span>
+<span class="fc" id="L150">        } catch (Exception e) {</span>
+<span class="fc" id="L151">            LOG.warnf(&quot;Failed to update status in Elasticsearch for '%s': %s&quot;, templateId, e.getMessage());</span>
+<span class="nc" id="L152">        }</span>
+<span class="fc" id="L153">    }</span>
+
+    /**
+     * Removes a template document from the index.
+     */
+    public void delete(UUID templateId) {
+        try {
+<span class="nc" id="L160">            restClient.performRequest(new Request(&quot;DELETE&quot;, &quot;/&quot; + indexName + &quot;/_doc/&quot; + templateId));</span>
+<span class="nc" id="L161">            LOG.debugf(&quot;Deleted template '%s' from index&quot;, templateId);</span>
+<span class="fc" id="L162">        } catch (Exception e) {</span>
+<span class="fc" id="L163">            LOG.warnf(&quot;Failed to delete template '%s' from Elasticsearch: %s&quot;, templateId, e.getMessage());</span>
+<span class="nc" id="L164">        }</span>
+<span class="fc" id="L165">    }</span>
+
+    /**
+     * Executes a full-text search query and returns raw JSON hits.
+     */
+    public String search(String query, String type, String status, int from, int size) {
+        try {
+            // Combine fuzzy multi_match (handles full words + typos) with phrase-prefix
+            // (handles prefix/typeahead: &quot;bloc&quot; → &quot;blocpress&quot;, &quot;pay&quot; → &quot;Payment Terms&quot;)
+<span class="fc" id="L174">            var should = objectMapper.createArrayNode();</span>
+<span class="fc" id="L175">            should.add(buildMultiMatch(query));</span>
+<span class="fc" id="L176">            should.add(buildPhrasePrefix(query, &quot;name&quot;, 5));</span>
+<span class="fc" id="L177">            should.add(buildPhrasePrefix(query, &quot;extractedText&quot;, 1));</span>
+
+<span class="fc" id="L179">            ObjectNode bool = objectMapper.createObjectNode();</span>
+<span class="fc" id="L180">            bool.set(&quot;should&quot;, should);</span>
+<span class="fc" id="L181">            bool.put(&quot;minimum_should_match&quot;, 1);</span>
+
+<span class="pc bpc" id="L183" title="1 of 4 branches missed.">            if (type != null || status != null) {</span>
+<span class="fc" id="L184">                var filters = objectMapper.createArrayNode();</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">                if (status != null) {</span>
+<span class="nc" id="L186">                    filters.add(objectMapper.createObjectNode()</span>
+<span class="nc" id="L187">                            .set(&quot;term&quot;, objectMapper.createObjectNode().put(&quot;status&quot;, status)));</span>
+                }
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">                if (type != null) {</span>
+<span class="fc" id="L190">                    filters.add(objectMapper.createObjectNode()</span>
+<span class="fc" id="L191">                            .set(&quot;term&quot;, objectMapper.createObjectNode().put(&quot;type&quot;, type)));</span>
+                }
+<span class="fc" id="L193">                bool.set(&quot;filter&quot;, filters);</span>
+            }
+
+<span class="fc" id="L196">            ObjectNode highlight = objectMapper.createObjectNode();</span>
+<span class="fc" id="L197">            highlight.set(&quot;pre_tags&quot;, objectMapper.createArrayNode().add(&quot;&lt;mark&gt;&quot;));</span>
+<span class="fc" id="L198">            highlight.set(&quot;post_tags&quot;, objectMapper.createArrayNode().add(&quot;&lt;/mark&gt;&quot;));</span>
+<span class="fc" id="L199">            ObjectNode hlFields = objectMapper.createObjectNode();</span>
+<span class="fc" id="L200">            hlFields.set(&quot;name&quot;, objectMapper.createObjectNode());</span>
+<span class="fc" id="L201">            ObjectNode extractedTextHl = objectMapper.createObjectNode();</span>
+<span class="fc" id="L202">            extractedTextHl.put(&quot;fragment_size&quot;, 150);</span>
+<span class="fc" id="L203">            extractedTextHl.put(&quot;number_of_fragments&quot;, 2);</span>
+<span class="fc" id="L204">            hlFields.set(&quot;extractedText&quot;, extractedTextHl);</span>
+<span class="fc" id="L205">            highlight.set(&quot;fields&quot;, hlFields);</span>
+
+<span class="fc" id="L207">            ObjectNode queryBody = objectMapper.createObjectNode();</span>
+<span class="fc" id="L208">            queryBody.put(&quot;from&quot;, from);</span>
+<span class="fc" id="L209">            queryBody.put(&quot;size&quot;, size);</span>
+<span class="fc" id="L210">            queryBody.set(&quot;query&quot;, objectMapper.createObjectNode().set(&quot;bool&quot;, bool));</span>
+<span class="fc" id="L211">            queryBody.set(&quot;highlight&quot;, highlight);</span>
+
+<span class="fc" id="L213">            Request req = new Request(&quot;GET&quot;, &quot;/&quot; + indexName + &quot;/_search&quot;);</span>
+<span class="fc" id="L214">            req.setEntity(new StringEntity(objectMapper.writeValueAsString(queryBody),</span>
+                    ContentType.APPLICATION_JSON));
+<span class="fc" id="L216">            Response response = restClient.performRequest(req);</span>
+<span class="fc" id="L217">            return EntityUtils.toString(response.getEntity());</span>
+<span class="nc" id="L218">        } catch (Exception e) {</span>
+<span class="nc" id="L219">            LOG.warnf(&quot;Elasticsearch search failed: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L220">            return null;</span>
+        }
+    }
+
+    private ObjectNode buildMultiMatch(String query) {
+<span class="fc" id="L225">        ObjectNode multiMatch = objectMapper.createObjectNode();</span>
+<span class="fc" id="L226">        multiMatch.put(&quot;query&quot;, query);</span>
+<span class="fc" id="L227">        multiMatch.set(&quot;fields&quot;, objectMapper.createArrayNode()</span>
+<span class="fc" id="L228">                .add(&quot;name^3&quot;).add(&quot;fieldNames^2&quot;).add(&quot;conditions&quot;).add(&quot;extractedText&quot;));</span>
+<span class="fc" id="L229">        multiMatch.put(&quot;fuzziness&quot;, &quot;AUTO&quot;);</span>
+<span class="fc" id="L230">        return objectMapper.createObjectNode().set(&quot;multi_match&quot;, multiMatch);</span>
+    }
+
+    /** Phrase-prefix query for typeahead / prefix matching on a single field. */
+    private ObjectNode buildPhrasePrefix(String query, String field, int boost) {
+<span class="fc" id="L235">        ObjectNode params = objectMapper.createObjectNode();</span>
+<span class="fc" id="L236">        params.put(&quot;query&quot;, query);</span>
+<span class="fc" id="L237">        params.put(&quot;boost&quot;, boost);</span>
+<span class="fc" id="L238">        ObjectNode inner = objectMapper.createObjectNode();</span>
+<span class="fc" id="L239">        inner.set(field, params);</span>
+<span class="fc" id="L240">        return objectMapper.createObjectNode().set(&quot;match_phrase_prefix&quot;, inner);</span>
+    }
+
+    private List&lt;String&gt; extractFieldNames(ValidationResult vr) {
+<span class="pc bpc" id="L244" title="2 of 4 branches missed.">        if (vr.schema() == null || !vr.schema().has(&quot;properties&quot;)) return List.of();</span>
+<span class="fc" id="L245">        var props = vr.schema().get(&quot;properties&quot;);</span>
+<span class="fc" id="L246">        var names = new java.util.ArrayList&lt;String&gt;();</span>
+<span class="fc" id="L247">        props.fieldNames().forEachRemaining(names::add);</span>
+<span class="fc" id="L248">        return names;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

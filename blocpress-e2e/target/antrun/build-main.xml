@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="maven-antrun-" default="main">
+  <target name="main">
+    <taskdef classname="org.jacoco.ant.ReportTask" name="jacoco-report" classpathref="maven.plugin.classpath" />
+    <mkdir dir="/home/flaechsig/projects/blocpress/blocpress-e2e/target/site/jacoco-e2e" />
+    <jacoco-report>
+      <executiondata>
+        <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/target" erroronmissingdir="false">
+          <include name="jacoco-workbench.exec" />
+          <include name="jacoco-render.exec" />
+        </fileset>
+        <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-workbench/target" erroronmissingdir="false">
+          <include name="jacoco.exec" />
+        </fileset>
+        <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-render/target" erroronmissingdir="false">
+          <include name="jacoco.exec" />
+        </fileset>
+        <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-core/target" erroronmissingdir="false">
+          <include name="jacoco.exec" />
+        </fileset>
+      </executiondata>
+      <structure name="Blocpress E2E Coverage">
+        <group name="blocpress-workbench">
+          <classfiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-workbench/target/classes" erroronmissingdir="false" />
+          </classfiles>
+          <sourcefiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-workbench/src/main/java" />
+          </sourcefiles>
+        </group>
+        <group name="blocpress-render">
+          <classfiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-render/target/classes" erroronmissingdir="false" />
+          </classfiles>
+          <sourcefiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-render/src/main/java" />
+          </sourcefiles>
+        </group>
+        <group name="blocpress-core">
+          <classfiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-core/target/classes" erroronmissingdir="false" />
+          </classfiles>
+          <sourcefiles>
+            <fileset dir="/home/flaechsig/projects/blocpress/blocpress-e2e/../blocpress-core/src/main/java" />
+          </sourcefiles>
+        </group>
+      </structure>
+      <html destdir="/home/flaechsig/projects/blocpress/blocpress-e2e/target/site/jacoco-e2e" />
+      <xml destfile="/home/flaechsig/projects/blocpress/blocpress-e2e/target/site/jacoco-e2e/jacoco.xml" />
+      <csv destfile="/home/flaechsig/projects/blocpress/blocpress-e2e/target/site/jacoco-e2e/jacoco.csv" />
+    </jacoco-report>
+  </target>
+</project>

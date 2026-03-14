@@ -2,7 +2,6 @@ package io.github.flaechsig.blocpress.render;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.flaechsig.blocpress.core.LibreOfficeProcessor;
 import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
 import io.github.flaechsig.blocpress.render.model.RenderByNameRequest;
@@ -49,6 +48,9 @@ public class RenderResource {
 
     @Inject
     TemplateCache templateCache;
+
+    @Inject
+    LibreOfficePool libreOfficePool;
 
     @POST
     @jakarta.ws.rs.Path("/template")
@@ -154,9 +156,9 @@ public class RenderResource {
         logger.info("Calling merge");
         var merge = RenderEngine.mergeTemplate(odt, json);
         logger.info("Calling transform");
-        var result = LibreOfficeProcessor.refreshAndTransform(merge, format);
+        var result = libreOfficePool.convert(merge, format);
         logger.info("Build output");
-        Path output = Files.createTempFile("output", format.getSuffix());
+        Path output = Files.createTempFile("output", "." + format.getSuffix());
         Files.write(output, result);
         return output.toFile();
     }

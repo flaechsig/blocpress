@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TemplateImportResource.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-render</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.render</a> &gt; <span class="el_source">TemplateImportResource.java</span></div><h1>TemplateImportResource.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.render;
+
+import io.quarkus.cache.CacheInvalidateAll;
+import jakarta.annotation.security.PermitAll;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.util.Base64;
+import java.util.UUID;
+
+/**
+ * Internal API endpoint for importing approved templates from workbench
+ * into the production schema. This endpoint is called automatically by
+ * blocpress-workbench when a template transitions to APPROVED status.
+ *
+ * Endpoint: POST /api/render/templates/import
+ *
+ * No authentication required — this is an internal endpoint only accessible
+ * within the deployment infrastructure.
+ */
+@ApplicationScoped
+@Path(&quot;api/render/templates/import&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+<span class="nc" id="L31">public class TemplateImportResource {</span>
+
+    /**
+     * Import (or update) a template into the production schema.
+     * If a template with the same ID already exists, it will be replaced (upsert semantics).
+     *
+     * @param request Import request with template data
+     * @return 200 OK on success
+     */
+    @POST
+    @PermitAll
+    @Transactional
+    @CacheInvalidateAll(cacheName = &quot;templates&quot;)
+    public Response importTemplate(ImportRequest request) {
+        // Delete existing template with same ID if present (upsert)
+<span class="nc" id="L46">        ProductionTemplate.delete(&quot;id&quot;, request.id());</span>
+
+        // Create and persist new template
+<span class="nc" id="L49">        ProductionTemplate template = new ProductionTemplate();</span>
+<span class="nc" id="L50">        template.id = request.id();</span>
+<span class="nc" id="L51">        template.name = request.name();</span>
+<span class="nc" id="L52">        template.version = request.version();</span>
+<span class="nc" id="L53">        template.content = Base64.getDecoder().decode(request.contentBase64());</span>
+<span class="nc" id="L54">        template.validFrom = request.validFrom();</span>
+<span class="nc" id="L55">        template.persist();</span>
+
+<span class="nc" id="L57">        return Response.ok().build();</span>
+    }
+
+    /**
+     * Request body for importing a template into production.
+     */
+<span class="nc" id="L63">    public record ImportRequest(</span>
+        UUID id,
+        String name,
+        Integer version,
+        String contentBase64,  // Base64-encoded ODT binary
+        java.time.LocalDateTime validFrom
+    ) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

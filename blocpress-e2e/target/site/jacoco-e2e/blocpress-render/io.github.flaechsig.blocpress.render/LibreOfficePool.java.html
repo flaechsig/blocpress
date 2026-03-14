@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LibreOfficePool.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-render</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.render</a> &gt; <span class="el_source">LibreOfficePool.java</span></div><h1>LibreOfficePool.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.render;
+
+import io.github.flaechsig.blocpress.core.LibreOfficeProcessor;
+import io.github.flaechsig.blocpress.core.OutputFormat;
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jodconverter.core.document.DefaultDocumentFormatRegistry;
+import org.jodconverter.core.document.DocumentFormat;
+import org.jodconverter.core.office.OfficeException;
+import org.jodconverter.local.LocalConverter;
+import org.jodconverter.local.office.LocalOfficeManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
+import java.util.stream.IntStream;
+
+/**
+ * Verwaltet einen Pool persistenter LibreOffice-Instanzen für parallele Dokumentkonvertierung.
+ *
+ * &lt;p&gt;Beim Start werden {@code blocpress.libreoffice.workers} LibreOffice-Prozesse gestartet,
+ * die jeweils auf einem eigenen UNO-Port lauschen (ab {@code blocpress.libreoffice.port-start}).
+ * JodConverter verteilt eingehende Konvertierungsaufträge auf freie Instanzen.&lt;/p&gt;
+ *
+ * &lt;p&gt;Ist LibreOffice nicht verfügbar, fällt der Pool auf den CLI-Modus zurück
+ * ({@link LibreOfficeProcessor}).&lt;/p&gt;
+ */
+@ApplicationScoped
+<span class="fc" id="L35">public class LibreOfficePool {</span>
+
+<span class="fc" id="L37">    private static final Logger LOG = LoggerFactory.getLogger(LibreOfficePool.class);</span>
+
+    @ConfigProperty(name = &quot;blocpress.libreoffice.home&quot;)
+    Optional&lt;String&gt; officeHome;
+
+    @ConfigProperty(name = &quot;blocpress.libreoffice.workers&quot;, defaultValue = &quot;2&quot;)
+    int workers;
+
+    @ConfigProperty(name = &quot;blocpress.libreoffice.port-start&quot;, defaultValue = &quot;2002&quot;)
+    int portStart;
+
+    private LocalOfficeManager manager;
+<span class="fc" id="L49">    private boolean poolAvailable = false;</span>
+
+    void start(@Observes StartupEvent e) {
+<span class="nc" id="L52">        int[] ports = IntStream.range(0, workers).map(i -&gt; portStart + i).toArray();</span>
+        try {
+<span class="nc" id="L54">            LocalOfficeManager.Builder builder = LocalOfficeManager.builder()</span>
+<span class="nc" id="L55">                    .portNumbers(ports)</span>
+<span class="nc" id="L56">                    .taskExecutionTimeout(120_000L)</span>
+<span class="nc" id="L57">                    .maxTasksPerProcess(200);</span>
+<span class="nc" id="L58">            officeHome.ifPresent(builder::officeHome);</span>
+<span class="nc" id="L59">            manager = builder.build();</span>
+<span class="nc" id="L60">            manager.start();</span>
+<span class="nc" id="L61">            poolAvailable = true;</span>
+<span class="nc" id="L62">            LOG.info(&quot;LibreOffice pool started: {} worker(s), ports {}-{}&quot;,</span>
+<span class="nc" id="L63">                    workers, portStart, portStart + workers - 1);</span>
+<span class="nc" id="L64">        } catch (Exception ex) {</span>
+<span class="nc" id="L65">            LOG.warn(&quot;LibreOffice pool unavailable, falling back to CLI mode: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L66">        }</span>
+<span class="nc" id="L67">    }</span>
+
+    void stop(@Observes ShutdownEvent e) {
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (manager != null) {</span>
+            try {
+<span class="nc" id="L72">                manager.stop();</span>
+<span class="nc" id="L73">                LOG.info(&quot;LibreOffice pool stopped&quot;);</span>
+<span class="nc" id="L74">            } catch (OfficeException ex) {</span>
+<span class="nc" id="L75">                LOG.warn(&quot;Error stopping LibreOffice pool: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L76">            }</span>
+        }
+<span class="nc" id="L78">    }</span>
+
+    /**
+     * Konvertiert ODT-Bytes in das gewünschte Ausgabeformat.
+     * Nutzt den Pool falls verfügbar, sonst CLI-Fallback.
+     */
+    public byte[] convert(byte[] odtBytes, OutputFormat format) throws IOException {
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">        if (!poolAvailable) {</span>
+<span class="fc" id="L86">            return LibreOfficeProcessor.refreshAndTransform(odtBytes, format);</span>
+        }
+
+<span class="nc" id="L89">        Path inputFile = Files.createTempFile(&quot;lo-in-&quot;, &quot;.odt&quot;);</span>
+<span class="nc" id="L90">        Path outputFile = Files.createTempFile(&quot;lo-out-&quot;, &quot;.&quot; + format.getSuffix());</span>
+        try {
+<span class="nc" id="L92">            Files.write(inputFile, odtBytes);</span>
+<span class="nc" id="L93">            DocumentFormat sourceFormat = DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (sourceFormat == null) {</span>
+<span class="nc" id="L95">                throw new IOException(&quot;ODT format not found in JodConverter registry&quot;);</span>
+            }
+<span class="nc bnc" id="L97" title="All 3 branches missed.">            DocumentFormat targetFormat = switch (format) {</span>
+<span class="nc" id="L98">                case PDF -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;pdf&quot;);</span>
+<span class="nc" id="L99">                case RTF -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;rtf&quot;);</span>
+<span class="nc" id="L100">                case ODT -&gt; DefaultDocumentFormatRegistry.getFormatByExtension(&quot;odt&quot;);</span>
+            };
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (targetFormat == null) {</span>
+<span class="nc" id="L103">                throw new IOException(&quot;Target format not found in JodConverter registry: &quot; + format);</span>
+            }
+<span class="nc" id="L105">            LocalConverter.make(manager)</span>
+<span class="nc" id="L106">                    .convert(inputFile.toFile())</span>
+<span class="nc" id="L107">                    .as(sourceFormat)</span>
+<span class="nc" id="L108">                    .to(outputFile.toFile())</span>
+<span class="nc" id="L109">                    .as(targetFormat)</span>
+<span class="nc" id="L110">                    .execute();</span>
+<span class="nc" id="L111">            return Files.readAllBytes(outputFile);</span>
+<span class="nc" id="L112">        } catch (OfficeException ex) {</span>
+<span class="nc" id="L113">            throw new IOException(&quot;LibreOffice conversion failed: &quot; + ex.getMessage(), ex);</span>
+        } finally {
+<span class="nc" id="L115">            Files.deleteIfExists(inputFile);</span>
+<span class="nc" id="L116">            Files.deleteIfExists(outputFile);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

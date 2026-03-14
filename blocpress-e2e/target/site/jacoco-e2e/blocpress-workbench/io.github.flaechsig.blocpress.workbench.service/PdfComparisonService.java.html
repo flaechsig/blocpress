@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PdfComparisonService.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-workbench</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.workbench.service</a> &gt; <span class="el_source">PdfComparisonService.java</span></div><h1>PdfComparisonService.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.workbench.service;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.Base64;
+
+/**
+ * Compares two PDFs at the text level (not pixel level).
+ *
+ * Strategy:
+ *   1. pdftohtml -xml extracts each text line with its exact bounding box.
+ *   2. Lines present in expected but missing in actual → highlighted in the expected view.
+ *   3. Lines present in actual but missing in expected → highlighted in the actual view.
+ *   4. pdftoppm renders each page to PNG; ImageMagick draws red rectangles at the diff positions.
+ *   5. montage places expected and actual side-by-side.
+ *
+ * This avoids false positives from anti-aliasing, timestamps, and PDF metadata — only
+ * real content differences are highlighted.
+ */
+@ApplicationScoped
+<span class="fc" id="L36">public class PdfComparisonService {</span>
+
+<span class="fc" id="L38">    private static final Logger LOG = Logger.getLogger(PdfComparisonService.class);</span>
+
+    /** Scale factor: pdftoppm at 150 DPI, PDF coordinates in 72 pt/inch */
+    private static final float SCALE = 150.0f / 72.0f;
+
+<span class="nc" id="L43">    record TextBlock(String text, float left, float top, float width, float height) {}</span>
+<span class="nc" id="L44">    record PageBlocks(List&lt;TextBlock&gt; blocks, float height) {}</span>
+<span class="nc" id="L45">    record DiffResult(List&lt;TextBlock&gt; removedFromExpected, List&lt;TextBlock&gt; addedInActual) {}</span>
+
+    /**
+     * Ein einzelner Textblock mit Pixelkoordinaten (bei 150 DPI) und Textinhalt.
+     * Wird im Frontend für klickbare Overlays verwendet.
+     */
+<span class="nc" id="L51">    public record DiffBlock(String text, int x1, int y1, int x2, int y2) {}</span>
+
+    /** Per-Seite Ergebnis für den Inline-Diff-Viewer. */
+<span class="nc" id="L54">    public record DiffPage(int pageIndex, boolean hasDiff,</span>
+                           String expectedBase64, String actualBase64,
+                           int pageWidthPx, int pageHeightPx,
+                           List&lt;DiffBlock&gt; removedBlocks,   // fehlen im Actual
+                           List&lt;DiffBlock&gt; addedBlocks) {}  // fehlen im Expected
+
+<span class="nc" id="L60">    public record DiffPagesReport(int totalPages, int diffCount,</span>
+                                  List&lt;Integer&gt; diffPageIndices, List&lt;DiffPage&gt; pages) {}
+
+    // ===== Public API =====
+
+    /**
+     * Returns true if both PDFs have identical text content (modulo ignored patterns).
+     * Byte-equality is checked first as a fast path.
+     */
+    public boolean areVisuallyIdentical(byte[] expected, byte[] actual) {
+<span class="nc" id="L70">        return areVisuallyIdentical(expected, actual, List.of());</span>
+    }
+
+    public boolean areVisuallyIdentical(byte[] expected, byte[] actual, List&lt;String&gt; ignoredPatterns) {
+<span class="nc bnc" id="L74" title="All 4 branches missed.">        if (ignoredPatterns.isEmpty() &amp;&amp; Arrays.equals(expected, actual)) return true;</span>
+<span class="nc" id="L75">        Path tmpDir = null;</span>
+        try {
+<span class="nc" id="L77">            tmpDir = Files.createTempDirectory(&quot;pdf-cmp-&quot;);</span>
+<span class="nc" id="L78">            Path expPdf = tmpDir.resolve(&quot;expected.pdf&quot;);</span>
+<span class="nc" id="L79">            Path actPdf = tmpDir.resolve(&quot;actual.pdf&quot;);</span>
+<span class="nc" id="L80">            Files.write(expPdf, expected);</span>
+<span class="nc" id="L81">            Files.write(actPdf, actual);</span>
+<span class="nc" id="L82">            List&lt;PageBlocks&gt; expPages = extractTextBlocks(expPdf, tmpDir, &quot;exp&quot;);</span>
+<span class="nc" id="L83">            List&lt;PageBlocks&gt; actPages = extractTextBlocks(actPdf, tmpDir, &quot;act&quot;);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">            if (expPages.size() != actPages.size()) return false;</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            for (int i = 0; i &lt; expPages.size(); i++) {</span>
+<span class="nc" id="L86">                DiffResult diff = diffPages(expPages.get(i), actPages.get(i), ignoredPatterns, i);</span>
+<span class="nc bnc" id="L87" title="All 4 branches missed.">                if (!diff.removedFromExpected().isEmpty() || !diff.addedInActual().isEmpty()) {</span>
+<span class="nc" id="L88">                    return false;</span>
+                }
+            }
+<span class="nc" id="L91">            return true;</span>
+<span class="nc" id="L92">        } catch (Exception e) {</span>
+<span class="nc" id="L93">            LOG.warnf(&quot;Text comparison failed, falling back to byte comparison: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L94">            return Arrays.equals(expected, actual);</span>
+        } finally {
+<span class="nc" id="L96">            deleteTempDir(tmpDir);</span>
+        }
+    }
+
+    /**
+     * Generates per-page diff images for inline display.
+     * Each page is returned as two base64-encoded PNGs (expected + actual with highlights).
+     */
+    public DiffPagesReport generateDiffPages(byte[] expected, byte[] actual,
+                                             List&lt;String&gt; ignoredPatterns) {
+<span class="nc" id="L106">        Path tmpDir = null;</span>
+        try {
+<span class="nc" id="L108">            tmpDir = Files.createTempDirectory(&quot;pdf-diffp-&quot;);</span>
+<span class="nc" id="L109">            Path expPdf = tmpDir.resolve(&quot;expected.pdf&quot;);</span>
+<span class="nc" id="L110">            Path actPdf = tmpDir.resolve(&quot;actual.pdf&quot;);</span>
+<span class="nc" id="L111">            Files.write(expPdf, expected);</span>
+<span class="nc" id="L112">            Files.write(actPdf, actual);</span>
+
+<span class="nc" id="L114">            List&lt;PageBlocks&gt; expPages = extractTextBlocks(expPdf, tmpDir, &quot;exp&quot;);</span>
+<span class="nc" id="L115">            List&lt;PageBlocks&gt; actPages = extractTextBlocks(actPdf, tmpDir, &quot;act&quot;);</span>
+
+<span class="nc" id="L117">            Path expImgDir = tmpDir.resolve(&quot;exp-img&quot;);</span>
+<span class="nc" id="L118">            Path actImgDir = tmpDir.resolve(&quot;act-img&quot;);</span>
+<span class="nc" id="L119">            Files.createDirectories(expImgDir);</span>
+<span class="nc" id="L120">            Files.createDirectories(actImgDir);</span>
+<span class="nc" id="L121">            renderPages(expPdf, expImgDir, &quot;page&quot;);</span>
+<span class="nc" id="L122">            renderPages(actPdf, actImgDir, &quot;page&quot;);</span>
+
+<span class="nc" id="L124">            List&lt;Path&gt; expImages = sortedPngs(expImgDir);</span>
+<span class="nc" id="L125">            List&lt;Path&gt; actImages = sortedPngs(actImgDir);</span>
+<span class="nc" id="L126">            int pageCount = Math.max(expImages.size(), actImages.size());</span>
+
+<span class="nc" id="L128">            List&lt;DiffPage&gt; pages = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L129">            List&lt;Integer&gt; diffPageIndices = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            for (int i = 0; i &lt; pageCount; i++) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                Path expImg = i &lt; expImages.size() ? expImages.get(i) : blankPage(tmpDir, i, &quot;exp&quot;);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">                Path actImg = i &lt; actImages.size() ? actImages.get(i) : blankPage(tmpDir, i, &quot;act&quot;);</span>
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">                PageBlocks eb = i &lt; expPages.size() ? expPages.get(i) : new PageBlocks(List.of(), 842);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                PageBlocks ab = i &lt; actPages.size() ? actPages.get(i) : new PageBlocks(List.of(), 842);</span>
+
+<span class="nc" id="L138">                DiffResult diff = diffPages(eb, ab, ignoredPatterns, i);</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">                boolean hasDiff = !diff.removedFromExpected().isEmpty() || !diff.addedInActual().isEmpty();</span>
+
+<span class="nc" id="L141">                Path expHl = tmpDir.resolve(&quot;exp-hl-&quot; + i + &quot;.png&quot;);</span>
+<span class="nc" id="L142">                Path actHl = tmpDir.resolve(&quot;act-hl-&quot; + i + &quot;.png&quot;);</span>
+<span class="nc" id="L143">                drawHighlights(expImg, diff.removedFromExpected(), expHl);</span>
+<span class="nc" id="L144">                drawHighlights(actImg, diff.addedInActual(), actHl);</span>
+
+<span class="nc" id="L146">                String expB64 = Base64.getEncoder().encodeToString(Files.readAllBytes(expHl));</span>
+<span class="nc" id="L147">                String actB64 = Base64.getEncoder().encodeToString(Files.readAllBytes(actHl));</span>
+
+<span class="nc" id="L149">                int pageWidthPx  = (int)(595 * SCALE); // fallback A4; overwritten below if known</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                int pageHeightPx = (int)(eb.height() &gt; 0 ? eb.height() * SCALE : 842 * SCALE);</span>
+
+<span class="nc" id="L152">                List&lt;DiffBlock&gt; removedBlocks = toDiffBlocks(diff.removedFromExpected());</span>
+<span class="nc" id="L153">                List&lt;DiffBlock&gt; addedBlocks   = toDiffBlocks(diff.addedInActual());</span>
+
+<span class="nc" id="L155">                pages.add(new DiffPage(i, hasDiff, expB64, actB64,</span>
+                    pageWidthPx, pageHeightPx, removedBlocks, addedBlocks));
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                if (hasDiff) diffPageIndices.add(i);</span>
+            }
+
+<span class="nc" id="L160">            return new DiffPagesReport(pageCount, diffPageIndices.size(), diffPageIndices, pages);</span>
+<span class="nc" id="L161">        } catch (Exception e) {</span>
+<span class="nc" id="L162">            LOG.errorf(&quot;generateDiffPages failed: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L163">            return null;</span>
+        } finally {
+<span class="nc" id="L165">            deleteTempDir(tmpDir);</span>
+        }
+    }
+
+    /**
+     * Generates a side-by-side diff PDF.
+     * Differing text lines are highlighted with a red box on each page.
+     * Returns null if generation fails.
+     */
+    public byte[] generateDiffPdf(byte[] expected, byte[] actual) {
+<span class="nc" id="L175">        Path tmpDir = null;</span>
+        try {
+<span class="nc" id="L177">            tmpDir = Files.createTempDirectory(&quot;pdf-diff-&quot;);</span>
+<span class="nc" id="L178">            Path expPdf = tmpDir.resolve(&quot;expected.pdf&quot;);</span>
+<span class="nc" id="L179">            Path actPdf = tmpDir.resolve(&quot;actual.pdf&quot;);</span>
+<span class="nc" id="L180">            Files.write(expPdf, expected);</span>
+<span class="nc" id="L181">            Files.write(actPdf, actual);</span>
+
+            // Extract text blocks (position + content) from each PDF
+<span class="nc" id="L184">            List&lt;PageBlocks&gt; expPages = extractTextBlocks(expPdf, tmpDir, &quot;exp&quot;);</span>
+<span class="nc" id="L185">            List&lt;PageBlocks&gt; actPages = extractTextBlocks(actPdf, tmpDir, &quot;act&quot;);</span>
+
+            // Render pages to PNG images at 150 DPI
+<span class="nc" id="L188">            Path expImgDir = tmpDir.resolve(&quot;exp-img&quot;);</span>
+<span class="nc" id="L189">            Path actImgDir = tmpDir.resolve(&quot;act-img&quot;);</span>
+<span class="nc" id="L190">            Files.createDirectories(expImgDir);</span>
+<span class="nc" id="L191">            Files.createDirectories(actImgDir);</span>
+<span class="nc" id="L192">            renderPages(expPdf, expImgDir, &quot;page&quot;);</span>
+<span class="nc" id="L193">            renderPages(actPdf, actImgDir, &quot;page&quot;);</span>
+
+<span class="nc" id="L195">            List&lt;Path&gt; expImages = sortedPngs(expImgDir);</span>
+<span class="nc" id="L196">            List&lt;Path&gt; actImages = sortedPngs(actImgDir);</span>
+
+<span class="nc" id="L198">            int pageCount = Math.max(expImages.size(), actImages.size());</span>
+<span class="nc" id="L199">            List&lt;Path&gt; composites = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            for (int i = 0; i &lt; pageCount; i++) {</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                Path expImg = i &lt; expImages.size() ? expImages.get(i) : blankPage(tmpDir, i, &quot;exp&quot;);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                Path actImg = i &lt; actImages.size() ? actImages.get(i) : blankPage(tmpDir, i, &quot;act&quot;);</span>
+
+<span class="nc bnc" id="L205" title="All 2 branches missed.">                PageBlocks eb = i &lt; expPages.size() ? expPages.get(i) : new PageBlocks(List.of(), 842);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                PageBlocks ab = i &lt; actPages.size() ? actPages.get(i) : new PageBlocks(List.of(), 842);</span>
+
+<span class="nc" id="L208">                DiffResult diff = diffPages(eb, ab, List.of(), i);</span>
+
+<span class="nc" id="L210">                Path expHl = tmpDir.resolve(&quot;exp-hl-&quot; + i + &quot;.png&quot;);</span>
+<span class="nc" id="L211">                Path actHl = tmpDir.resolve(&quot;act-hl-&quot; + i + &quot;.png&quot;);</span>
+<span class="nc" id="L212">                drawHighlights(expImg, diff.removedFromExpected(), expHl);</span>
+<span class="nc" id="L213">                drawHighlights(actImg, diff.addedInActual(), actHl);</span>
+
+<span class="nc" id="L215">                Path composite = tmpDir.resolve(&quot;composite-&quot; + i + &quot;.png&quot;);</span>
+<span class="nc" id="L216">                sideBySide(expHl, actHl, composite);</span>
+<span class="nc" id="L217">                composites.add(composite);</span>
+            }
+
+<span class="nc" id="L220">            Path outputPdf = tmpDir.resolve(&quot;diff-output.pdf&quot;);</span>
+<span class="nc" id="L221">            pngsToPdf(composites, outputPdf);</span>
+<span class="nc" id="L222">            return Files.readAllBytes(outputPdf);</span>
+<span class="nc" id="L223">        } catch (Exception e) {</span>
+<span class="nc" id="L224">            LOG.errorf(&quot;Failed to generate diff PDF: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L225">            return null;</span>
+        } finally {
+<span class="nc" id="L227">            deleteTempDir(tmpDir);</span>
+        }
+    }
+
+    // ===== Text extraction =====
+
+    private String extractText(byte[] pdf) throws IOException, InterruptedException {
+<span class="nc" id="L234">        Path tmp = Files.createTempFile(&quot;pdf-txt-&quot;, &quot;.pdf&quot;);</span>
+        try {
+<span class="nc" id="L236">            Files.write(tmp, pdf);</span>
+<span class="nc" id="L237">            Process p = new ProcessBuilder(</span>
+<span class="nc" id="L238">                &quot;pdftotext&quot;, tmp.toAbsolutePath().toString(), &quot;-&quot;</span>
+<span class="nc" id="L239">            ).redirectErrorStream(false).start();</span>
+<span class="nc" id="L240">            String text = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L241">            p.waitFor();</span>
+<span class="nc" id="L242">            return text;</span>
+        } finally {
+<span class="nc" id="L244">            Files.deleteIfExists(tmp);</span>
+        }
+    }
+
+    /**
+     * Runs pdftohtml -xml to get text lines with bounding boxes, then parses the XML.
+     */
+    private List&lt;PageBlocks&gt; extractTextBlocks(Path pdf, Path tmpDir, String prefix)
+            throws IOException, InterruptedException {
+<span class="nc" id="L253">        Path xmlDir = Files.createTempDirectory(tmpDir, prefix + &quot;-xml-&quot;);</span>
+
+        // -zoom 1 forces coordinates to 72 DPI (PDF points), matching our SCALE = 150/72.
+        // Default zoom=1.5 would produce 108-DPI coordinates and shift highlights by ×1.5.
+<span class="nc" id="L257">        Process p = new ProcessBuilder(</span>
+            &quot;pdftohtml&quot;, &quot;-xml&quot;, &quot;-q&quot;, &quot;-noframes&quot;, &quot;-zoom&quot;, &quot;1&quot;,
+<span class="nc" id="L259">            pdf.toAbsolutePath().toString(),</span>
+<span class="nc" id="L260">            xmlDir.resolve(prefix).toAbsolutePath().toString()</span>
+<span class="nc" id="L261">        ).redirectErrorStream(true).start();</span>
+<span class="nc" id="L262">        p.getInputStream().transferTo(OutputStream.nullOutputStream());</span>
+<span class="nc" id="L263">        p.waitFor();</span>
+
+        // pdftohtml writes &lt;prefix&gt;.xml into xmlDir — find it defensively
+        Path xmlFile;
+<span class="nc" id="L267">        try (var stream = Files.list(xmlDir)) {</span>
+<span class="nc" id="L268">            xmlFile = stream.filter(f -&gt; f.toString().endsWith(&quot;.xml&quot;)).findFirst().orElse(null);</span>
+        }
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (xmlFile == null) {</span>
+<span class="nc" id="L271">            LOG.warnf(&quot;pdftohtml produced no XML in %s&quot;, xmlDir);</span>
+<span class="nc" id="L272">            return List.of();</span>
+        }
+<span class="nc" id="L274">        return parseBlocksXml(xmlFile);</span>
+    }
+
+    private List&lt;PageBlocks&gt; parseBlocksXml(Path xmlFile) {
+        try {
+<span class="nc" id="L279">            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();</span>
+            // Disable external DTD loading (pdf2xml.dtd) to avoid network access
+<span class="nc" id="L281">            factory.setFeature(&quot;http://apache.org/xml/features/nonvalidating/load-external-dtd&quot;, false);</span>
+<span class="nc" id="L282">            factory.setFeature(&quot;http://xml.org/sax/features/external-general-entities&quot;, false);</span>
+<span class="nc" id="L283">            Document doc = factory.newDocumentBuilder().parse(xmlFile.toFile());</span>
+
+<span class="nc" id="L285">            NodeList pages = doc.getElementsByTagName(&quot;page&quot;);</span>
+<span class="nc" id="L286">            List&lt;PageBlocks&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">            for (int i = 0; i &lt; pages.getLength(); i++) {</span>
+<span class="nc" id="L289">                Element page = (Element) pages.item(i);</span>
+<span class="nc" id="L290">                float pageHeight = floatAttr(page, &quot;height&quot;, 842);</span>
+
+<span class="nc" id="L292">                NodeList texts = page.getElementsByTagName(&quot;text&quot;);</span>
+<span class="nc" id="L293">                List&lt;TextBlock&gt; blocks = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">                for (int j = 0; j &lt; texts.getLength(); j++) {</span>
+<span class="nc" id="L295">                    Element text = (Element) texts.item(j);</span>
+<span class="nc" id="L296">                    String content = text.getTextContent().trim();</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">                    if (!content.isEmpty()) {</span>
+<span class="nc" id="L298">                        blocks.add(new TextBlock(</span>
+                            content,
+<span class="nc" id="L300">                            floatAttr(text, &quot;left&quot;, 0),</span>
+<span class="nc" id="L301">                            floatAttr(text, &quot;top&quot;, 0),</span>
+<span class="nc" id="L302">                            floatAttr(text, &quot;width&quot;, 0),</span>
+<span class="nc" id="L303">                            floatAttr(text, &quot;height&quot;, 12)</span>
+                        ));
+                    }
+                }
+<span class="nc" id="L307">                result.add(new PageBlocks(blocks, pageHeight));</span>
+            }
+<span class="nc" id="L309">            return result;</span>
+<span class="nc" id="L310">        } catch (Exception e) {</span>
+<span class="nc" id="L311">            LOG.warnf(&quot;Could not parse pdftohtml XML %s: %s&quot;, xmlFile, e.getMessage());</span>
+<span class="nc" id="L312">            return List.of();</span>
+        }
+    }
+
+    private float floatAttr(Element el, String attr, float defaultVal) {
+<span class="nc" id="L317">        try { return Float.parseFloat(el.getAttribute(attr)); }</span>
+<span class="nc" id="L318">        catch (NumberFormatException e) { return defaultVal; }</span>
+    }
+
+    // ===== Diff =====
+
+    /**
+     * Set-based diff: a text line is considered &quot;different&quot; if it does not appear
+     * (anywhere on the page) in the other document. Blocks matching any ignored pattern
+     * or ignored area (position-based) are excluded from comparison.
+     */
+    private DiffResult diffPages(PageBlocks expected, PageBlocks actual,
+                                 List&lt;String&gt; ignoredPatterns, int pageIndex) {
+<span class="nc" id="L330">        List&lt;Pattern&gt; compiled = compilePatterns(ignoredPatterns);</span>
+<span class="nc" id="L331">        List&lt;AreaIgnore&gt; areas = parseAreaIgnores(ignoredPatterns, pageIndex);</span>
+
+<span class="nc" id="L333">        List&lt;TextBlock&gt; expBlocks = expected.blocks().stream()</span>
+<span class="nc bnc" id="L334" title="All 4 branches missed.">            .filter(b -&gt; !matchesAny(b.text(), compiled) &amp;&amp; !matchesArea(b, areas)).toList();</span>
+<span class="nc" id="L335">        List&lt;TextBlock&gt; actBlocks = actual.blocks().stream()</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">            .filter(b -&gt; !matchesAny(b.text(), compiled) &amp;&amp; !matchesArea(b, areas)).toList();</span>
+
+<span class="nc" id="L338">        Set&lt;String&gt; expTexts = expBlocks.stream().map(TextBlock::text).collect(Collectors.toSet());</span>
+<span class="nc" id="L339">        Set&lt;String&gt; actTexts = actBlocks.stream().map(TextBlock::text).collect(Collectors.toSet());</span>
+
+<span class="nc" id="L341">        return new DiffResult(</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">            expBlocks.stream().filter(b -&gt; !actTexts.contains(b.text())).toList(),</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">            actBlocks.stream().filter(b -&gt; !expTexts.contains(b.text())).toList()</span>
+        );
+    }
+
+    /** Parses &quot;@area:{page}:{x1}:{y1}:{x2}:{y2}&quot; patterns for the given page. */
+    private List&lt;AreaIgnore&gt; parseAreaIgnores(List&lt;String&gt; patterns, int pageIndex) {
+<span class="nc bnc" id="L349" title="All 2 branches missed.">        if (patterns == null) return List.of();</span>
+<span class="nc" id="L350">        List&lt;AreaIgnore&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">        for (String p : patterns) {</span>
+<span class="nc bnc" id="L352" title="All 2 branches missed.">            if (!p.startsWith(&quot;@area:&quot;)) continue;</span>
+<span class="nc" id="L353">            String[] parts = p.substring(6).split(&quot;:&quot;);</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">            if (parts.length != 5) continue;</span>
+            try {
+<span class="nc bnc" id="L356" title="All 2 branches missed.">                if (Integer.parseInt(parts[0]) == pageIndex) {</span>
+<span class="nc" id="L357">                    result.add(new AreaIgnore(</span>
+<span class="nc" id="L358">                        Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),</span>
+<span class="nc" id="L359">                        Integer.parseInt(parts[3]), Integer.parseInt(parts[4])));</span>
+                }
+<span class="nc" id="L361">            } catch (NumberFormatException ignored) {}</span>
+<span class="nc" id="L362">        }</span>
+<span class="nc" id="L363">        return result;</span>
+    }
+
+<span class="nc" id="L366">    private record AreaIgnore(int x1, int y1, int x2, int y2) {}</span>
+
+    /** Returns true when the center of the block falls inside an ignored area. */
+    private boolean matchesArea(TextBlock block, List&lt;AreaIgnore&gt; areas) {
+<span class="nc bnc" id="L370" title="All 2 branches missed.">        if (areas.isEmpty()) return false;</span>
+<span class="nc" id="L371">        int bx1 = Math.max(0, (int)((block.left()  - 2) * SCALE));</span>
+<span class="nc" id="L372">        int by1 = Math.max(0, (int)((block.top()   - 2) * SCALE));</span>
+<span class="nc" id="L373">        int bx2 = (int)((block.left() + block.width()  + 2) * SCALE);</span>
+<span class="nc" id="L374">        int by2 = (int)((block.top()  + block.height() + 2) * SCALE);</span>
+<span class="nc" id="L375">        int cx  = (bx1 + bx2) / 2;</span>
+<span class="nc" id="L376">        int cy  = (by1 + by2) / 2;</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">        for (AreaIgnore a : areas) {</span>
+<span class="nc bnc" id="L378" title="All 8 branches missed.">            if (cx &gt;= a.x1() &amp;&amp; cx &lt;= a.x2() &amp;&amp; cy &gt;= a.y1() &amp;&amp; cy &lt;= a.y2()) return true;</span>
+<span class="nc" id="L379">        }</span>
+<span class="nc" id="L380">        return false;</span>
+    }
+
+    private List&lt;DiffBlock&gt; toDiffBlocks(List&lt;TextBlock&gt; blocks) {
+<span class="nc" id="L384">        return blocks.stream().map(b -&gt; new DiffBlock(</span>
+<span class="nc" id="L385">            b.text(),</span>
+<span class="nc" id="L386">            Math.max(0, (int)((b.left()  - 2) * SCALE)),</span>
+<span class="nc" id="L387">            Math.max(0, (int)((b.top()   - 2) * SCALE)),</span>
+<span class="nc" id="L388">            (int)((b.left() + b.width()  + 2) * SCALE),</span>
+<span class="nc" id="L389">            (int)((b.top()  + b.height() + 2) * SCALE)</span>
+<span class="nc" id="L390">        )).toList();</span>
+    }
+
+    private List&lt;Pattern&gt; compilePatterns(List&lt;String&gt; patterns) {
+<span class="nc bnc" id="L394" title="All 4 branches missed.">        if (patterns == null || patterns.isEmpty()) return List.of();</span>
+<span class="nc" id="L395">        List&lt;Pattern&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        for (String p : patterns) {</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">            if (p.startsWith(&quot;@area:&quot;)) continue; // handled separately as area ignore</span>
+<span class="nc" id="L398">            try { result.add(Pattern.compile(p)); }</span>
+<span class="nc" id="L399">            catch (PatternSyntaxException e) {</span>
+<span class="nc" id="L400">                result.add(Pattern.compile(Pattern.quote(p)));</span>
+<span class="nc" id="L401">            }</span>
+<span class="nc" id="L402">        }</span>
+<span class="nc" id="L403">        return result;</span>
+    }
+
+    private boolean matchesAny(String text, List&lt;Pattern&gt; patterns) {
+<span class="nc bnc" id="L407" title="All 2 branches missed.">        for (Pattern p : patterns) {</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">            if (p.matcher(text).find()) return true;</span>
+<span class="nc" id="L409">        }</span>
+<span class="nc" id="L410">        return false;</span>
+    }
+
+    // ===== Rendering =====
+
+    private void renderPages(Path pdfFile, Path outputDir, String prefix)
+            throws IOException, InterruptedException {
+<span class="nc" id="L417">        Process p = new ProcessBuilder(</span>
+            &quot;pdftoppm&quot;, &quot;-r&quot;, &quot;150&quot;, &quot;-png&quot;,
+<span class="nc" id="L419">            pdfFile.toAbsolutePath().toString(),</span>
+<span class="nc" id="L420">            outputDir.resolve(prefix).toAbsolutePath().toString()</span>
+<span class="nc" id="L421">        ).redirectErrorStream(true).start();</span>
+<span class="nc" id="L422">        p.getInputStream().transferTo(OutputStream.nullOutputStream());</span>
+<span class="nc" id="L423">        int exit = p.waitFor();</span>
+<span class="nc bnc" id="L424" title="All 2 branches missed.">        if (exit != 0) throw new IOException(&quot;pdftoppm failed (exit &quot; + exit + &quot;)&quot;);</span>
+<span class="nc" id="L425">    }</span>
+
+    /**
+     * Draws semi-transparent red rectangles around each differing text block.
+     * Coordinates are in PDF points; SCALE converts them to pixel coordinates at 150 DPI.
+     */
+    private void drawHighlights(Path baseImage, List&lt;TextBlock&gt; blocks, Path output)
+            throws IOException, InterruptedException {
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        if (blocks.isEmpty()) {</span>
+<span class="nc" id="L434">            Files.copy(baseImage, output, StandardCopyOption.REPLACE_EXISTING);</span>
+<span class="nc" id="L435">            return;</span>
+        }
+<span class="nc" id="L437">        List&lt;String&gt; cmd = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L438">        cmd.add(&quot;convert&quot;);</span>
+<span class="nc" id="L439">        cmd.add(baseImage.toAbsolutePath().toString());</span>
+<span class="nc" id="L440">        cmd.add(&quot;-fill&quot;);   cmd.add(&quot;rgba(255,60,60,0.35)&quot;);</span>
+<span class="nc" id="L441">        cmd.add(&quot;-stroke&quot;); cmd.add(&quot;rgb(200,0,0)&quot;);</span>
+<span class="nc" id="L442">        cmd.add(&quot;-strokewidth&quot;); cmd.add(&quot;1&quot;);</span>
+
+<span class="nc bnc" id="L444" title="All 2 branches missed.">        for (TextBlock b : blocks) {</span>
+<span class="nc" id="L445">            int x1 = Math.max(0, (int)((b.left() - 2) * SCALE));</span>
+<span class="nc" id="L446">            int y1 = Math.max(0, (int)((b.top()  - 2) * SCALE));</span>
+<span class="nc" id="L447">            int x2 = (int)((b.left() + b.width()  + 2) * SCALE);</span>
+<span class="nc" id="L448">            int y2 = (int)((b.top()  + b.height() + 2) * SCALE);</span>
+<span class="nc" id="L449">            cmd.add(&quot;-draw&quot;);</span>
+<span class="nc" id="L450">            cmd.add(&quot;rectangle &quot; + x1 + &quot;,&quot; + y1 + &quot; &quot; + x2 + &quot;,&quot; + y2);</span>
+<span class="nc" id="L451">        }</span>
+<span class="nc" id="L452">        cmd.add(output.toAbsolutePath().toString());</span>
+
+<span class="nc" id="L454">        Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();</span>
+<span class="nc" id="L455">        p.getInputStream().transferTo(OutputStream.nullOutputStream());</span>
+<span class="nc" id="L456">        p.waitFor();</span>
+<span class="nc" id="L457">    }</span>
+
+    private void sideBySide(Path left, Path right, Path output)
+            throws IOException, InterruptedException {
+<span class="nc" id="L461">        Process p = new ProcessBuilder(</span>
+            &quot;montage&quot;,
+<span class="nc" id="L463">            &quot;-label&quot;, &quot;Erwartet&quot;, left.toAbsolutePath().toString(),</span>
+<span class="nc" id="L464">            &quot;-label&quot;, &quot;Aktuell&quot;,   right.toAbsolutePath().toString(),</span>
+            &quot;-tile&quot;, &quot;2x1&quot;,
+            &quot;-geometry&quot;, &quot;+6+6&quot;,
+            &quot;-background&quot;, &quot;#e8e8e8&quot;,
+            &quot;-font&quot;, &quot;DejaVu-Sans&quot;,
+            &quot;-pointsize&quot;, &quot;22&quot;,
+<span class="nc" id="L470">            output.toAbsolutePath().toString()</span>
+<span class="nc" id="L471">        ).redirectErrorStream(true).start();</span>
+<span class="nc" id="L472">        p.getInputStream().transferTo(OutputStream.nullOutputStream());</span>
+<span class="nc" id="L473">        int exit = p.waitFor();</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">        if (exit != 0) throw new IOException(&quot;montage failed (exit &quot; + exit + &quot;)&quot;);</span>
+<span class="nc" id="L475">    }</span>
+
+    private void pngsToPdf(List&lt;Path&gt; images, Path outputPdf)
+            throws IOException, InterruptedException {
+<span class="nc" id="L479">        List&lt;String&gt; cmd = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L480">        cmd.add(&quot;convert&quot;);</span>
+<span class="nc bnc" id="L481" title="All 2 branches missed.">        for (Path img : images) cmd.add(img.toAbsolutePath().toString());</span>
+<span class="nc" id="L482">        cmd.add(outputPdf.toAbsolutePath().toString());</span>
+<span class="nc" id="L483">        Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();</span>
+<span class="nc" id="L484">        p.getInputStream().transferTo(OutputStream.nullOutputStream());</span>
+<span class="nc" id="L485">        int exit = p.waitFor();</span>
+<span class="nc bnc" id="L486" title="All 2 branches missed.">        if (exit != 0) throw new IOException(&quot;convert failed creating PDF (exit &quot; + exit + &quot;)&quot;);</span>
+<span class="nc" id="L487">    }</span>
+
+    private Path blankPage(Path tmpDir, int index, String suffix) throws IOException {
+<span class="nc" id="L490">        Path blank = tmpDir.resolve(&quot;blank-&quot; + index + &quot;-&quot; + suffix + &quot;.png&quot;);</span>
+<span class="nc" id="L491">        Process p = new ProcessBuilder(</span>
+<span class="nc" id="L492">            &quot;convert&quot;, &quot;-size&quot;, &quot;1240x1754&quot;, &quot;xc:white&quot;, blank.toAbsolutePath().toString()</span>
+<span class="nc" id="L493">        ).redirectErrorStream(true).start();</span>
+<span class="nc" id="L494">        try { p.waitFor(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }</span>
+<span class="nc" id="L495">        return blank;</span>
+    }
+
+    private List&lt;Path&gt; sortedPngs(Path dir) throws IOException {
+<span class="nc" id="L499">        try (var stream = Files.list(dir)) {</span>
+<span class="nc" id="L500">            return stream</span>
+<span class="nc" id="L501">                .filter(p -&gt; p.toString().endsWith(&quot;.png&quot;))</span>
+<span class="nc" id="L502">                .sorted(Comparator.comparing(Path::toString))</span>
+<span class="nc" id="L503">                .toList();</span>
+        }
+    }
+
+    private void deleteTempDir(Path dir) {
+<span class="nc bnc" id="L508" title="All 2 branches missed.">        if (dir == null) return;</span>
+<span class="nc" id="L509">        try (var stream = Files.walk(dir)) {</span>
+<span class="nc" id="L510">            stream.sorted(Comparator.reverseOrder())</span>
+<span class="nc" id="L511">                  .forEach(p -&gt; { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });</span>
+<span class="nc" id="L512">        } catch (IOException ignored) {}</span>
+<span class="nc" id="L513">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

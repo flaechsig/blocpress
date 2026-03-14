@@ -39,7 +39,15 @@ class TemplateResourceTest {
             }
             """;
 
-    private final RenderResource resource = new RenderResource();
+    private final RenderResource resource;
+
+    TemplateResourceTest() throws Exception {
+        resource = new RenderResource();
+        // LibreOfficePool ohne CDI: poolAvailable bleibt false → CLI-Fallback
+        var field = RenderResource.class.getDeclaredField("libreOfficePool");
+        field.setAccessible(true);
+        field.set(resource, new LibreOfficePool());
+    }
 
     @Test
     void mergeTemplateOdt() throws Exception {
@@ -57,7 +65,11 @@ class TemplateResourceTest {
         assertTrue(result.length() > 0, "Result file is empty: " + result.getAbsolutePath());
 
         byte[] actual = Files.readAllBytes(result.toPath());
-        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
+        byte[] expected;
+        try (var is = getClass().getResourceAsStream("/kuendigung_generated.odt")) {
+            assertNotNull(is, "/kuendigung_generated.odt not found on classpath");
+            expected = is.readAllBytes();
+        }
 
         String actualText = normalizeText(extractOdtText(actual));
         String expectedText = normalizeText(extractOdtText(expected));
@@ -81,7 +93,11 @@ class TemplateResourceTest {
         assertTrue(result.length() > 0, "Result file is empty: " + result.getAbsolutePath());
 
         byte[] actual = Files.readAllBytes(result.toPath());
-        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.pdf").readAllBytes();
+        byte[] expected;
+        try (var is = getClass().getResourceAsStream("/kuendigung_generated.pdf")) {
+            assertNotNull(is, "/kuendigung_generated.pdf not found on classpath");
+            expected = is.readAllBytes();
+        }
 
         String actualText = normalizeText(extractPdfText(actual));
         String expectedText = normalizeText(extractPdfText(expected));
@@ -105,7 +121,11 @@ class TemplateResourceTest {
         assertTrue(result.length() > 0, "Result file is empty: " + result.getAbsolutePath());
 
         byte[] actual = Files.readAllBytes(result.toPath());
-        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.rtf").readAllBytes();
+        byte[] expected;
+        try (var is = getClass().getResourceAsStream("/kuendigung_generated.rtf")) {
+            assertNotNull(is, "/kuendigung_generated.rtf not found on classpath");
+            expected = is.readAllBytes();
+        }
 
         String actualText = normalizeText(extractRtfText(actual));
         String expectedText = normalizeText(extractRtfText(expected));
@@ -127,7 +147,11 @@ class TemplateResourceTest {
 
     @Test
     void renderDocumentOdt() throws Exception {
-        byte[] templateBytes = getClass().getResourceAsStream("/kuendigung.odt").readAllBytes();
+        byte[] templateBytes;
+        try (var is = getClass().getResourceAsStream("/kuendigung.odt")) {
+            assertNotNull(is, "/kuendigung.odt not found on classpath");
+            templateBytes = is.readAllBytes();
+        }
 
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         Object data = objectMapper.readValue(VALID_JSON, Object.class);
@@ -144,7 +168,11 @@ class TemplateResourceTest {
         assertTrue(result.length() > 0, "Result file is empty: " + result.getAbsolutePath());
 
         byte[] actual = Files.readAllBytes(result.toPath());
-        byte[] expected = getClass().getResourceAsStream("/kuendigung_generated.odt").readAllBytes();
+        byte[] expected;
+        try (var is = getClass().getResourceAsStream("/kuendigung_generated.odt")) {
+            assertNotNull(is, "/kuendigung_generated.odt not found on classpath");
+            expected = is.readAllBytes();
+        }
 
         String actualText = normalizeText(extractOdtText(actual));
         String expectedText = normalizeText(extractOdtText(expected));

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>OutputFormat.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-core</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.core</a> &gt; <span class="el_source">OutputFormat.java</span></div><h1>OutputFormat.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.core;
+
+/**
+ * Legt das Ausgabeformat für das Druckstück fest.
+ *
+ * &lt;p&gt;&lt;b&gt;Design-Referenzen:&lt;/b&gt;&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-c-5&quot;&gt;C-5: Export-Formate (ODT, PDF, RTF)&lt;/a&gt;&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+<span class="fc" id="L11">public enum OutputFormat {</span>
+<span class="fc" id="L12">    ODT(&quot;odt&quot;),</span>
+<span class="fc" id="L13">    PDF(&quot;pdf&quot;),</span>
+<span class="fc" id="L14">    RTF(&quot;rtf&quot;);</span>
+
+    private final String suffix;
+
+<span class="fc" id="L18">    OutputFormat(String suffix) {</span>
+<span class="fc" id="L19">        this.suffix = suffix;</span>
+<span class="fc" id="L20">    }</span>
+
+    public String getSuffix() {
+<span class="fc" id="L23">        return suffix;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

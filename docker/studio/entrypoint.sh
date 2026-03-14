@@ -23,5 +23,8 @@ echo "[studio] Database init complete."
 # -----------------------------------------------------------------------
 # 3. Hand over to supervisord (manages workbench + render)
 # -----------------------------------------------------------------------
+# Defaults für konfigurierbare Laufzeit-Parameter (überschreibbar via -e)
+export BLOCPRESS_LO_WORKERS=${BLOCPRESS_LO_WORKERS:-1}
+
 echo "[studio] Starting services via supervisord..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/blocpress.conf

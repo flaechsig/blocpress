@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RenderEngine.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-core</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.core</a> &gt; <span class="el_source">RenderEngine.java</span></div><h1>RenderEngine.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.core;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+
+import java.io.ByteArrayOutputStream;
+import java.net.URL;
+
+<span class="fc" id="L13">@Slf4j</span>
+<span class="nc" id="L14">public class RenderEngine {</span>
+    /**
+     * Rendert ein ODT-Template (OpenDocument Text) durch Ersetzen von Platzhaltern
+     * mit den übergebenen JSON-Daten und gibt das resultierende ODT-Dokument als Byte-Array zurück.
+     *
+     * &lt;p&gt;&lt;b&gt;Fachlicher Kontext:&lt;/b&gt;
+     * Diese Methode ist Teil eines Template-Engines für die dynamische Generierung von Dokumenten
+     * (z.B. Briefe, Rechnungen, Berichte) im ODT-Format. Die JSON-Daten enthalten Schlüssel-Wert-Paare,
+     * die den im Template definierten Platzhaltern (Variablenfeldern) entsprechen. Die Platzhalter
+     * werden im ODT-Dokument durch die tatsächlichen Werte ersetzt, wobei verschachtelte JSON-Strukturen
+     * zuvor in eine flache Map transformiert werden, um komplexe Datenhierarchien abzubilden.
+     * Beispiel: Ein JSON-Objekt {@code {&quot;kunde&quot;: {&quot;name&quot;: &quot;Max Mustermann&quot;}}}
+     * wird zu einer flachen Map mit dem Schlüssel {@code &quot;kunde.name&quot;}.&lt;/p&gt;
+     *
+     * &lt;p&gt;&lt;b&gt;Beispiel:&lt;/b&gt;
+     * &lt;pre&gt;
+     *   byte[] template = Files.readAllBytes(Paths.get(&quot;vorlage.odt&quot;));
+     *   ObjectMapper mapper = new ObjectMapper();
+     *   JsonNode data = mapper.readTree(&quot;{\&quot;name\&quot;: \&quot;Max Mustermann\&quot;, \&quot;datum\&quot;: \&quot;2025-10-18\&quot;}&quot;);
+     *   byte[] renderedDocument = renderTemplate(template, data);
+     * &lt;/pre&gt;&lt;/p&gt;
+     *
+     * @param template Das ODT-Template als Byte-Array, das Platzhalter im Format {@code ${schlüssel}} enthält.
+     *                 Darf nicht {@code null} sein.
+     * @param data     JSON-Daten als {@link JsonNode}, die die Werte für die Platzhalter im Template enthalten.
+     *                 Unterstützt flache und verschachtelte Strukturen. Darf nicht {@code null} sein.
+     * @return Byte-Array des gerenderten ODT-Dokuments mit ersetzten Platzhaltern.
+     * @throws IllegalArgumentException wenn {@code template} oder {@code data} {@code null} ist.
+     * &lt;p&gt;&lt;b&gt;Design-Referenzen:&lt;/b&gt;&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-tf-5&quot;&gt;TF-5: Dokument generieren&lt;/a&gt;&lt;/li&gt;
+     *   &lt;li&gt;SysDC: &lt;a href=&quot;docs/System_Design_Concept.adoc#sydc-scenario-generate&quot;&gt;Szenario: Dokument über API generieren&lt;/a&gt;&lt;/li&gt;
+     *   &lt;li&gt;SDC: &lt;a href=&quot;docs/Solution_Design_Concept.adoc#sdc-bp-generieren&quot;&gt;BP: Dokument automatisiert generieren&lt;/a&gt;&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @see OdfTextDocument für Details zum ODT-Dokumentenmodell.
+     */
+<span class="nc" id="L51">    @SneakyThrows</span>
+<span class="pc bpc" id="L52" title="2 of 4 branches missed.">    public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data) {</span>
+        byte[] output;
+<span class="fc" id="L54">        TemplateDocument doc = TemplateDocument.getInstance(template);</span>
+
+<span class="fc" id="L56">        expandTextBlocks(doc);</span>
+<span class="fc" id="L57">        processConditions(doc, data);</span>
+<span class="fc" id="L58">        processLoops(doc, data);</span>
+<span class="fc" id="L59">        replaceFieldsWithStaticText(doc, data);</span>
+
+<span class="fc" id="L61">        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {</span>
+<span class="fc" id="L62">            doc.save(out);</span>
+<span class="fc" id="L63">            output = out.toByteArray();</span>
+        }
+
+<span class="fc" id="L66">        return output;</span>
+    }
+
+
+    /**
+     * Expands text blocks in the given template document by processing included sections.
+     * If a section has a reference to an external URL, the referenced template document
+     * is loaded, merged into the current document, and the included section is replaced
+     * with its expanded content.
+     *
+     * The method skips sections without a URL reference.
+     *
+     * @param doc The template document to expand. Cannot be null.
+     *            The document may include references to external text blocks to be merged.
+     */
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">    private static void expandTextBlocks(@NonNull TemplateDocument doc) {</span>
+<span class="fc" id="L82">        var includedTextBlocks = doc.collectIncludedTextBlocks();</span>
+
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        for (var section : includedTextBlocks) {</span>
+<span class="fc" id="L85">            var url = section.getUrl(doc.getUrl());</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">            if (url == null) {</span>
+<span class="nc" id="L87">                continue;</span>
+            }
+<span class="fc" id="L89">            var tbDocument = TemplateDocument.load(url);</span>
+<span class="fc" id="L90">            doc.merge(tbDocument, section);</span>
+<span class="fc" id="L91">        }</span>
+<span class="fc" id="L92">    }</span>
+
+    /**
+     * Processes conditional document elements by replacing placeholders with static values, evaluating conditions
+     * and potential remove the element if condition does not match.
+     *
+     * @param doc The template document to process
+     */
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    private static void processConditions(@NonNull TemplateDocument doc, JsonNode data) {</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        for (var conditionalTemplateElement : doc.collectConditionalTemplateElements()) {</span>
+<span class="fc" id="L102">                conditionalTemplateElement.resolveCondition(data);</span>
+<span class="fc" id="L103">        }</span>
+<span class="fc" id="L104">    }</span>
+
+    /**
+     * Replaces user-defined fields in the template document with static text values from the provided data.
+     *
+     * @param doc The template document to process
+     * @param data The JSON data containing field values
+     */
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">    private static void replaceFieldsWithStaticText(@NonNull TemplateDocument doc, JsonNode data) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (var field : doc.collectUserFields()) {</span>
+<span class="fc" id="L114">            var newValue = getFieldValue(field.getName(), data);</span>
+<span class="fc" id="L115">            doc.setFieldValue(field, newValue);</span>
+<span class="fc" id="L116">        }</span>
+<span class="fc" id="L117">    }</span>
+
+    /**
+     * Retrieves the value of a field from the provided JSON data.
+     *
+     * @param dotPath The dot-separated path to the field
+     * @param data The JSON data containing field values
+     * @return The value of the field, or null if not found
+     */
+    public static String getFieldValue(String dotPath, JsonNode data) {
+<span class="fc" id="L127">        String pointer = &quot;/&quot; + dotPath.replace(&quot;.&quot;, &quot;/&quot;);</span>
+<span class="fc" id="L128">        JsonNode n = data.at(pointer);</span>
+
+<span class="pc bpc" id="L130" title="2 of 4 branches missed.">        if (n == null || n.isMissingNode()) return null;</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (n.isTextual()) return n.textValue();</span>
+<span class="pc bpc" id="L132" title="3 of 4 branches missed.">        if (n.isBoolean()) return n.booleanValue() ? &quot;TRUE&quot; : &quot;FALSE&quot;;</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (n.isNumber()) return n.numberValue().toString();</span>
+
+<span class="nc" id="L135">        return n.toString();</span>
+    }
+
+    /**
+     * Processes loop elements in the template document by duplicating them for each item in the specified array path.
+     * After duplication, all loop-references inside the clone are indexed:
+     * policy_holder.full_name  -&gt; policy_holder.0.full_name (clone #0)
+     */
+    private static void processLoops(TemplateDocument doc, JsonNode data)  {
+<span class="fc" id="L144">        var elements = doc.findRepeatGroups(data);</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (var element : elements.entrySet()) {</span>
+<span class="fc" id="L147">            handleGenericLoop(doc, element.getKey(), element.getValue(), data);</span>
+<span class="fc" id="L148">        }</span>
+<span class="fc" id="L149">    }</span>
+
+    /**
+     * The repeatable element will be duplicated for each item in the specified array path.
+     * After duplication, all loop-references inside the clone are indexed:
+     * customer.full_name  -&gt; customer.0.full_name (clone #0)
+     * customer.full_name  -&gt; customer.1.full_name (clone #1)
+     */
+<span class="pc bpc" id="L157" title="4 of 8 branches missed.">    private static void handleGenericLoop(@NonNull TemplateDocument doc, @NonNull TemplateElement elementToExpand, @NonNull String arrayPath, @NonNull JsonNode data) {</span>
+<span class="fc" id="L158">        JsonNode arrayNode = data.at(&quot;/&quot; + arrayPath.replace(&quot;.&quot;, &quot;/&quot;));</span>
+<span class="pc bpc" id="L159" title="2 of 4 branches missed.">        if (arrayNode == null || !arrayNode.isArray()) {</span>
+<span class="nc" id="L160">            return;</span>
+        }
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        for (int index = 0; index &lt; arrayNode.size(); index++) {</span>
+<span class="fc" id="L164">            TemplateElement duplicated = doc.duplicate(elementToExpand);</span>
+<span class="fc" id="L165">            final String prefix = arrayPath + &quot;.&quot;;</span>
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            for (var field : duplicated.collectUserFields()) {</span>
+<span class="fc" id="L168">                String name = field.getName();</span>
+<span class="fc" id="L169">                String updated = indexLoopReferenceIfNeeded(name, prefix, index);</span>
+<span class="fc" id="L170">                field.setName(updated);</span>
+<span class="fc" id="L171">            }</span>
+        }
+<span class="fc" id="L173">        doc.removeChild(elementToExpand);</span>
+<span class="fc" id="L174">    }</span>
+
+    /**
+     * Only index &quot;loop references&quot;, not already indexed paths.
+     * Example:
+     * - prefix=&quot;policy_holder.&quot;, name=&quot;policy_holder.full_name&quot; -&gt; &quot;policy_holder.0.full_name&quot;
+     * - prefix=&quot;policy_holder.&quot;, name=&quot;policy_holder.0.full_name&quot; -&gt; unchanged
+     */
+    private static String indexLoopReferenceIfNeeded(String name, String prefix, int index) {
+<span class="pc bpc" id="L183" title="2 of 4 branches missed.">        if (StringUtils.isBlank(name) || StringUtils.isBlank(prefix)) {</span>
+<span class="nc" id="L184">            return name;</span>
+        }
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (!name.startsWith(prefix)) {</span>
+<span class="nc" id="L187">            return name;</span>
+        }
+
+<span class="fc" id="L190">        String remainder = name.substring(prefix.length());</span>
+
+        // already indexed? =&gt; keep
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (remainder.matches(&quot;^\\d+(\\.|$).*&quot;)) {</span>
+<span class="nc" id="L194">            return name;</span>
+        }
+
+<span class="fc" id="L197">        return prefix + index + &quot;.&quot; + remainder;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

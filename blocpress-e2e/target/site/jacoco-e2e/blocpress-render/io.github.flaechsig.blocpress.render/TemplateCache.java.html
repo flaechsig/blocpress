@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TemplateCache.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-render</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.render</a> &gt; <span class="el_source">TemplateCache.java</span></div><h1>TemplateCache.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.render;
+
+import io.quarkus.cache.CacheResult;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
+
+/**
+ * Cache for template content fetched from the production schema.
+ *
+ * With TI-2 (multi-schema), templates are imported from blocpress-workbench
+ * into the production schema via TemplateImportResource. This cache provides
+ * fast access to the local production database.
+ *
+ * Uses Quarkus Cache with configurable TTL (10 minutes) to minimize database access.
+ */
+@ApplicationScoped
+<span class="nc" id="L20">public class TemplateCache {</span>
+<span class="nc" id="L21">    private static final Logger logger = LoggerFactory.getLogger(TemplateCache.class);</span>
+
+    /**
+     * Fetches template content by ID from the production schema.
+     * Results are cached for performance (10 minutes TTL).
+     *
+     * @param templateId Template UUID
+     * @return Template binary content (ODT file)
+     * @throws TemplateNotFoundException if template does not exist in production
+     */
+    @CacheResult(cacheName = &quot;templates&quot;)
+    public byte[] getTemplateContent(UUID templateId) {
+<span class="nc" id="L33">        logger.info(&quot;Fetching template {} from production schema (cache miss)&quot;, templateId);</span>
+
+<span class="nc" id="L35">        ProductionTemplate template = ProductionTemplate.findById(templateId);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        if (template == null) {</span>
+<span class="nc" id="L37">            throw new TemplateNotFoundException(&quot;Template not found in production: &quot; + templateId);</span>
+        }
+
+<span class="nc" id="L40">        logger.info(&quot;Successfully fetched template {} (size: {} bytes)&quot;, templateId, template.content.length);</span>
+<span class="nc" id="L41">        return template.content;</span>
+    }
+
+    /**
+     * Fetches template content by name from the production schema.
+     * Retrieves the latest version (highest version number for the given name).
+     * Results are cached for performance (10 minutes TTL).
+     *
+     * @param templateName Template name
+     * @return Template binary content (ODT file) of latest version
+     * @throws TemplateNotFoundException if template does not exist in production
+     */
+    @CacheResult(cacheName = &quot;templates&quot;)
+    public byte[] getTemplateContentByName(String templateName) {
+<span class="nc" id="L55">        logger.info(&quot;Fetching template {} from production schema (cache miss)&quot;, templateName);</span>
+
+<span class="nc" id="L57">        ProductionTemplate template = ProductionTemplate.findLatestActiveByName(templateName);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (template == null) {</span>
+<span class="nc" id="L59">            throw new TemplateNotFoundException(&quot;Template not found in production: &quot; + templateName);</span>
+        }
+
+<span class="nc" id="L62">        logger.info(&quot;Successfully fetched template {} v{} (size: {} bytes)&quot;,</span>
+<span class="nc" id="L63">            templateName, template.version, template.content.length);</span>
+<span class="nc" id="L64">        return template.content;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

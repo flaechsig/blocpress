@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TestDataSet.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-workbench</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.workbench.entity</a> &gt; <span class="el_source">TestDataSet.java</span></div><h1>TestDataSet.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.workbench.entity;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import io.github.flaechsig.blocpress.workbench.entity.Template;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;test_data_set&quot;)
+public class TestDataSet extends PanacheEntityBase {
+
+    @Id
+    public UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;template_id&quot;, nullable = false)
+    public Template template;
+
+    @Column(nullable = false)
+    public String name;
+
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = &quot;test_data&quot;, columnDefinition = &quot;jsonb&quot;, nullable = false)
+    @JdbcTypeCode(SqlTypes.JSON)
+    public JsonNode testData;
+
+    @Column(name = &quot;expected_pdf&quot;, columnDefinition = &quot;bytea&quot;, nullable = true)
+    @JdbcTypeCode(SqlTypes.BINARY)
+    public byte[] expectedPdf;
+
+    @Column(name = &quot;pdf_hash&quot;, length = 64)
+    public String pdfHash;
+
+    @Column(name = &quot;created_at&quot;, nullable = false)
+    public Instant createdAt;
+
+    @Column(name = &quot;updated_at&quot;)
+    public Instant updatedAt;
+
+    @Column(columnDefinition = &quot;text&quot;)
+    public String notes;
+
+    /** Regex-Muster die nur für diesen Testfall ignoriert werden (ergänzt Template-Muster). */
+<span class="fc" id="L49">    @Column(name = &quot;ignored_patterns&quot;, columnDefinition = &quot;jsonb&quot;)</span>
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    public java.util.List&lt;String&gt; ignoredPatterns = new java.util.ArrayList&lt;&gt;();
+
+<span class="fc" id="L53">    public TestDataSet() {</span>
+<span class="fc" id="L54">        this.id = UUID.randomUUID();</span>
+<span class="fc" id="L55">        this.createdAt = Instant.now();</span>
+<span class="fc" id="L56">    }</span>
+
+    public static TestDataSet create(Template template, String name, JsonNode testData) {
+<span class="fc" id="L59">        TestDataSet tds = new TestDataSet();</span>
+<span class="fc" id="L60">        tds.template = template;</span>
+<span class="fc" id="L61">        tds.name = name;</span>
+<span class="fc" id="L62">        tds.testData = testData;</span>
+<span class="fc" id="L63">        return tds;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

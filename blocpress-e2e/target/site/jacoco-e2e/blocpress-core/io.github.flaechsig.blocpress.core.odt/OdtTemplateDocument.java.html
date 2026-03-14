@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>OdtTemplateDocument.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-core</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.core.odt</a> &gt; <span class="el_source">OdtTemplateDocument.java</span></div><h1>OdtTemplateDocument.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.core.odt;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
+import io.github.flaechsig.blocpress.core.TemplateDocument;
+import io.github.flaechsig.blocpress.core.TemplateElement;
+import io.github.flaechsig.blocpress.core.TemplateSectionElement;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+import org.odftoolkit.odfdom.dom.OdfContentDom;
+import org.odftoolkit.odfdom.dom.element.text.TextSectionElement;
+import org.odftoolkit.odfdom.dom.element.text.TextSpanElement;
+import org.odftoolkit.odfdom.pkg.OdfElement;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * ODT-Implementierung von {@link TemplateDocument}. Kapselt ein {@link OdfTextDocument}
+ * und stellt Methoden zur Template-Verarbeitung bereit (Textblock-Expansion, Style-Merging,
+ * Wiederholungsgruppen, User-Field-Ersetzung).
+ *
+ * &lt;p&gt;&lt;b&gt;Design-Referenzen:&lt;/b&gt;&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-tf-1&quot;&gt;TF-1: Template validieren&lt;/a&gt;&lt;/li&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-tf-5&quot;&gt;TF-5: Dokument generieren&lt;/a&gt;&lt;/li&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-ti-3&quot;&gt;TI-3: LibreOffice API&lt;/a&gt;&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+public class OdtTemplateDocument implements TemplateDocument {
+
+<span class="fc" id="L44">    private static final Pattern SECTION_PARAMS = Pattern.compile(&quot;^\\s*[^()]+\\((.*)\\)\\s*$&quot;);</span>
+    private static final String TABLE_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:table:1.0&quot;;
+
+    private final URL url;
+    OdfTextDocument document;
+
+    private static final String OFFICE_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:office:1.0&quot;;
+    private static final String STYLE_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:style:1.0&quot;;
+    private static final String TEXT_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:text:1.0&quot;;
+    private static final String SVG_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0&quot;;
+    private static final String DRAW_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:drawing:1.0&quot;;
+
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">    public OdtTemplateDocument(@NonNull URL url) {</span>
+<span class="fc" id="L57">        this.url = url;</span>
+<span class="fc" id="L58">        try (InputStream in = url.openStream()) {</span>
+<span class="fc" id="L59">            document = OdfTextDocument.loadDocument(in);</span>
+<span class="fc" id="L60">        } catch (Exception e) {</span>
+<span class="fc" id="L61">            throw new RuntimeException(e);</span>
+<span class="fc" id="L62">        }</span>
+<span class="fc" id="L63">    }</span>
+
+    @Override
+    public URL getUrl() {
+<span class="fc" id="L67">        return url;</span>
+    }
+
+    /**
+     * Determines repetition groups (sections or table rows) based on arrays.
+     * Returns: Template element -&gt; arrayPath (e.g., &quot;policy_holder&quot; or &quot;policy_holder.children&quot;)
+     */
+<span class="nc" id="L74">    @SneakyThrows</span>
+    public Map&lt;TemplateElement, String&gt; findRepeatGroups(JsonNode data) {
+<span class="fc" id="L76">        Collection&lt;String&gt; arrayPaths = getArrayPaths(data);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (arrayPaths.isEmpty()) {</span>
+<span class="fc" id="L78">            return Map.of();</span>
+        }
+
+<span class="fc" id="L81">        List&lt;TemplateElement&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L82">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;text:section&quot;));</span>
+<span class="fc" id="L83">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;table:table-row&quot;));</span>
+
+<span class="fc" id="L85">        Map&lt;TemplateElement, String&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        for (TemplateElement candidate : candidates) {</span>
+<span class="fc" id="L88">            var matchedArrayPath = candidate.hasUserField(arrayPaths);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">            if (StringUtils.isNotBlank(matchedArrayPath)) {</span>
+<span class="fc" id="L90">                result.put(candidate, matchedArrayPath);</span>
+            }
+<span class="fc" id="L92">        }</span>
+
+<span class="fc" id="L94">        return result;</span>
+    }
+
+    /**
+     * Detects repetition group array paths from the ODT structure alone (without JSON data).
+     * Scans text:section and table:table-row elements. If an element contains 2+ user fields
+     * that all share the same top-level prefix (e.g. &quot;positions.name&quot; + &quot;positions.price&quot; → &quot;positions&quot;),
+     * that prefix is treated as an array path.
+     */
+<span class="nc" id="L103">    @SneakyThrows</span>
+    public Set&lt;String&gt; detectRepetitionGroupPaths() {
+<span class="fc" id="L105">        Set&lt;String&gt; result = new java.util.LinkedHashSet&lt;&gt;();</span>
+
+<span class="fc" id="L107">        List&lt;TemplateElement&gt; candidates = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L108">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;text:section&quot;));</span>
+<span class="fc" id="L109">        candidates.addAll(OdtHelper.getNodes(document.getContentRoot(), &quot;table:table-row&quot;));</span>
+
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        for (TemplateElement candidate : candidates) {</span>
+<span class="nc" id="L112">            List&lt;TemplateElement&gt; fields = candidate.collectUserFields();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (fields.size() &lt; 2) continue;</span>
+
+            // Collect the first-level prefix of each field name
+<span class="nc" id="L116">            Set&lt;String&gt; prefixes = new java.util.LinkedHashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            for (TemplateElement field : fields) {</span>
+<span class="nc" id="L118">                String name = field.getName();</span>
+<span class="nc bnc" id="L119" title="All 4 branches missed.">                if (name != null &amp;&amp; name.contains(&quot;.&quot;)) {</span>
+<span class="nc" id="L120">                    prefixes.add(name.split(&quot;\\.&quot;)[0]);</span>
+                }
+<span class="nc" id="L122">            }</span>
+
+            // If all fields in this element share exactly one top-level prefix → repetition group
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (prefixes.size() == 1) {</span>
+<span class="nc" id="L126">                result.add(prefixes.iterator().next());</span>
+            }
+<span class="nc" id="L128">        }</span>
+
+<span class="fc" id="L130">        return result;</span>
+    }
+
+    /**
+     * Duplicates a template element, creating a new instance with the same structure and place it
+     * directly after the original element.
+     *
+     * @param original The template element to duplicate.
+     * @return the duplicated template element
+     */
+    @Override
+    public TemplateElement duplicate(TemplateElement original) {
+<span class="fc" id="L142">        OdtTemplateElement odtOriginal = (OdtTemplateElement) original;</span>
+<span class="fc" id="L143">        OdfElement odfOriginal = odtOriginal.element;</span>
+
+<span class="fc" id="L145">        OdfElement clone = (OdfElement) odfOriginal.cloneNode(true);</span>
+<span class="fc" id="L146">        odfOriginal.getParentNode().insertBefore(clone, odfOriginal);</span>
+<span class="fc" id="L147">        OdtTemplateElement cloneElement = new OdtTemplateElement(clone);</span>
+
+        // for sections set an unique name
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (clone instanceof TextSectionElement section) {</span>
+<span class="fc" id="L151">            section.setTextNameAttribute(&quot;gen_&quot; + System.nanoTime());</span>
+        }
+
+<span class="fc" id="L154">        return cloneElement;</span>
+    }
+
+    @Override
+<span class="pc" id="L158">    @SneakyThrows</span>
+    public void save(OutputStream out) {
+<span class="fc" id="L160">        document.save(out);</span>
+<span class="fc" id="L161">    }</span>
+
+    @Override
+<span class="pc" id="L164">    @SneakyThrows</span>
+    public void removeChild(TemplateElement element) {
+<span class="fc" id="L166">        element.remove();</span>
+<span class="fc" id="L167">    }</span>
+
+    /**
+     * Collects conditional template elements from document content
+     */
+    @Override
+<span class="nc" id="L173">    @SneakyThrows</span>
+    public List&lt;TemplateElement&gt; collectConditionalTemplateElements() {
+<span class="fc" id="L175">        String[] tagNames = {&quot;text:section&quot;, &quot;text:p&quot;, &quot;text:span&quot;, &quot;text:conditional-text&quot;};</span>
+<span class="fc" id="L176">        List&lt;TemplateElement&gt; elements = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        for (var tagName : tagNames) {</span>
+<span class="fc" id="L179">            elements.addAll(</span>
+<span class="fc" id="L180">                    OdtHelper.getNodes(document.getContentRoot(), tagName).stream()</span>
+<span class="fc" id="L181">                            .filter(OdtTemplateElement::isConditional)</span>
+<span class="fc" id="L182">                            .map(e -&gt; (TemplateElement) e)</span>
+<span class="fc" id="L183">                            .toList()</span>
+            );
+        }
+<span class="fc" id="L186">        return elements;</span>
+    }
+
+    @Override
+<span class="nc" id="L190">    @SneakyThrows</span>
+    public List&lt;OdtTemplateSectionElement&gt; collectIncludedTextBlocks() {
+<span class="fc" id="L192">        return OdtHelper.getNodes(document.getContentRoot(), &quot;text:section-source&quot;).stream()</span>
+<span class="fc" id="L193">                .map(e -&gt; new OdtTemplateSectionElement(e.element))</span>
+<span class="fc" id="L194">                .toList();</span>
+    }
+
+    @Override
+<span class="nc" id="L198">    @SneakyThrows</span>
+    public List&lt;TemplateElement&gt; collectUserFields() {
+<span class="fc" id="L200">        List&lt;TemplateElement&gt; fields = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L202">        OdtHelper.getNodes(document.getContentRoot(), &quot;text:user-field-get&quot;).stream()</span>
+<span class="fc" id="L203">                .forEach(n -&gt; fields.add(n));</span>
+<span class="fc" id="L204">        OdtHelper.getNodes(document.getContentRoot(), &quot;text:variable-get&quot;).stream()</span>
+<span class="pc" id="L205">                .forEach(n -&gt; fields.add(n));</span>
+
+<span class="fc" id="L207">        return fields;</span>
+    }
+
+    /**
+     * Collects all declared user fields from {@code text:user-field-decls}.
+     * This is the canonical list of every field defined in the template — including
+     * fields that are only referenced in conditions (text:conditional-text) and therefore
+     * may not appear as {@code text:user-field-get} elements in the document body.
+     * The element's {@code office:string-value} attribute carries the declared example value.
+     */
+<span class="nc" id="L217">    @SneakyThrows</span>
+    public List&lt;TemplateElement&gt; collectUserFieldDeclarations() {
+<span class="fc" id="L219">        return OdtHelper.getNodes(document.getContentRoot(), &quot;text:user-field-decl&quot;).stream()</span>
+<span class="fc" id="L220">                .map(e -&gt; (TemplateElement) e)</span>
+<span class="fc" id="L221">                .toList();</span>
+    }
+
+    /**
+     * Updates the value of a user-defined field within the template document.
+     * Replaces the current field content with the provided value. If the value is null,
+     * it will be replaced with an empty string.
+     *
+     * @param userField the template element representing the user-defined field to be updated; must not be null
+     * @param value     the new value to set for the user-defined field; if null, defaults to an empty string
+     * @throws NullPointerException if the provided userField is null
+     */
+<span class="pc" id="L233">    @SneakyThrows</span>
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">    public void setFieldValue(@NonNull TemplateElement userField, String value) {</span>
+<span class="fc" id="L235">        var odfElement = ((OdtTemplateElement) userField).element;</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">        var newValue = value != null ? value : &quot;&quot;;</span>
+
+<span class="fc" id="L238">        var parent = odfElement.getParentNode();</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">        if (parent == null) {</span>
+            // Feld hängt nicht mehr im Baum -&gt; nichts zu ersetzen
+<span class="nc" id="L241">            return;</span>
+        }
+
+<span class="fc" id="L244">        OdfContentDom dom = (OdfContentDom) parent.getOwnerDocument();</span>
+<span class="fc" id="L245">        TextSpanElement span = dom.newOdfElement(TextSpanElement.class);</span>
+<span class="fc" id="L246">        span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue));</span>
+
+<span class="fc" id="L248">        parent.insertBefore(span, odfElement);</span>
+<span class="fc" id="L249">        parent.removeChild(odfElement);</span>
+<span class="fc" id="L250">        ((OdtTemplateElement) userField).element = span;</span>
+<span class="fc" id="L251">    }</span>
+
+    @Override
+<span class="pc" id="L254">    @SneakyThrows</span>
+    public void merge(TemplateDocument tbDocument, TemplateSectionElement sectionElement) {
+<span class="fc" id="L256">        OdtTemplateSectionElement section = (OdtTemplateSectionElement) sectionElement;</span>
+<span class="fc" id="L257">        OdtTemplateDocument source = (OdtTemplateDocument) tbDocument;</span>
+
+<span class="fc" id="L259">        Map&lt;String, String&gt; renameMap = mergeStylesSmart(source);</span>
+<span class="fc" id="L260">        Map&lt;String, String&gt; pathMapping = parseSectionNameMapping(section);</span>
+
+<span class="fc" id="L262">        List&lt;Node&gt; nodesToImport = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L263">        var officeText = source.document.getContentRoot();</span>
+<span class="fc" id="L264">        var childNodes = officeText.getChildNodes();</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        for (int i = 0; i &lt; childNodes.getLength(); i++) {</span>
+<span class="fc" id="L266">            var childNode = childNodes.item(i);</span>
+<span class="pc bpc" id="L267" title="2 of 4 branches missed.">            if (childNode.getNodeType() == Node.TEXT_NODE || childNode.getNodeType() == Node.ELEMENT_NODE) {</span>
+<span class="fc" id="L268">                nodesToImport.add(childNode);</span>
+            }
+        }
+
+        // remove existing childs from section
+<span class="fc" id="L273">        var wrkSection = section.element.getParentNode();</span>
+        Node node;
+<span class="fc bfc" id="L275" title="All 2 branches covered.">        while ((node = wrkSection.getFirstChild()) != null) {</span>
+<span class="fc" id="L276">            wrkSection.removeChild(node);</span>
+        }
+
+        // import document data
+<span class="fc" id="L280">        Document targetDom = wrkSection.getOwnerDocument();</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">        for (var n : nodesToImport) {</span>
+<span class="fc" id="L282">            Node imported = targetDom.importNode(n, true);</span>
+<span class="fc" id="L283">            rewriteUserFieldNames(imported, pathMapping);</span>
+<span class="fc" id="L284">            rewriteStyleReferences(imported, renameMap);</span>
+<span class="fc" id="L285">            wrkSection.appendChild(imported);</span>
+<span class="fc" id="L286">        }</span>
+<span class="fc" id="L287">    }</span>
+
+    /**
+     * Extracts mapping from section name.
+     *
+     * Expected: TemplateName(targetParam1=sourceParam1, targetParam2=sourceParam2)
+     * Mapping direction: targetParam -&gt; sourceParam
+     */
+    private Map&lt;String, String&gt; parseSectionNameMapping(OdtTemplateSectionElement section) {
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">        Node parent = section.element != null ? section.element.getParentNode() : null;</span>
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">        if (!(parent instanceof Element parentEl)) {</span>
+<span class="nc" id="L298">            return Map.of();</span>
+        }
+
+        // LibreOffice stores section name as text:name on the text:section element
+<span class="fc" id="L302">        String sectionName = parentEl.getAttributeNS(TEXT_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L303" title="2 of 4 branches missed.">        if (sectionName == null || sectionName.isBlank()) {</span>
+            // fallback if namespace-aware attr lookup fails
+<span class="nc" id="L305">            sectionName = parentEl.getAttribute(&quot;text:name&quot;);</span>
+        }
+<span class="pc bpc" id="L307" title="2 of 4 branches missed.">        if (sectionName == null || sectionName.isBlank()) {</span>
+<span class="nc" id="L308">            return Map.of();</span>
+        }
+
+<span class="fc" id="L311">        Matcher m = SECTION_PARAMS.matcher(sectionName);</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">        if (!m.matches()) {</span>
+<span class="nc" id="L313">            return Map.of();</span>
+        }
+
+<span class="fc" id="L316">        String params = m.group(1);</span>
+<span class="pc bpc" id="L317" title="2 of 4 branches missed.">        if (params == null || params.isBlank()) {</span>
+<span class="nc" id="L318">            return Map.of();</span>
+        }
+
+<span class="fc" id="L321">        Map&lt;String, String&gt; mapping = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        for (String part : params.split(&quot;,&quot;)) {</span>
+<span class="fc" id="L323">            String p = part.trim();</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">            if (p.isEmpty()) continue;</span>
+
+<span class="fc" id="L326">            int eq = p.indexOf('=');</span>
+<span class="pc bpc" id="L327" title="2 of 4 branches missed.">            if (eq &lt;= 0 || eq &gt;= p.length() - 1) continue;</span>
+
+<span class="fc" id="L329">            String targetParam = p.substring(0, eq).trim();</span>
+<span class="fc" id="L330">            String sourceParam = p.substring(eq + 1).trim();</span>
+
+<span class="pc bpc" id="L332" title="2 of 4 branches missed.">            if (!targetParam.isEmpty() &amp;&amp; !sourceParam.isEmpty()) {</span>
+<span class="fc" id="L333">                mapping.put(targetParam, sourceParam);</span>
+            }
+        }
+<span class="fc" id="L336">        return mapping;</span>
+    }
+
+    private void rewriteUserFieldNames(Node root, Map&lt;String, String&gt; mapping) {
+<span class="fc bfc" id="L340" title="All 2 branches covered.">        if (root.getNodeType() == Node.ELEMENT_NODE) {</span>
+<span class="fc" id="L341">            Element el = (Element) root;</span>
+
+<span class="pc bpc" id="L343" title="1 of 4 branches missed.">            boolean isUserFieldGet = TEXT_NS.equals(el.getNamespaceURI()) &amp;&amp; &quot;user-field-get&quot;.equals(el.getLocalName());</span>
+<span class="pc bpc" id="L344" title="2 of 4 branches missed.">            boolean isVariableGet = TEXT_NS.equals(el.getNamespaceURI()) &amp;&amp; &quot;variable-get&quot;.equals(el.getLocalName());</span>
+
+<span class="pc bpc" id="L346" title="1 of 4 branches missed.">            if (isUserFieldGet || isVariableGet) {</span>
+<span class="fc" id="L347">                String name = el.getAttributeNS(TEXT_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L348" title="2 of 4 branches missed.">                if (name == null || name.isBlank()) {</span>
+<span class="nc" id="L349">                    name = el.getAttribute(&quot;text:name&quot;);</span>
+                }
+
+<span class="fc" id="L352">                String rewritten = rewriteByPrefixMapping(name, mapping);</span>
+<span class="pc bpc" id="L353" title="2 of 4 branches missed.">                if (rewritten != null &amp;&amp; !rewritten.equals(name)) {</span>
+<span class="fc" id="L354">                    el.setAttributeNS(TEXT_NS, &quot;text:name&quot;, rewritten);</span>
+                }
+            }
+        }
+
+<span class="fc" id="L359">        NodeList nl = root.getChildNodes();</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">        for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L361">            Node child = nl.item(i);</span>
+
+            // Optional: ignore nested tables completely (prevents accidental rewrites in embedded tables)
+<span class="fc bfc" id="L364" title="All 2 branches covered.">            if (child.getNodeType() == Node.ELEMENT_NODE) {</span>
+<span class="fc" id="L365">                Element el = (Element) child;</span>
+<span class="pc bpc" id="L366" title="3 of 4 branches missed.">                if (TABLE_NS.equals(el.getNamespaceURI()) &amp;&amp; &quot;table&quot;.equals(el.getLocalName())) {</span>
+<span class="nc" id="L367">                    continue;</span>
+                }
+            }
+
+<span class="fc" id="L371">            rewriteUserFieldNames(child, mapping);</span>
+        }
+<span class="fc" id="L373">    }</span>
+
+    /**
+     * Rewrites &quot;target...&quot; to &quot;source...&quot; for each mapping entry.
+     * Applies only when the field starts with &quot;target.&quot; or equals &quot;target&quot;.
+     * If multiple targets could match, the longest target wins.
+     */
+    private String rewriteByPrefixMapping(String fieldName, Map&lt;String, String&gt; mapping) {
+<span class="pc bpc" id="L381" title="3 of 6 branches missed.">        if (fieldName == null || fieldName.isBlank() || mapping.isEmpty()) {</span>
+<span class="nc" id="L382">            return fieldName;</span>
+        }
+
+<span class="fc" id="L385">        String bestTarget = null;</span>
+<span class="fc bfc" id="L386" title="All 2 branches covered.">        for (String target : mapping.keySet()) {</span>
+<span class="pc bpc" id="L387" title="2 of 4 branches missed.">            if (target == null || target.isBlank()) continue;</span>
+
+<span class="pc bpc" id="L389" title="1 of 4 branches missed.">            boolean matches = fieldName.equals(target) || fieldName.startsWith(target + &quot;.&quot;);</span>
+<span class="fc bfc" id="L390" title="All 2 branches covered.">            if (!matches) continue;</span>
+
+<span class="pc bpc" id="L392" title="3 of 4 branches missed.">            if (bestTarget == null || target.length() &gt; bestTarget.length()) {</span>
+<span class="fc" id="L393">                bestTarget = target;</span>
+            }
+<span class="fc" id="L395">        }</span>
+
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">        if (bestTarget == null) {</span>
+<span class="nc" id="L398">            return fieldName;</span>
+        }
+
+<span class="fc" id="L401">        String source = mapping.get(bestTarget);</span>
+<span class="pc bpc" id="L402" title="1 of 2 branches missed.">        if (fieldName.equals(bestTarget)) {</span>
+<span class="fc" id="L403">            return source;</span>
+        }
+<span class="nc" id="L405">        return source + fieldName.substring(bestTarget.length());</span>
+    }
+
+<span class="nc" id="L408">    @SneakyThrows</span>
+    private Map&lt;String, String&gt; mergeStylesSmart(OdtTemplateDocument source) {
+<span class="fc" id="L410">        Map&lt;String, String&gt; renameMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L411">        String prefix = &quot;TB_&quot; + Long.toHexString(System.nanoTime()) + &quot;_&quot;;</span>
+
+<span class="fc" id="L413">        mergeOfficeBlockSmart(source.document.getContentDom(), this.document.getContentDom(), &quot;font-face-decls&quot;, prefix, renameMap);</span>
+<span class="fc" id="L414">        mergeOfficeBlockSmart(source.document.getContentDom(), this.document.getContentDom(), &quot;automatic-styles&quot;, prefix, renameMap);</span>
+
+<span class="fc" id="L416">        mergeOfficeBlockSmart(source.document.getStylesDom(), this.document.getStylesDom(), &quot;font-face-decls&quot;, prefix, renameMap);</span>
+<span class="fc" id="L417">        mergeOfficeBlockSmart(source.document.getStylesDom(), this.document.getStylesDom(), &quot;automatic-styles&quot;, prefix, renameMap);</span>
+<span class="fc" id="L418">        mergeOfficeBlockSmart(source.document.getStylesDom(), this.document.getStylesDom(), &quot;styles&quot;, prefix, renameMap);</span>
+
+<span class="fc" id="L420">        return renameMap;</span>
+    }
+
+    /**
+     * Smart template:
+     * - if name doesn't exist in target -&gt; import
+     * - if exists and definition identical -&gt; skip (reuse master style)
+     * - if exists but different -&gt; import renamed copy and store mapping old-&gt;new
+     */
+<span class="pc" id="L429">    @SneakyThrows</span>
+    private void mergeOfficeBlockSmart(Document sourceDom,
+                                       Document targetDom,
+                                       String blockLocalName,
+                                       String prefix,
+                                       Map&lt;String, String&gt; renameMap) {
+<span class="fc" id="L435">        Node sourceBlock = firstByLocalName(sourceDom, OFFICE_NS, blockLocalName);</span>
+<span class="fc" id="L436">        Node targetBlock = firstByLocalName(targetDom, OFFICE_NS, blockLocalName);</span>
+<span class="pc bpc" id="L437" title="2 of 4 branches missed.">        if (sourceBlock == null || targetBlock == null) {</span>
+<span class="nc" id="L438">            return;</span>
+        }
+
+<span class="fc" id="L441">        Map&lt;String, String&gt; targetFingerprintByName = indexStyleFingerprints(targetBlock);</span>
+
+<span class="fc" id="L443">        NodeList children = sourceBlock.getChildNodes();</span>
+<span class="fc bfc" id="L444" title="All 2 branches covered.">        for (int i = 0; i &lt; children.getLength(); i++) {</span>
+<span class="fc" id="L445">            Node child = children.item(i);</span>
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">            if (child.getNodeType() != Node.ELEMENT_NODE) {</span>
+<span class="nc" id="L447">                continue;</span>
+            }
+
+<span class="fc" id="L450">            String styleName = getStyleLikeName(child);</span>
+<span class="pc bpc" id="L451" title="1 of 4 branches missed.">            if (styleName == null || styleName.isBlank()) {</span>
+                // unnamed -&gt; import as-is
+<span class="fc" id="L453">                targetBlock.appendChild(targetDom.importNode(child, true));</span>
+<span class="fc" id="L454">                continue;</span>
+            }
+
+<span class="fc" id="L457">            String sourceFp = fingerprintStyleNode(child);</span>
+
+<span class="fc" id="L459">            String targetFp = targetFingerprintByName.get(styleName);</span>
+<span class="pc bpc" id="L460" title="1 of 2 branches missed.">            if (targetFp == null) {</span>
+                // not present in target -&gt; import
+<span class="nc" id="L462">                targetBlock.appendChild(targetDom.importNode(child, true));</span>
+<span class="nc" id="L463">                targetFingerprintByName.put(styleName, sourceFp);</span>
+<span class="nc" id="L464">                continue;</span>
+            }
+
+<span class="fc bfc" id="L467" title="All 2 branches covered.">            if (targetFp.equals(sourceFp)) {</span>
+                // identical -&gt; reuse master style, do nothing
+<span class="fc" id="L469">                continue;</span>
+            }
+
+            // different -&gt; rename + import renamed copy
+<span class="fc" id="L473">            String newName = renameMap.computeIfAbsent(styleName, k -&gt; prefix + k);</span>
+
+<span class="fc" id="L475">            Element imported = (Element) targetDom.importNode(child, true);</span>
+<span class="fc" id="L476">            imported.setAttributeNS(STYLE_NS, &quot;style:name&quot;, newName);</span>
+
+            // style-internal references that might point to other renamed styles
+<span class="fc" id="L479">            rewriteStyleAttributesOnElement(imported, renameMap);</span>
+
+<span class="fc" id="L481">            targetBlock.appendChild(imported);</span>
+<span class="fc" id="L482">            targetFingerprintByName.put(newName, sourceFp);</span>
+        }
+<span class="fc" id="L484">    }</span>
+
+    private Map&lt;String, String&gt; indexStyleFingerprints(Node officeBlock) {
+<span class="fc" id="L487">        Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L488">        NodeList nl = officeBlock.getChildNodes();</span>
+<span class="fc bfc" id="L489" title="All 2 branches covered.">        for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L490">            Node n = nl.item(i);</span>
+<span class="pc bpc" id="L491" title="1 of 2 branches missed.">            if (n.getNodeType() != Node.ELEMENT_NODE) continue;</span>
+
+<span class="fc" id="L493">            String name = getStyleLikeName(n);</span>
+<span class="pc bpc" id="L494" title="1 of 4 branches missed.">            if (name == null || name.isBlank()) continue;</span>
+
+<span class="fc" id="L496">            map.put(name, fingerprintStyleNode(n));</span>
+        }
+<span class="fc" id="L498">        return map;</span>
+    }
+
+
+    /**
+     * Build a stable-ish fingerprint of a style element ignoring its name.
+     * This is used to decide whether master style and source style are identical.
+     */
+    private String fingerprintStyleNode(Node n) {
+<span class="fc" id="L507">        StringBuilder sb = new StringBuilder(2048);</span>
+<span class="fc" id="L508">        appendFingerprint(n, sb, true);</span>
+<span class="fc" id="L509">        return sha256(sb.toString());</span>
+    }
+
+    private void appendFingerprint(Node n, StringBuilder sb, boolean ignoreStyleNameAttr) {
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">        if (n.getNodeType() == Node.ELEMENT_NODE) {</span>
+<span class="fc" id="L514">            Element el = (Element) n;</span>
+<span class="fc" id="L515">            sb.append('&lt;').append(el.getNamespaceURI()).append('|').append(el.getLocalName()).append('&gt;');</span>
+
+            // attributes
+<span class="fc" id="L518">            var attrs = el.getAttributes();</span>
+<span class="fc bfc" id="L519" title="All 2 branches covered.">            for (int i = 0; i &lt; attrs.getLength(); i++) {</span>
+<span class="fc" id="L520">                var a = attrs.item(i);</span>
+<span class="fc" id="L521">                String ans = a.getNamespaceURI();</span>
+<span class="fc" id="L522">                String an = a.getLocalName();</span>
+<span class="fc" id="L523">                String av = a.getNodeValue();</span>
+
+<span class="pc bpc" id="L525" title="1 of 6 branches missed.">                if (ignoreStyleNameAttr &amp;&amp; STYLE_NS.equals(ans) &amp;&amp; &quot;name&quot;.equals(an)) {</span>
+<span class="fc" id="L526">                    continue; // ignore style:name</span>
+                }
+<span class="fc" id="L528">                sb.append('@').append(ans).append('|').append(an).append('=').append(av);</span>
+            }
+<span class="pc bnc" id="L530" title="All 2 branches missed.">        } else if (n.getNodeType() == Node.TEXT_NODE) {</span>
+<span class="nc" id="L531">            sb.append('#').append(n.getNodeValue().trim());</span>
+        }
+
+<span class="fc" id="L534">        NodeList kids = n.getChildNodes();</span>
+<span class="fc bfc" id="L535" title="All 2 branches covered.">        for (int i = 0; i &lt; kids.getLength(); i++) {</span>
+<span class="fc" id="L536">            appendFingerprint(kids.item(i), sb, ignoreStyleNameAttr);</span>
+        }
+<span class="fc" id="L538">    }</span>
+
+    private String sha256(String s) {
+        try {
+<span class="fc" id="L542">            MessageDigest md = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L543">            byte[] d = md.digest(s.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L544">            StringBuilder hex = new StringBuilder(d.length * 2);</span>
+<span class="fc bfc" id="L545" title="All 2 branches covered.">            for (byte b : d) hex.append(String.format(&quot;%02x&quot;, b));</span>
+<span class="fc" id="L546">            return hex.toString();</span>
+<span class="nc" id="L547">        } catch (Exception e) {</span>
+<span class="nc" id="L548">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    private void rewriteStyleReferences(Node root, Map&lt;String, String&gt; renamed) {
+<span class="pc bpc" id="L553" title="2 of 4 branches missed.">        if (renamed == null || renamed.isEmpty()) return;</span>
+
+<span class="fc bfc" id="L555" title="All 2 branches covered.">        if (root.getNodeType() == Node.ELEMENT_NODE) {</span>
+<span class="fc" id="L556">            rewriteStyleAttributesOnElement((Element) root, renamed);</span>
+        }
+<span class="fc" id="L558">        NodeList nl = root.getChildNodes();</span>
+<span class="fc bfc" id="L559" title="All 2 branches covered.">        for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L560">            rewriteStyleReferences(nl.item(i), renamed);</span>
+        }
+<span class="fc" id="L562">    }</span>
+
+    private void rewriteStyleAttributesOnElement(Element el, Map&lt;String, String&gt; renamed) {
+        // content references
+<span class="fc" id="L566">        rewriteIfPresent(el, TEXT_NS, &quot;style-name&quot;, renamed);</span>
+<span class="fc" id="L567">        rewriteIfPresent(el, TEXT_NS, &quot;list-style-name&quot;, renamed);</span>
+<span class="fc" id="L568">        rewriteIfPresent(el, DRAW_NS, &quot;style-name&quot;, renamed);</span>
+<span class="fc" id="L569">        rewriteIfPresent(el, DRAW_NS, &quot;text-style-name&quot;, renamed);</span>
+
+        // style definitions references
+<span class="fc" id="L572">        rewriteIfPresent(el, STYLE_NS, &quot;parent-style-name&quot;, renamed);</span>
+<span class="fc" id="L573">        rewriteIfPresent(el, STYLE_NS, &quot;next-style-name&quot;, renamed);</span>
+<span class="fc" id="L574">        rewriteIfPresent(el, STYLE_NS, &quot;list-style-name&quot;, renamed);</span>
+<span class="fc" id="L575">        rewriteIfPresent(el, STYLE_NS, &quot;page-layout-name&quot;, renamed);</span>
+<span class="fc" id="L576">    }</span>
+
+    private void rewriteIfPresent(Element el, String ns, String localAttr, Map&lt;String, String&gt; renamed) {
+<span class="fc" id="L579">        String oldVal = el.getAttributeNS(ns, localAttr);</span>
+<span class="pc bpc" id="L580" title="1 of 4 branches missed.">        if (oldVal == null || oldVal.isBlank()) return;</span>
+
+<span class="fc" id="L582">        String newVal = renamed.get(oldVal);</span>
+<span class="fc bfc" id="L583" title="All 2 branches covered.">        if (newVal == null) return;</span>
+
+<span class="pc bpc" id="L585" title="3 of 4 branches missed.">        String qualified = switch (ns) {</span>
+<span class="nc" id="L586">            case STYLE_NS -&gt; &quot;style:&quot; + localAttr;</span>
+<span class="fc" id="L587">            case TEXT_NS  -&gt; &quot;text:&quot; + localAttr;</span>
+<span class="nc" id="L588">            case DRAW_NS  -&gt; &quot;draw:&quot; + localAttr;</span>
+<span class="pc" id="L589">            default       -&gt; localAttr;</span>
+        };
+<span class="fc" id="L591">        el.setAttributeNS(ns, qualified, newVal);</span>
+<span class="fc" id="L592">    }</span>
+
+    private Node firstByLocalName(Document dom, String ns, String localName) {
+<span class="fc" id="L595">        NodeList nl = dom.getElementsByTagNameNS(ns, localName);</span>
+<span class="pc bpc" id="L596" title="1 of 2 branches missed.">        return nl.getLength() &gt; 0 ? nl.item(0) : null;</span>
+    }
+
+    /**
+     * Tries to extract a unique name for different style-ish nodes:
+     * - style:style -&gt; style:name
+     * - text:list-style -&gt; style:name
+     * - style:page-layout -&gt; style:name
+     * - office:font-face -&gt; style:name (in ODF it's style:name)
+     */
+    private static String getStyleLikeName(Node n) {
+<span class="pc bpc" id="L607" title="1 of 2 branches missed.">        if (!(n instanceof org.w3c.dom.Element el)) {</span>
+<span class="nc" id="L608">            return null;</span>
+        }
+<span class="fc" id="L610">        String v = el.getAttributeNS(STYLE_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L611" title="1 of 4 branches missed.">        if (v != null &amp;&amp; !v.isBlank()) return v;</span>
+
+        // Some ODF nodes use text:name etc. (rare here), keep as fallback:
+<span class="fc" id="L614">        v = el.getAttributeNS(TEXT_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L615" title="2 of 4 branches missed.">        if (v != null &amp;&amp; !v.isBlank()) return v;</span>
+
+<span class="fc" id="L617">        v = el.getAttributeNS(DRAW_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L618" title="2 of 4 branches missed.">        if (v != null &amp;&amp; !v.isBlank()) return v;</span>
+
+<span class="fc" id="L620">        v = el.getAttributeNS(SVG_NS, &quot;name&quot;);</span>
+<span class="pc bpc" id="L621" title="2 of 4 branches missed.">        if (v != null &amp;&amp; !v.isBlank()) return v;</span>
+
+<span class="fc" id="L623">        return null;</span>
+    }
+
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

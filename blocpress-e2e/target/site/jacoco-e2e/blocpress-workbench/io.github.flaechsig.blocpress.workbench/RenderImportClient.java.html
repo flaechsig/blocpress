@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RenderImportClient.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-workbench</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.workbench</a> &gt; <span class="el_source">RenderImportClient.java</span></div><h1>RenderImportClient.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.workbench;
+
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * REST Client for communicating with blocpress-render's internal template import API.
+ *
+ * When a template transitions to APPROVED status in workbench, this client
+ * automatically pushes the template content to render's production schema.
+ *
+ * Endpoint: POST {render-url}/render/templates/import
+ * Base URL configured as: quarkus.rest-client.&quot;render-import&quot;.url = {RENDER_URL}/api
+ * (Default render-url: http://localhost:8080/api)
+ *
+ * This creates the &quot;clean cut&quot; between workbench (development) and render (production):
+ * render no longer depends on workbench for template content — it has its own copy.
+ */
+@RegisterRestClient(configKey = &quot;render-import&quot;)
+@Path(&quot;/render/templates/import&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public interface RenderImportClient {
+
+    /**
+     * Import (deploy) an approved template into the production schema.
+     * Called automatically when a template status transitions to APPROVED.
+     *
+     * @param request Import request with template metadata and base64-encoded ODT binary
+     * @return Response (200 OK on success, error status on failure)
+     */
+    @POST
+    Response importTemplate(ImportRequest request);
+
+    /**
+     * Request body for importing a template into production.
+     * All fields are required.
+     */
+<span class="nc" id="L47">    record ImportRequest(</span>
+        UUID id,
+        String name,
+        Integer version,
+        String contentBase64,    // Base64-encoded ODT binary
+        LocalDateTime validFrom  // Timestamp when template becomes active (may be null until APPROVED)
+    ) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

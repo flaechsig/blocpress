@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>OdtTemplateSectionElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-core</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.core.odt</a> &gt; <span class="el_source">OdtTemplateSectionElement.java</span></div><h1>OdtTemplateSectionElement.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.core.odt;
+
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
+import io.github.flaechsig.blocpress.core.TemplateDocument;
+import io.github.flaechsig.blocpress.core.TemplateSectionElement;
+import org.odftoolkit.odfdom.pkg.OdfElement;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Represents a template section element in an ODT document.
+ * &lt;p&gt;
+ * Construction rules:&lt;br/&gt;
+ * if blocpress.mode ==
+ * &lt;ul&gt;
+ *  &lt;li&gt;&quot;file&quot; the &quot;File Name&quot; determines the source of a template&lt;/li&gt;
+ *  &lt;li&gt;&quot;server&quot; the &quot;Section Name&quot; determines the source of a template. Additionally blocpress.url must be set&lt;/li&gt;
+ * &lt;/ul&gt;
+ * &lt;p&gt;
+ * if you use a template server (for mode=server) the resource name ist constructed by the following rule/example
+ * &lt;p&gt;
+ * Section Name: TextBuildingBlock(customer=customer,address=customer.address)
+ *
+ * &lt;p&gt;&lt;b&gt;Design-Referenzen:&lt;/b&gt;&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-e-2&quot;&gt;E-2: Baustein&lt;/a&gt;&lt;/li&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-tf-5&quot;&gt;TF-5: Dokument generieren&lt;/a&gt; (Textblock-Expansion)&lt;/li&gt;
+ * &lt;/ul&gt;
+ * URL: &lt;blocpress.url&gt;/TextBuildingBlock
+ * &lt;p&gt;
+ * The parameter in parentheses are the initialisation for the template. So template name is needed in file and
+ * server mode. Section name and file name should correspond.
+ *
+ * &lt;/p&gt;
+ */
+public class OdtTemplateSectionElement extends OdtTemplateElement implements TemplateSectionElement {
+
+    /**
+     * Creates a new {@code OdtTemplateSectionElement}.
+     *
+     * @param element the ODF element representing the template section
+     */
+    public OdtTemplateSectionElement(OdfElement element) {
+<span class="fc" id="L52">        super(element);</span>
+<span class="fc" id="L53">    }</span>
+
+    /**
+     * Retrieves the URL for the current template section element based on the configured mode.
+     * &lt;p&gt;
+     * The retrieval logic depends on the property &quot;blocpress.mode&quot;, which determines
+     * the operational mode and subsequent URL source:
+     * - If &quot;blocpress.mode&quot; is set to &quot;file&quot;, the URL is retrieved from the **File Name** of the **Link**-Section.
+     * - If &quot;blocpress.mode&quot; is set to &quot;server&quot;, the URL is constructed using the &quot;blocpress.url&quot;
+     * system property and the sanitized **Section Name**.
+     *
+     * @return the URL of the template section as a {@link URL} object
+     * @throws IllegalStateException if &quot;blocpress.url&quot; is not configured in &quot;server&quot; mode,
+     *                               or if an unknown &quot;blocpress.mode&quot; is specified
+     */
+    @Override
+<span class="nc" id="L69">    @SneakyThrows</span>
+    public URL getUrl(URL baseURL) {
+<span class="fc" id="L71">        var mode = System.getProperty(&quot;blocpress.mode&quot;, &quot;file&quot;);</span>
+<span class="fc" id="L72">        var url = System.getProperty(&quot;blocpress.url&quot;);</span>
+
+<span class="fc" id="L74">        var name = ((OdfElement) element.getParentNode()).getAttribute(&quot;text:name&quot;);</span>
+<span class="fc" id="L75">        var href = element.getAttribute(&quot;xlink:href&quot;);</span>
+
+<span class="pc bpc" id="L77" title="2 of 3 branches missed.">        return switch (mode) {</span>
+<span class="fc" id="L78">            case &quot;file&quot; -&gt; resolveTemplateFileUrl(href, baseURL);</span>
+<span class="nc" id="L79">            case &quot;server&quot; -&gt; URI.create(url + &quot;/&quot; + name).toURL();</span>
+<span class="nc" id="L80">            default -&gt; throw new IllegalStateException(&quot;Configuration exception. Unknown mode &quot; + mode);</span>
+        };
+    }
+
+    /**
+     * Resolves the URL of a template section element based on the given href and baseURL.
+     * Handles both absolute and relative URLs, and searches for templates in parent directories if necessary.
+     *
+     * @param href    The href attribute of the template section element.
+     * @param baseURL The base URL of the document containing the template section.
+     * @return The resolved URL of the template section, or null if not found.
+     * @throws Exception If an error occurs during URL resolution.
+     */
+    private static URL resolveTemplateFileUrl(String href, URL baseURL) throws Exception {
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (StringUtils.isBlank(href)) {</span>
+<span class="nc" id="L95">            return null;</span>
+        }
+
+        // Absolute URL/URI? (file:/ http:/ https:/ etc.)
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        if (href.matches(&quot;^[a-zA-Z][a-zA-Z0-9+.-]*:.*&quot;)) {</span>
+<span class="nc" id="L100">            return URI.create(href).toURL();</span>
+        }
+
+        // baseURL muss eine lokale Datei sein, sonst können wir nicht &quot;im Dateisystem nach oben suchen&quot;
+<span class="pc bpc" id="L104" title="2 of 4 branches missed.">        if (baseURL == null || !&quot;file&quot;.equalsIgnoreCase(baseURL.getProtocol())) {</span>
+            // Fallback: relative Pfade gegen cwd
+<span class="nc" id="L106">            return Path.of(href).toAbsolutePath().normalize().toUri().toURL();</span>
+        }
+
+<span class="fc" id="L109">        Path baseFile = Path.of(baseURL.toURI()).toAbsolutePath().normalize();</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        Path baseDir = Files.isDirectory(baseFile) ? baseFile : baseFile.getParent();</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (baseDir == null) {</span>
+            // sehr unwahrscheinlich, aber sauberer Fallback
+<span class="nc" id="L113">            return Path.of(href).toAbsolutePath().normalize().toUri().toURL();</span>
+        }
+
+        // 1) Standard: relativ zum Template-Verzeichnis auflösen
+<span class="fc" id="L117">        Path direct = baseDir.resolve(href).normalize();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (Files.exists(direct)) {</span>
+<span class="nc" id="L119">            return direct.toUri().toURL();</span>
+        }
+
+        // 2) Kommentar-Logik:
+        // find the template with the same Name in the directory of baseURL or in on of the parent directories
+<span class="fc" id="L124">        Path fileName = Path.of(href).getFileName(); // nur der Name, ohne evtl. Unterordner</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (fileName == null) {</span>
+<span class="nc" id="L126">            return null;</span>
+        }
+
+<span class="fc" id="L129">        Path dir = baseDir;</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        while (dir != null) {</span>
+<span class="fc" id="L131">            Path candidate = dir.resolve(fileName).normalize();</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            if (Files.exists(candidate)) {</span>
+<span class="fc" id="L133">                return candidate.toUri().toURL();</span>
+            }
+<span class="nc" id="L135">            dir = dir.getParent();</span>
+<span class="nc" id="L136">        }</span>
+
+        // nicht gefunden -&gt; null (oder Exception, je nach gewünschtem Verhalten)
+<span class="nc" id="L139">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

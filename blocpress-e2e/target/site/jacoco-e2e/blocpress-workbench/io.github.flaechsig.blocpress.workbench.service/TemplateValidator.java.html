@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TemplateValidator.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-workbench</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.workbench.service</a> &gt; <span class="el_source">TemplateValidator.java</span></div><h1>TemplateValidator.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.workbench.service;
+
+import io.github.flaechsig.blocpress.core.TemplateDocument;
+import io.github.flaechsig.blocpress.core.TemplateElement;
+import io.github.flaechsig.blocpress.core.odt.JexlConditionEvaluator;
+import io.github.flaechsig.blocpress.core.odt.OdtTemplateElement;
+import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+/**
+ * Validates ODT templates and generates JSON-Schema for their data structure.
+ *
+ * Process:
+ * 1. Load ODT and extract user fields (dot-notation names)
+ * 2. Identify repetition groups (arrays)
+ * 3. Generate JSON-Schema from fields + arrays
+ * 4. Validate field names and JEXL conditions
+ * 5. Return ValidationResult with schema
+ */
+@ApplicationScoped
+<span class="fc" id="L39">public class TemplateValidator {</span>
+
+<span class="fc" id="L41">    private static final Logger LOG = Logger.getLogger(TemplateValidator.class);</span>
+
+<span class="fc" id="L43">    private static final Pattern VALID_FIELD_NAME =</span>
+<span class="fc" id="L44">        Pattern.compile(&quot;^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)*$&quot;);</span>
+
+    /** Matches dot-notation paths inside condition expressions, e.g. customer.gender in 'customer.gender == &quot;FEMALE&quot;' */
+<span class="fc" id="L47">    private static final Pattern FIELD_PATH_IN_CONDITION =</span>
+<span class="fc" id="L48">        Pattern.compile(&quot;[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+&quot;);</span>
+
+    @Inject
+    public ObjectMapper objectMapper;
+
+    @Inject
+    public JsonSchemaGenerator schemaGenerator;
+
+    public ValidationResult validate(byte[] templateContent) {
+<span class="fc" id="L57">        List&lt;ValidationResult.ValidationMessage&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L58">        List&lt;ValidationResult.ValidationMessage&gt; warnings = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L59">        List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L60">        List&lt;String&gt; arrayPaths = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L61">        Map&lt;String, String&gt; fieldValues = new HashMap&lt;&gt;();  // fieldName -&gt; text content value</span>
+<span class="fc" id="L62">        Map&lt;String, String&gt; fieldTypes = new HashMap&lt;&gt;();   // fieldName -&gt; JSON schema type</span>
+<span class="fc" id="L63">        Set&lt;String&gt; conditionExpressions = new LinkedHashSet&lt;&gt;();</span>
+<span class="fc" id="L64">        Set&lt;String&gt; detectedArrayPaths = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L65">        JsonNode schema = null;</span>
+
+<span class="fc" id="L67">        Path tempFile = null;</span>
+        try {
+            // Step 1: Create temporary file and load ODT document
+<span class="fc" id="L70">            tempFile = Files.createTempFile(&quot;template-validation-&quot;, &quot;.odt&quot;);</span>
+<span class="fc" id="L71">            Files.write(tempFile, templateContent);</span>
+<span class="fc" id="L72">            URL templateUrl = tempFile.toUri().toURL();</span>
+
+<span class="fc" id="L74">            TemplateDocument doc = TemplateDocument.load(templateUrl);</span>
+
+            // Step 2: Extract and validate user fields.
+            // Prefer text:user-field-decl declarations — they list ALL fields including those
+            // only referenced in conditions (e.g. customer.gender used in Conditional Text).
+            // Fall back to text:user-field-get usages for templates without explicit declarations.
+            List&lt;TemplateElement&gt; extractedFields;
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">            if (doc instanceof io.github.flaechsig.blocpress.core.odt.OdtTemplateDocument odtDocForDecl) {</span>
+<span class="fc" id="L82">                extractedFields = odtDocForDecl.collectUserFieldDeclarations();</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">                if (extractedFields.isEmpty()) {</span>
+<span class="nc" id="L84">                    extractedFields = doc.collectUserFields();</span>
+                }
+            } else {
+<span class="nc" id="L87">                extractedFields = doc.collectUserFields();</span>
+            }
+<span class="fc" id="L89">            Set&lt;String&gt; uniqueFields = new HashSet&lt;&gt;();</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">            for (TemplateElement field : extractedFields) {</span>
+<span class="fc" id="L92">                String name = field.getName();</span>
+<span class="fc" id="L93">                uniqueFields.add(name);</span>
+
+                // Extract field value (text content from ODT element)
+<span class="fc" id="L96">                String fieldValue = extractFieldValue(field);</span>
+<span class="pc bpc" id="L97" title="2 of 4 branches missed.">                if (fieldValue != null &amp;&amp; !fieldValue.isBlank()) {</span>
+<span class="fc" id="L98">                    fieldValues.put(name, fieldValue);</span>
+                }
+
+                // Extract field type from ODT value-type attribute
+<span class="fc" id="L102">                String fieldType = extractFieldType(field);</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                if (fieldType != null) {</span>
+<span class="fc" id="L104">                    fieldTypes.put(name, fieldType);</span>
+                }
+
+                // Check field name format
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">                if (!VALID_FIELD_NAME.matcher(name).matches()) {</span>
+<span class="nc" id="L109">                    warnings.add(new ValidationResult.ValidationMessage(</span>
+                        &quot;INVALID_FIELD_NAME&quot;,
+                        &quot;Field '&quot; + name + &quot;' does not follow dot-notation pattern&quot;
+                    ));
+                }
+<span class="fc" id="L114">            }</span>
+<span class="fc" id="L115">            fieldNames.addAll(uniqueFields);</span>
+
+            // Step 3: Identify repetition groups via structural detection.
+            // Scan text:section and table:table-row elements: if all user fields within an element
+            // share the same top-level prefix, that prefix is an array path.
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            if (doc instanceof io.github.flaechsig.blocpress.core.odt.OdtTemplateDocument odtDoc) {</span>
+<span class="fc" id="L121">                detectedArrayPaths.addAll(odtDoc.detectRepetitionGroupPaths());</span>
+            }
+
+<span class="fc" id="L124">            arrayPaths.addAll(detectedArrayPaths);</span>
+
+<span class="fc" id="L126">            LOG.debugf(&quot;Found array paths (structural): %s&quot;, arrayPaths);</span>
+<span class="fc" id="L127">            LOG.debugf(&quot;Field names: %s&quot;, fieldNames);</span>
+
+            // Step 4: Extract and validate conditions (syntax only), collect field paths from them
+<span class="fc" id="L130">            List&lt;TemplateElement&gt; conditionalElements = doc.collectConditionalTemplateElements();</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">            for (TemplateElement element : conditionalElements) {</span>
+                // Use text:condition attribute (JEXL expression) — not text:name (section name)
+<span class="nc bnc" id="L133" title="All 2 branches missed.">                String elementName = (element instanceof OdtTemplateElement odtEl)</span>
+<span class="nc" id="L134">                        ? odtEl.getCondition()</span>
+<span class="nc" id="L135">                        : element.getName();</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">                if (elementName == null || elementName.isBlank()) continue;</span>
+<span class="nc" id="L137">                boolean syntaxValid = true;</span>
+<span class="nc" id="L138">                String errorMessage = null;</span>
+
+                // Try to validate condition syntax
+                try {
+<span class="nc" id="L142">                    JexlConditionEvaluator.evaluate(elementName);</span>
+<span class="nc" id="L143">                    conditionExpressions.add(elementName);</span>
+<span class="nc" id="L144">                } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L145">                    syntaxValid = false;</span>
+<span class="nc" id="L146">                    errorMessage = e.getMessage();</span>
+<span class="nc" id="L147">                    errors.add(new ValidationResult.ValidationMessage(</span>
+                        &quot;INVALID_CONDITION&quot;,
+<span class="nc" id="L149">                        &quot;Condition syntax error: &quot; + e.getMessage()</span>
+                    ));
+<span class="nc" id="L151">                } catch (Exception e) {</span>
+                    // Ignore other exceptions (they might be context-related)
+<span class="nc" id="L153">                    conditionExpressions.add(elementName);</span>
+<span class="nc" id="L154">                }</span>
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                if (!syntaxValid) {</span>
+<span class="nc" id="L157">                    warnings.add(new ValidationResult.ValidationMessage(</span>
+                        &quot;INVALID_CONDITION_SYNTAX&quot;,
+                        &quot;Condition '&quot; + elementName + &quot;' has syntax error: &quot; + errorMessage
+                    ));
+                }
+
+                // Extract field paths referenced in condition expressions so they appear in the schema.
+                // E.g. 'customer.gender == &quot;FEMALE&quot;' → add &quot;customer.gender&quot; to fieldNames.
+<span class="nc" id="L165">                var matcher = FIELD_PATH_IN_CONDITION.matcher(elementName);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                while (matcher.find()) {</span>
+<span class="nc" id="L167">                    String path = matcher.group();</span>
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                    if (!uniqueFields.contains(path) &amp;&amp; VALID_FIELD_NAME.matcher(path).matches()) {</span>
+<span class="nc" id="L169">                        uniqueFields.add(path);</span>
+<span class="nc" id="L170">                        fieldNames.add(path);</span>
+<span class="nc" id="L171">                        LOG.debugf(&quot;Added condition field path to schema: %s&quot;, path);</span>
+                    }
+<span class="nc" id="L173">                }</span>
+<span class="nc" id="L174">            }</span>
+
+            // Step 5: Generate JSON-Schema from fields (incl. condition fields) and arrays
+<span class="fc" id="L177">            schema = schemaGenerator.generateSchema(fieldNames, arrayPaths, fieldValues, fieldTypes);</span>
+<span class="fc" id="L178">            LOG.debugf(&quot;Generated schema: %s&quot;, schema);</span>
+
+<span class="fc" id="L180">        } catch (Exception e) {</span>
+<span class="fc" id="L181">            errors.add(new ValidationResult.ValidationMessage(</span>
+                &quot;INVALID_ODT_STRUCTURE&quot;,
+<span class="fc" id="L183">                &quot;Could not load ODT file: &quot; + e.getMessage()</span>
+            ));
+        } finally {
+            // Clean up temporary file
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">            if (tempFile != null) {</span>
+                try {
+<span class="fc" id="L189">                    Files.deleteIfExists(tempFile);</span>
+<span class="nc" id="L190">                } catch (IOException e) {</span>
+                    // Log but don't fail validation if cleanup fails
+<span class="fc" id="L192">                }</span>
+            }
+        }
+
+<span class="fc" id="L196">        boolean isValid = errors.isEmpty();</span>
+
+        // If schema is null due to error, create empty object schema
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (schema == null) {</span>
+<span class="fc" id="L200">            ObjectNode emptySchema = objectMapper.createObjectNode();</span>
+<span class="fc" id="L201">            emptySchema.put(&quot;type&quot;, &quot;object&quot;);</span>
+<span class="fc" id="L202">            emptySchema.set(&quot;properties&quot;, objectMapper.createObjectNode());</span>
+<span class="fc" id="L203">            schema = emptySchema;</span>
+        }
+
+<span class="fc" id="L206">        return new ValidationResult(</span>
+            isValid,
+            schema,
+            errors,
+            warnings,
+            new ArrayList&lt;&gt;(conditionExpressions),
+            new ArrayList&lt;&gt;(detectedArrayPaths)
+        );
+    }
+
+    /**
+     * Extracts the text content value of a user field from the ODT element.
+     * This represents the displayed/default value of the field.
+     *
+     * @param field the template element representing a user field
+     * @return the text content of the field, or null if not available
+     */
+    private String extractFieldValue(TemplateElement field) {
+        try {
+            // Cast to OdtTemplateElement to access the text content
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">            if (field instanceof OdtTemplateElement odtElement) {</span>
+<span class="fc" id="L227">                return odtElement.getTextContent();</span>
+            }
+<span class="nc" id="L229">        } catch (Exception e) {</span>
+            // Log but don't fail if we can't extract the value
+<span class="nc" id="L231">            LOG.debugf(&quot;Could not extract field value: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L232">        }</span>
+<span class="nc" id="L233">        return null;</span>
+    }
+
+    /**
+     * Extracts the JSON schema type of a user field from the ODT office:value-type attribute.
+     * Maps ODF value types to JSON schema types:
+     * - &quot;float&quot;, &quot;percentage&quot;, &quot;currency&quot; → &quot;number&quot;
+     * - &quot;boolean&quot; → &quot;boolean&quot;
+     * - everything else (string, date, time, null) → &quot;string&quot;
+     *
+     * @param field the template element representing a user field
+     * @return the JSON schema type (&quot;number&quot;, &quot;boolean&quot;, or &quot;string&quot;), or null if not determinable
+     */
+    private String extractFieldType(TemplateElement field) {
+        try {
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">            if (field instanceof OdtTemplateElement odtElement) {</span>
+<span class="fc" id="L249">                String valueType = odtElement.getValueType();</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">                if (valueType == null) {</span>
+<span class="nc" id="L251">                    return null;</span>
+                }
+<span class="pc bpc" id="L253" title="1 of 3 branches missed.">                return switch (valueType) {</span>
+<span class="fc" id="L254">                    case &quot;float&quot;, &quot;percentage&quot;, &quot;currency&quot; -&gt; &quot;number&quot;;</span>
+<span class="nc" id="L255">                    case &quot;boolean&quot; -&gt; &quot;boolean&quot;;</span>
+<span class="fc" id="L256">                    default -&gt; &quot;string&quot;;</span>
+                };
+            }
+<span class="nc" id="L259">        } catch (Exception e) {</span>
+<span class="nc" id="L260">            LOG.debugf(&quot;Could not extract field type: %s&quot;, e.getMessage());</span>
+<span class="nc" id="L261">        }</span>
+<span class="nc" id="L262">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

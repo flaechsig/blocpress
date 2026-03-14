@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>UserFieldFormatter.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Blocpress E2E Coverage</a> &gt; <a href="../index.html" class="el_bundle">blocpress-core</a> &gt; <a href="index.source.html" class="el_package">io.github.flaechsig.blocpress.core.odt</a> &gt; <span class="el_source">UserFieldFormatter.java</span></div><h1>UserFieldFormatter.java</h1><pre class="source lang-java linenums">package io.github.flaechsig.blocpress.core.odt;
+
+import io.github.flaechsig.blocpress.core.DataType;
+import lombok.NonNull;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+import org.odftoolkit.odfdom.dom.OdfContentDom;
+import org.odftoolkit.odfdom.pkg.OdfElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalQueries;
+import java.util.*;
+
+/**
+ * Helper für text:user-field-get / text:variable-get.
+ * Liest den Rohwert (office:value / office:value-type oder TextContent),
+ * ermittelt einen passenden number-style (falls vorhanden) und liefert
+ * den formatierten String zurück oder ersetzt das Feld durch ein span.
+ *
+ * &lt;p&gt;&lt;b&gt;Design-Referenzen:&lt;/b&gt;&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;EDC: &lt;a href=&quot;docs/Element_Design_Concept.adoc#edc-tf-5&quot;&gt;TF-5: Dokument generieren&lt;/a&gt; (Schritt 6: User-Fields befüllen und formatieren)&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+public final class UserFieldFormatter {
+
+<span class="fc" id="L40">    private static final Logger log = LoggerFactory.getLogger(UserFieldFormatter.class);</span>
+
+    private static final String STYLE_NS = &quot;urn:oasis:names:tc:opendocument:xmlns:style:1.0&quot;;
+
+    private UserFieldFormatter() { /* utility */ }
+
+    /**
+     * Liest und formatiert den Wert eines Feldes als String (ohne DOM-Änderung).
+     *
+     * @param document    das ODF-Dokument
+     * @param field       das Feld-Element
+     * @param officeValue der Wert, der entsprechend dem Feld-Typ formatiert werden soll
+     * @return der formatierte String (Fallback: der Rohtext)
+     */
+    public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue) {
+<span class="pc bpc" id="L55" title="4 of 8 branches missed.">        if (document == null || field == null || officeValue == null || StringUtils.isBlank(officeValue.toString())) {</span>
+<span class="nc" id="L56">            return &quot;&quot;;</span>
+        }
+
+        // 1) Rohwert lesen: office:value (präferiert) oder Text-Inhalt
+<span class="fc" id="L60">        DataType officeValueType = findFieldType(document, field);</span>
+<span class="fc" id="L61">        String raw = officeValue.toString().trim();</span>
+<span class="fc" id="L62">        String styleName = field.getAttributeNS(STYLE_NS, &quot;data-style-name&quot;);</span>
+
+        // 2) Falls office:value-type float oder numeric, parsen wir als Zahl
+<span class="fc bfc" id="L65" title="All 4 branches covered.">        return switch (officeValueType) {</span>
+<span class="fc" id="L66">            case FLOAT -&gt; formatNumber(document, styleName, raw);</span>
+<span class="fc" id="L67">            case CURRENCY -&gt; formatNumber(document, styleName, raw);</span>
+<span class="fc" id="L68">            case DATE -&gt; formatDate(document, styleName, raw);</span>
+<span class="fc" id="L69">            default -&gt; raw;</span>
+        };
+    }
+
+<span class="pc bpc" id="L73" title="2 of 4 branches missed.">    private static DataType findFieldType(@NonNull OdfTextDocument document, @NonNull OdfElement field) {</span>
+        try {
+<span class="fc" id="L75">            OdfContentDom contentDom = document.getContentDom();</span>
+<span class="fc" id="L76">            Document stylesDom = document.getStylesDom();</span>
+
+            // 1) Direkt aus dem übergebenen Feld (user-field-get) den style:data-style-name holen
+<span class="fc" id="L79">            String dataStyleName = field.getAttributeNS(STYLE_NS, &quot;data-style-name&quot;);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">            if (StringUtils.isNotBlank(dataStyleName)) {</span>
+<span class="fc" id="L81">                DataType detected = detectTypeFromStyle(contentDom, stylesDom, dataStyleName);</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">                if (detected != null) {</span>
+<span class="fc" id="L83">                    return detected;</span>
+                }
+            }
+
+<span class="fc" id="L87">            return DataType.UNKNOWN;</span>
+<span class="nc" id="L88">        } catch (Exception e) {</span>
+<span class="nc" id="L89">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    /**
+     * Ermittelt den Typ (&quot;date&quot;, &quot;currency&quot;, &quot;float&quot;, ...) anhand des Style-Namens.
+     * Sucht sowohl in contentDom als auch in stylesDom nach passenden Style-Elementen.
+     */
+    private static DataType detectTypeFromStyle(OdfContentDom contentDom, Document stylesDom, String styleName) {
+<span class="pc bpc" id="L98" title="3 of 6 branches missed.">        if (StringUtils.isBlank(styleName) || contentDom == null || stylesDom == null) return null;</span>
+
+        // Liste der relevanten Style-Tags und die zu erwartende Rückgabe
+<span class="fc" id="L101">        Map&lt;String, DataType&gt; tagToType = Map.of(</span>
+                &quot;date:date-style&quot;, DataType.DATE,
+                &quot;number:date-style&quot;, DataType.DATE,
+                &quot;number:time-style&quot;, DataType.DATE,
+                &quot;number:number-style&quot;, DataType.FLOAT,
+                &quot;number:percentage-style&quot;, DataType.FLOAT,
+                &quot;number:currency-style&quot;, DataType.CURRENCY
+        );
+
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        for (Map.Entry&lt;String, DataType&gt; e : tagToType.entrySet()) {</span>
+<span class="fc" id="L111">            String tag = e.getKey();</span>
+<span class="fc" id="L112">            DataType expectedType = e.getValue();</span>
+
+            // content.xml prüfen
+<span class="fc" id="L115">            NodeList nl = contentDom.getElementsByTagName(tag);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L117">                var node = nl.item(i);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">                if (!(node instanceof Element elem)) {</span>
+                    continue;
+                }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">                if (styleName.equals(elem.getAttribute(&quot;style:name&quot;))) {</span>
+<span class="fc" id="L122">                    return expectedType;</span>
+                }
+            }
+
+            // styles.xml prüfen
+<span class="fc" id="L127">            nl = stylesDom.getElementsByTagName(tag);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">            for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L129">                var node = nl.item(i);</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">                if (!(node instanceof Element elem)) {</span>
+                    continue;
+                }
+<span class="fc bfc" id="L133" title="All 2 branches covered.">                if (styleName.equals(elem.getAttribute(&quot;style:name&quot;))) {</span>
+<span class="fc" id="L134">                    return expectedType;</span>
+                }
+            }
+<span class="fc" id="L137">        }</span>
+
+
+<span class="nc" id="L140">        return DataType.UNKNOWN;</span>
+    }
+
+<span class="nc" id="L143">    @SneakyThrows</span>
+    private static String formatDate(OdfTextDocument document, String styleName, String raw) {
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (StringUtils.isBlank(raw)) return &quot;&quot;;</span>
+
+<span class="fc" id="L147">        List&lt;DateTimeFormatter&gt; parseCandidates = List.of(</span>
+                DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ISO_LOCAL_DATE,
+<span class="fc" id="L151">                DateTimeFormatter.ofPattern(&quot;dd.MM.yyyy['T'HH:mm[:ss]]&quot;),</span>
+<span class="fc" id="L152">                DateTimeFormatter.ofPattern(&quot;dd.MM.yyyy&quot;),</span>
+<span class="fc" id="L153">                DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;),</span>
+<span class="fc" id="L154">                DateTimeFormatter.ofPattern(&quot;dd.MM.yyyy HH:mm&quot;),</span>
+<span class="fc" id="L155">                DateTimeFormatter.ofPattern(&quot;dd.MM.yyyy HH:mm:ss&quot;)</span>
+        );
+
+<span class="fc" id="L158">        TemporalAccessor parsed = null;</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">        for (DateTimeFormatter fmt : parseCandidates) {</span>
+            try {
+<span class="fc" id="L161">                parsed = fmt.parseBest(raw, LocalDateTime::from, LocalDate::from, OffsetDateTime::from, LocalTime::from);</span>
+<span class="fc" id="L162">                break;</span>
+<span class="fc" id="L163">            } catch (Exception ignored) {</span>
+            }
+<span class="fc" id="L165">        }</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">        if (parsed == null) {</span>
+<span class="nc" id="L167">            return raw;</span>
+        }
+
+<span class="fc" id="L170">        DateTimeFormatter outFmt = buildDateFormatter(document, styleName);</span>
+
+        try {
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">            if (parsed.query(TemporalQueries.localDate()) != null) {</span>
+<span class="fc" id="L174">                LocalDate ld = LocalDate.from(parsed);</span>
+<span class="fc" id="L175">                return outFmt.format(ld);</span>
+<span class="nc bnc" id="L176" title="All 4 branches missed.">            } else if (parsed.query(TemporalQueries.localDate()) == null &amp;&amp; parsed.query(TemporalQueries.localTime()) != null) {</span>
+<span class="nc" id="L177">                return raw;</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            } else if (parsed.query(TemporalQueries.offset()) != null) {</span>
+<span class="nc" id="L179">                LocalDate ld = OffsetDateTime.from(parsed).toLocalDate();</span>
+<span class="nc" id="L180">                return outFmt.format(ld);</span>
+            } else {
+<span class="nc" id="L182">                return raw;</span>
+            }
+<span class="nc" id="L184">        } catch (Exception e) {</span>
+<span class="nc" id="L185">            return raw;</span>
+        }
+    }
+
+<span class="nc" id="L189">    @SneakyThrows</span>
+    private static DateTimeFormatter buildDateFormatter(OdfTextDocument document, String styleName) {
+<span class="fc" id="L191">        DateTimeFormatter fallback = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;);</span>
+<span class="pc bpc" id="L192" title="2 of 4 branches missed.">        if (document == null || StringUtils.isBlank(styleName)) {</span>
+<span class="nc" id="L193">            return fallback;</span>
+        }
+
+<span class="fc" id="L196">        OdfContentDom contentDom = document.getContentDom();</span>
+<span class="fc" id="L197">        Document stylesDom = document.getStylesDom();</span>
+
+<span class="fc" id="L199">        Element styleElement = findDateStyleElement(contentDom, styleName);</span>
+<span class="pc bpc" id="L200" title="3 of 4 branches missed.">        if (styleElement == null &amp;&amp; stylesDom != null) {</span>
+<span class="nc" id="L201">            styleElement = findDateStyleElement(stylesDom, styleName);</span>
+        }
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">        if (styleElement == null) {</span>
+<span class="nc" id="L204">            return fallback;</span>
+        }
+
+<span class="fc" id="L207">        String language = StringUtils.defaultIfBlank(styleElement.getAttribute(&quot;number:language&quot;), &quot;de&quot;);</span>
+<span class="fc" id="L208">        String country = StringUtils.defaultIfBlank(styleElement.getAttribute(&quot;number:country&quot;), &quot;DE&quot;);</span>
+<span class="fc" id="L209">        Locale locale = Locale.of(language, country);</span>
+
+<span class="fc" id="L211">        StringBuilder pattern = new StringBuilder();</span>
+<span class="fc" id="L212">        var children = styleElement.getChildNodes();</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        for (int i = 0; i &lt; children.getLength(); i++) {</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">            if (!(children.item(i) instanceof Element child)) continue;</span>
+<span class="fc" id="L215">            boolean isLong = &quot;long&quot;.equals(child.getAttribute(&quot;number:style&quot;));</span>
+
+<span class="pc bpc" id="L217" title="4 of 8 branches missed.">            switch (child.getTagName()) {</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">                case &quot;number:day&quot; -&gt; pattern.append(isLong ? &quot;dd&quot; : &quot;d&quot;);</span>
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">                case &quot;number:month&quot; -&gt; pattern.append(isLong ? &quot;MM&quot; : &quot;M&quot;);</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">                case &quot;number:year&quot; -&gt; pattern.append(isLong ? &quot;yyyy&quot; : &quot;yy&quot;);</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                case &quot;number:hours&quot; -&gt; pattern.append(isLong ? &quot;HH&quot; : &quot;H&quot;);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">                case &quot;number:minutes&quot; -&gt; pattern.append(isLong ? &quot;mm&quot; : &quot;m&quot;);</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">                case &quot;number:seconds&quot; -&gt; pattern.append(isLong ? &quot;ss&quot; : &quot;s&quot;);</span>
+<span class="fc" id="L224">                case &quot;number:text&quot; -&gt; pattern.append(&quot;'&quot;).append(child.getTextContent()).append(&quot;'&quot;);</span>
+            }
+        }
+
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        if (pattern.isEmpty()) {</span>
+<span class="nc" id="L229">            return fallback;</span>
+        }
+<span class="fc" id="L231">        return DateTimeFormatter.ofPattern(pattern.toString()).withLocale(locale);</span>
+    }
+
+    private static Element findDateStyleElement(Document dom, String styleName) {
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        for (String tag : List.of(&quot;number:date-style&quot;, &quot;date:date-style&quot;, &quot;number:time-style&quot;)) {</span>
+<span class="fc" id="L236">            NodeList nl = dom.getElementsByTagName(tag);</span>
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">            for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">                if (nl.item(i) instanceof Element elem</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">                        &amp;&amp; styleName.equals(elem.getAttribute(&quot;style:name&quot;))) {</span>
+<span class="fc" id="L240">                    return elem;</span>
+                }
+            }
+<span class="nc" id="L243">        }</span>
+<span class="nc" id="L244">        return null;</span>
+    }
+
+    private static String formatNumber(OdfTextDocument document, String style, String value) {
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">        if (StringUtils.isBlank(style)) {</span>
+<span class="nc" id="L249">            return value;</span>
+        }
+        Double numericValue;
+<span class="fc" id="L252">        String normalized = value.replace(&quot;\u00A0&quot;, &quot; &quot;); // NBSP zu Leerzeichen</span>
+
+        try {
+<span class="fc" id="L255">            numericValue = Double.valueOf(normalized);</span>
+<span class="nc" id="L256">        } catch (NumberFormatException ex) {</span>
+            //  Versuch den Text zu normalisieren und als Zahl zu interpretieren
+<span class="nc bnc" id="L258" title="All 4 branches missed.">            if (normalized.contains(&quot;,&quot;) &amp;&amp; normalized.contains(&quot;.&quot;)) {</span>
+                // wahrscheinlich deutsches grouping &quot;1.234,56&quot;
+<span class="nc" id="L260">                normalized = normalized.replace(&quot;.&quot;, &quot;&quot;).replace(&quot;,&quot;, &quot;.&quot;);</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">            } else if (normalized.contains(&quot;,&quot;)) {</span>
+<span class="nc" id="L262">                normalized = normalized.replace(&quot;,&quot;, &quot;.&quot;);</span>
+            }
+<span class="nc" id="L264">            numericValue = Double.valueOf(normalized);</span>
+<span class="fc" id="L265">        }</span>
+
+        // Versuch DecimalFormat aus number-style zu erzeugen
+<span class="fc" id="L268">        DecimalFormat df = findDecimalFormatForStyle(document, style);</span>
+
+<span class="fc" id="L270">        return df.format(numericValue);</span>
+    }
+
+<span class="nc" id="L273">    @SneakyThrows</span>
+    private static DecimalFormat findDecimalFormatForStyle(OdfTextDocument document, String styleName) {
+<span class="fc" id="L275">        OdfContentDom contentDom = document.getContentDom();</span>
+<span class="fc" id="L276">        Document stylesDom = document.getStylesDom();</span>
+
+<span class="fc" id="L278">        String[] styleElements = {&quot;number:number-style&quot;, &quot;number:percentage-style&quot;, &quot;number:currency-style&quot;};</span>
+<span class="fc" id="L279">        Map&lt;String, NumberStyle&gt; styleNodes = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L281" title="All 2 branches covered.">        for (String style : styleElements) {</span>
+<span class="fc" id="L282">            NodeList nl = contentDom.getElementsByTagName(style);</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">            for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L284">                var item = (Element) nl.item(i);</span>
+<span class="fc" id="L285">                styleNodes.put(item.getAttribute(&quot;style:name&quot;), createNumberStyle(item));</span>
+            }
+<span class="fc" id="L287">            nl = stylesDom.getElementsByTagName(style);</span>
+<span class="fc bfc" id="L288" title="All 2 branches covered.">            for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L289">                var item = (Element) nl.item(i);</span>
+                // only add if absent to let content.xml override styles.xml when names collide
+<span class="fc" id="L291">                styleNodes.putIfAbsent(item.getAttribute(&quot;style:name&quot;), createNumberStyle(item));</span>
+            }
+        }
+
+<span class="fc" id="L295">        return buildDecimalFormatFromNumberStyleElement(styleNodes.get(styleName));</span>
+    }
+
+    private static NumberStyle createNumberStyle(Element elem) {
+<span class="fc" id="L299">        String country = StringUtils.defaultIfBlank(elem.getAttribute(&quot;number:country&quot;), &quot;DE&quot;);</span>
+<span class="fc" id="L300">        String language = StringUtils.defaultIfBlank(elem.getAttribute(&quot;number:language&quot;), &quot;de&quot;);</span>
+<span class="fc" id="L301">        int decimalPlaces = 0;</span>
+<span class="fc" id="L302">        int minimalDecimalPlaces = 0;</span>
+<span class="fc" id="L303">        int minIntegerDigits = 1;</span>
+<span class="fc" id="L304">        boolean grouping = false;</span>
+<span class="fc" id="L305">        String symbol = &quot;&quot;;</span>
+
+<span class="fc" id="L307">        var children = elem.getChildNodes();</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">        for (int i = 0; i &lt; children.getLength(); i++) {</span>
+<span class="fc" id="L309">            Element child = (Element) children.item(i);</span>
+            try {
+<span class="fc bfc" id="L311" title="All 2 branches covered.">                if (&quot;number:number&quot;.equals(child.getTagName())) {</span>
+<span class="fc" id="L312">                    var textContent = child.getAttribute(&quot;number:decimal-places&quot;);</span>
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">                    decimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
+<span class="fc" id="L314">                    textContent = child.getAttribute(&quot;number:min-decimal-places&quot;);</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">                    minimalDecimalPlaces = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
+<span class="fc" id="L316">                    textContent = child.getAttribute(&quot;number:min-integer-digits&quot;);</span>
+<span class="pc bpc" id="L317" title="1 of 2 branches missed.">                    minIntegerDigits = StringUtils.isBlank(textContent) ? 0 : Integer.parseInt(textContent);</span>
+<span class="fc" id="L318">                    textContent = child.getAttribute(&quot;number:grouping&quot;);</span>
+<span class="pc bpc" id="L319" title="1 of 4 branches missed.">                    grouping = !StringUtils.isBlank(textContent) &amp;&amp; Boolean.parseBoolean(textContent);</span>
+                }
+<span class="fc bfc" id="L321" title="All 2 branches covered.">                if (&quot;number:text&quot;.equals(child.getTagName())) {</span>
+<span class="fc" id="L322">                    symbol = child.getTextContent();</span>
+                }
+<span class="fc bfc" id="L324" title="All 2 branches covered.">                if (&quot;number:currency-symbol&quot;.equals(child.getTagName())) {</span>
+<span class="fc" id="L325">                    symbol = &quot; &quot; + child.getTextContent();</span>
+                }
+<span class="nc" id="L327">            } catch (RuntimeException e) {</span>
+<span class="nc" id="L328">                log.error(&quot;Problems rendering {} Content: '{}'&quot;, child.getTagName(), child.getTextContent());</span>
+<span class="nc" id="L329">                throw e;</span>
+<span class="fc" id="L330">            }</span>
+        }
+<span class="fc" id="L332">        return new NumberStyle(minIntegerDigits, decimalPlaces, minimalDecimalPlaces, grouping, symbol, country, language);</span>
+    }
+
+
+    private static DecimalFormat buildDecimalFormatFromNumberStyleElement(NumberStyle style) {
+<span class="fc" id="L337">        DecimalFormatSymbols dfs = DecimalFormatSymbols.getInstance(style.getLocale());</span>
+<span class="fc" id="L338">        return new DecimalFormat(style.formatString(), dfs);</span>
+    }
+
+    /**
+     * Represents the style information for formatting numeric values.
+     * &lt;p&gt;
+     * This record is used to encapsulate formatting configurations, such as the
+     * number of minimum integer digits, number of decimal places, and locale-specific
+     * details like associated symbols, country, and language. It is primarily
+     * designed for cases where formatting needs are tailored to specific styles.
+     * &lt;p&gt;
+     * Fields:
+     * - `minIntegerDigits`: Specifies the minimum number of digits to be displayed
+     * in the integer part of a number.
+     * - `decimalPlaces`: Defines the total number of decimal places used for displaying
+     * the fractional portion of a number.
+     * - `minDecimalPlaces`: Defines the minimum number of decimal places required
+     * for the fractional portion of a number.
+     * - `symbol`: Represents a formatting symbol, such as a percentage or currency
+     * symbol, associated with the number style.
+     * - `country`: Indicates the country code used for locale-specific formatting.
+     * - `language`: Specifies the language code used for locale-specific formatting.
+     */
+<span class="fc" id="L361">    record NumberStyle(</span>
+            int minIntegerDigits,
+            int decimalPlaces,
+            int minDecimalPlaces,
+            boolean grouping,
+            String symbol,
+            String country,
+            String language
+    ) {
+        /**
+         * Formats and returns a string representation of a numeric value based on
+         * the configuration defined in the containing record. The method utilizes
+         * properties such as minimum integer digits, decimal places, and locale-specific
+         * settings for constructing the output string.
+         *
+         * @return a formatted string representation of a numeric value adhering to the
+         * specified number style and locale settings.
+         */
+        public String formatString() {
+<span class="fc" id="L380">            String pattern = &quot;&quot;;</span>
+
+            // Integer part
+<span class="fc bfc" id="L383" title="All 2 branches covered.">            if (grouping) {</span>
+<span class="fc" id="L384">                pattern = &quot;#,##&quot;;</span>
+            }
+<span class="fc" id="L386">            pattern += StringUtils.rightPad(&quot;&quot;, Math.max(1, minIntegerDigits), '0');</span>
+
+            // Fractional part
+<span class="fc bfc" id="L389" title="All 2 branches covered.">            if (decimalPlaces &gt; 0) {</span>
+<span class="fc" id="L390">                pattern += '.';</span>
+                // mandatory minimum decimal places
+<span class="fc" id="L392">                pattern += StringUtils.rightPad(&quot;&quot;, Math.max(1, minDecimalPlaces), '0');</span>
+                // optional additional decimal places up to decimalPlaces
+<span class="fc" id="L394">                pattern += StringUtils.rightPad(&quot;&quot;, Math.max(0, decimalPlaces - minDecimalPlaces), '#');</span>
+            }
+
+            // Symbol
+<span class="fc bfc" id="L398" title="All 2 branches covered.">            if (StringUtils.isNotBlank(symbol)) {</span>
+<span class="fc" id="L399">                pattern += &quot;'&quot; + symbol + &quot;'&quot;;</span>
+            }
+<span class="fc" id="L401">            return pattern;</span>
+        }
+
+        /**
+         * Retrieves a locale instance based on the `language` and `country` fields of the containing record.
+         *
+         * @return a {@code Locale} object constructed from the `language` and `country` values.
+         */
+        public Locale getLocale() {
+<span class="fc" id="L410">            return Locale.of(language, country);</span>
+        }
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
