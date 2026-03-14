@@ -667,7 +667,7 @@ package "blocpress-render (Quarkus)" {
   component "RenderResource\n(sync, öffentlich)" as API
   component "AsyncRenderResource\n(UC-23: /api/render/jobs/*)" as AsyncAPI
   component "RenderDashboardResource\n(/api/render/dashboard)" as Dashboard
-  component "RenderJobWorker\n(@Scheduled, alle 2s)" as Worker
+  component "RenderJobWorker\n(@Scheduled poll 2s\n@Scheduled cleanup 1h)" as Worker
   component "TemplateCache\n(Caffeine, 10min TTL)" as Cache
   component "LibreOffice\nPool" as LO
   component "WebhookSender\n(VirtualThread)" as Webhook
@@ -691,10 +691,12 @@ Cache -down-> Repo : findLatestActiveByName (cache miss)
 Repo -down-> "PostgreSQL\n(Schema: production)" : JDBC
 
 note right of Worker
-  @Scheduled(every="2s")
-  PostgreSQL SKIP LOCKED:
-  konkurrenzsicheres
-  Job-Claiming (ADR-008)
+  processNextJob: @Scheduled(every="2s")
+  PostgreSQL SKIP LOCKED (ADR-008)
+  cleanupJobs: @Scheduled(cron hourly)
+  Stufe 1: result=null nach result-retention
+  Stufe 2: DELETE nach record-retention
+  Gilt für async- und sync-Einträge
 end note
 
 note right of LO
@@ -1977,7 +1979,7 @@ Alle SCS-Module teilen sich eine PostgreSQL-Instanz, nutzen aber jeweils ein eig
 
 | `production`
 | blocpress-render
-| Template (Freigegeben), RenderJob (async Job-Queue, UC-23)
+| Template (Freigegeben, E-1), RenderJob (async + sync Audit-Log, E-3) — zweistufige Bereinigung via stündlichem Cleanup-Job
 
 | `admin`
 | blocpress-admin
@@ -2398,6 +2400,15 @@ PostgreSQL-basierte Job-Queue mit `SELECT ... FOR UPDATE SKIP LOCKED LIMIT 1` (T
 * Positiv: Kein neuer Infrastruktur-Overhead, transaktionale Job-Übergabe, einfache Fehlerdiagnose via SQL
 * Negativ: Polling-Overhead (2s Intervall), bei > 1.000 Jobs/min wäre Kafka performanter
 * Mitigation: Poll-Intervall via ENV `BLOCPRESS_ASYNC_POLL_INTERVAL` konfigurierbar; Migration zu Kafka möglich ohne API-Änderung
+
+*Job-Lifecycle und Bereinigung:*
+
+Jobs durchlaufen zwei Löschstufen (stündlicher Cleanup-Job `@Scheduled(cron = "0 0 * * * ?")`):
+
+. *result-retention* (Default 24h, ENV `BLOCPRESS_ASYNC_RESULT_RETENTION`): `result`-Bytes werden auf `null` gesetzt — Speicher wird freigegeben, Metadaten bleiben für Audit
+. *record-retention* (Default 7 Tage, ENV `BLOCPRESS_ASYNC_RECORD_RETENTION`): Gesamter Datensatz wird gelöscht
+
+Synchrone Render-Aufrufe (`POST /api/render/{name}`) schreiben ebenfalls einen `RenderJob`-Datensatz als Audit-Log (`result = null`, da Dokument direkt per HTTP zurückgegeben wurde). Die Bereinigung gilt für sync- und async-Einträge gleichermaßen.
 
 === ADR-007: WebDAV-Endpoint für Baustein- und Template-Zugriff aus LibreOffice
 

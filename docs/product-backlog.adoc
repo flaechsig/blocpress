@@ -89,7 +89,7 @@ Einzige öffentlich exponierte API des Systems.
 | icon:check-circle[role=green] DONE
 
 | TI-8
-| Async-Rendering-Infrastruktur: PostgreSQL-basierte Job-Queue (Tabelle `render_job` im production-Schema) mit `SELECT ... FOR UPDATE SKIP LOCKED` für konkurrenzsicheres Job-Claiming ohne Message Broker. `@Scheduled`-Worker (`RenderJobWorker`) pollt alle 2s und verarbeitet den nächsten PENDING-Job. Webhook-Callbacks via `Thread.ofVirtual()` (Fire-and-Forget). Kein Kafka/RabbitMQ erforderlich — PostgreSQL reicht für die aktuelle Last.
+| Async-Rendering-Infrastruktur: PostgreSQL-basierte Job-Queue (Tabelle `render_job` im production-Schema) mit `SELECT ... FOR UPDATE SKIP LOCKED` für konkurrenzsicheres Job-Claiming ohne Message Broker. `@Scheduled`-Worker (`RenderJobWorker`) pollt alle 2s und verarbeitet den nächsten PENDING-Job. Webhook-Callbacks via `Thread.ofVirtual()` (Fire-and-Forget). Kein Kafka/RabbitMQ erforderlich — PostgreSQL reicht für die aktuelle Last. Zweistufige Bereinigung: Ergebnis-Bytes nach `result-retention` (Default 24h) löschen, Datensatz nach `record-retention` (Default 7 Tage) komplett entfernen. Synchroner Druck via `POST /api/render/{name}` schreibt ebenfalls Einträge (Audit-Log, `result=null`).
 | 2
 | icon:check-circle[role=green] DONE
 
@@ -115,14 +115,14 @@ NOTE: Voraussetzung fuer Epics 3-6.
 | icon:check-circle[role=green] DONE
 
 | —
-| Entity E-1 (Template) und E-3 (generiertes Dokument)
+| Entity E-1 (Template): `ProductionTemplate` (id, name, version, validFrom, content) in blocpress-render — direkte JPA-Entity auf Schema `production`. E-3 (Dokumentengenerierung): durch `RenderJob`-Entity abgedeckt (id, templateName, data, outputType, result, status, errorMessage, createdAt, updatedAt).
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | —
-| Repository Layer fuer Schema `production` in blocpress-render
+| Repository Layer fuer Schema `production` in blocpress-render: `ProductionTemplate.findLatestActiveByName()` + `RenderJob.claimNextPending()` via Panache + Native Query (SKIP LOCKED).
 | 1
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 |===
 
 <<<

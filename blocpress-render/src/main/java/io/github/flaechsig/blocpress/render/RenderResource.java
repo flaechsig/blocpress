@@ -52,6 +52,9 @@ public class RenderResource {
     @Inject
     LibreOfficePool libreOfficePool;
 
+    @Inject
+    RenderJobWorker renderJobWorker;
+
     @POST
     @jakarta.ws.rs.Path("/template")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -125,8 +128,14 @@ public class RenderResource {
             @PathParam("name") String name,
             RenderByNameRequest renderByNameRequest) {
         logger.info("Rendering document from template name: {}", name);
+        RenderJobStatus jobStatus = RenderJobStatus.FAILED;
+        String jobError = null;
+        String dataJson = null;
+        String outputType = null;
         try {
-            OutputFormat format = switch (renderByNameRequest.getOutputType().toString().toLowerCase()) {
+            outputType = renderByNameRequest.getOutputType().toString().toLowerCase();
+            dataJson = mapper.writeValueAsString(renderByNameRequest.getData());
+            OutputFormat format = switch (outputType) {
                 case "pdf" -> OutputFormat.PDF;
                 case "rtf" -> RTF;
                 case "odt" -> ODT;
@@ -137,8 +146,11 @@ public class RenderResource {
             byte[] templateContent = templateCache.getTemplateContentByName(name);
             Path tempFile = Files.createTempFile("template-" + name, ".odt");
             Files.write(tempFile, templateContent);
-            return mergeAndTransform(tempFile, dataNode, format);
+            File result = mergeAndTransform(tempFile, dataNode, format);
+            jobStatus = RenderJobStatus.DONE;
+            return result;
         } catch (TemplateNotFoundException e) {
+            jobError = e.getMessage();
             logger.warn("Template not found or not approved: {}", name);
             if (e.getMessage().contains("not approved")) {
                 throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);
@@ -146,14 +158,18 @@ public class RenderResource {
                 throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
             }
         } catch (IOException e) {
+            jobError = e.getMessage();
             logger.error("Failed to fetch or render template {}: {}", name, e.getMessage(), e);
             throw new WebApplicationException("Failed to render document: " + e.getMessage(),
                     Response.Status.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
+            jobError = e.getClass().getSimpleName() + ": " + e.getMessage();
             logger.error("Unexpected error rendering template by name '{}': {} — {}", name,
                     e.getClass().getName(), e.getMessage(), e);
             throw new WebApplicationException("Unexpected error: " + e.getClass().getSimpleName() + ": " + e.getMessage(),
                     Response.Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            renderJobWorker.recordSync(name, dataJson, outputType, jobStatus, jobError);
         }
     }
 
