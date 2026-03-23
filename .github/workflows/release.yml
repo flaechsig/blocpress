@@ -103,6 +103,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Docker Buildx einrichten (docker-container driver für GHA-Cache)
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker-Image bauen und pushen
         uses: docker/build-push-action@v6
         with:
