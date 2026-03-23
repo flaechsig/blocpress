@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.render;
 
+import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -65,5 +66,16 @@ public class TemplateCache {
         logger.info("Successfully fetched template {} v{} (size: {} bytes)",
             templateName, template.version, template.content.length);
         return template.content;
+    }
+
+    /**
+     * Invalidates the cache entry for a specific template name.
+     * Called when a template is removed from production (RETIRED transition).
+     *
+     * @param templateName Template name whose cache entry should be invalidated
+     */
+    @CacheInvalidate(cacheName = "templates")
+    public void invalidate(String templateName) {
+        // Cache eviction is handled by the annotation
     }
 }

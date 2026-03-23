@@ -270,19 +270,19 @@ NOTE: Interim-Implementierung (TI-2): Die Freigabe (UC-8, TF-2) findet derzeit i
 | icon:check-circle[role=green] DONE
 
 | UC-12
-| Compliance-Review durchfuehren
+| Compliance-Review durchfuehren (Gueltigkeitszeitraum & Sperrmechanismus) — implementiert in blocpress-workbench: `validFrom`, `validUntil`, `reviewCycleYears` auf Template; RETIRED-Status; abgelaufene Templates werden in Render gesperrt (404); `GET /due-for-review`
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TF-4
-| Review-Datum berechnen (1/3/5 Jahre)
+| Review-Datum berechnen (konfigurierbare Jahre, z.B. 1/3/5) — `validUntil = validFrom + reviewCycleYears`, berechnet bei Freigabe; Approval-Dialog mit Datepicker und Live-Vorschau
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 | TF-7
-| Automatische Compliance-Review-Ueberwachung (Scheduler)
+| Automatische Compliance-Review-Ueberwachung (Scheduler) — `ComplianceReviewScheduler` taeglich 08:00, loggt Templates die innerhalb von 60 Tagen (konfigurierbar via `BLOCPRESS_COMPLIANCE_LEAD_DAYS`) ablaufen
 | 3
-| icon:circle-o[] OFFEN
+| icon:check-circle[role=green] DONE
 
 |===
 

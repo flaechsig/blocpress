@@ -36,16 +36,25 @@ public class ProductionTemplate extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
 
+    /** Ablaufdatum des Templates. Null = kein Ablauf. */
+    @Column(name = "valid_until")
+    public LocalDateTime validUntil;
+
     /**
      * Finds the currently active template by name.
-     * Returns the template with the highest version for the most recent valid_from <= now().
-     * Supports scheduled activations (valid_from in the future returns null until that time).
+     * Returns the template with the highest version for the most recent valid_from <= now(),
+     * excluding expired templates (valid_until < now()).
      *
      * @param name Template name
-     * @return Currently active template, or null if not found
+     * @return Currently active template, or null if not found or expired
      */
     public static ProductionTemplate findLatestActiveByName(String name) {
-        return find("name = ?1 AND validFrom <= CURRENT_TIMESTAMP ORDER BY validFrom DESC, version DESC", name)
-                .firstResult();
+        return find("""
+            FROM ProductionTemplate
+            WHERE name = ?1
+            AND validFrom <= CURRENT_TIMESTAMP
+            AND (validUntil IS NULL OR validUntil > CURRENT_TIMESTAMP)
+            ORDER BY validFrom DESC, version DESC
+            """, name).firstResult();
     }
 }

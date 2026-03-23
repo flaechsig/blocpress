@@ -136,6 +136,7 @@ jobs:
           git push origin v${{ inputs.version }}
 
       - name: In main mergen
+        if: ${{ github.ref_name != 'main' }}
         run: |
           BRANCH="${{ github.ref_name }}"
           git checkout main
@@ -144,6 +145,7 @@ jobs:
           git push origin main
 
       - name: Branch löschen
+        if: ${{ github.ref_name != 'main' }}
         run: git push origin --delete ${{ github.ref_name }}
 
       # ------------------------------------------------------------------

@@ -38,7 +38,7 @@
       },
       "description": "Open-source Java document rendering engine that converts LibreOffice ODT templates to PDF, RTF, and ODT via REST API. Built on Quarkus and Java 21.",
       "url": "https://flaechsig.github.io/blocpress/",
-      "softwareVersion": "2.3.1",
+      "softwareVersion": "2.3.2",
       "license": "https://github.com/flaechsig/blocpress/blob/main/LICENSE",
       "codeRepository": "https://github.com/flaechsig/blocpress",
       "programmingLanguage": "Java"
@@ -197,7 +197,7 @@
                         Release Notes
                     </a>
                     <span class="badge bg-light text-dark fs-6 fw-semibold px-3 py-2"
-                          style="border-radius: 8px;">v2.3.1</span>
+                          style="border-radius: 8px;">v2.3.2</span>
                 </div>
             </div>
 
@@ -232,6 +232,8 @@
         <span>✓ Docker</span>
         <span>✓ Java 21</span>
         <span>✓ MIT License</span>
+        <span>✓ Elasticsearch Search</span>
+        <span>✓ Compliance Lifecycle</span>
         <span>✓ No Vendor Lock-in</span>
     </div>
 
@@ -253,7 +255,14 @@
                 The server runs as a <strong>Docker container</strong> and exposes a clean
                 <strong>OpenAPI/REST interface</strong>. A built-in template workbench lets template
                 designers upload, validate, and approve templates through a browser-based UI with a
-                full review workflow.
+                full review workflow — including Elasticsearch-powered full-text search across all
+                templates and building blocks.
+            </p>
+            <p>
+                From v2.3, Blocpress includes a <strong>compliance lifecycle</strong> for templates:
+                configurable validity periods, automatic expiry blocking in the render service, a
+                daily review scheduler, and a dedicated <em>Retired</em> status that removes
+                templates from production cleanly.
             </p>
         </div>
     </div>
@@ -277,7 +286,7 @@
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
                 <h2 class="h4 accent">Template Workbench</h2>
-                <p>Browser-based UI for template designers: upload ODT templates, run validation, manage test datasets, analyze coverage, run regression tests, and publish approved templates to production.</p>
+                <p>Browser-based UI for template designers: upload ODT templates, run validation, manage test datasets, run regression tests, and publish approved templates to production via a four-eyes review workflow.</p>
             </div>
         </div>
 
@@ -290,8 +299,22 @@
 
         <div class="col-md-4 mb-4">
             <div class="card feature-card p-4 h-100">
+                <h2 class="h4 accent">Full-Text Search</h2>
+                <p>Elasticsearch-powered search across all templates and building blocks — searches names, field names, conditions, and extracted ODT text. Fuzzy matching and highlighted results included.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
+                <h2 class="h4 accent">Compliance Lifecycle</h2>
+                <p>Configurable validity periods with automatic expiry enforcement in the render service. Daily review scheduler alerts on expiring templates. Clean <em>Retire</em> workflow removes templates from production.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4 h-100">
                 <h2 class="h4 accent">Docker Ready</h2>
-                <p>All-in-one Quickstart image bundles Studio, Workbench, Render, and PostgreSQL in a single container. Start the full stack with one <code>docker run</code> command — no cloud dependency.</p>
+                <p>All-in-one Quickstart image bundles Studio, Workbench, Render, PostgreSQL, and Elasticsearch in a single container. Start the full stack with one <code>docker run</code> command — no cloud dependency.</p>
             </div>
         </div>
 
@@ -317,7 +340,7 @@
     </div>
     <p class="text-muted small mt-2">
         The Quickstart image bundles <strong>Studio</strong> (workbench UI on port 8080),
-        <strong>Render</strong> (REST API on port 8081), and <strong>PostgreSQL</strong> in a single container.
+        <strong>Render</strong> (REST API on port 8081), <strong>PostgreSQL</strong>, and <strong>Elasticsearch</strong> in a single container.
         A built-in dev JWT keypair is included — override via
         <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
         <code>-e MP_JWT_VERIFY_ISSUER="..."</code> for production use.
@@ -413,6 +436,7 @@
         <li><strong>LibreOffice headless</strong> — battle-tested ODT processing and PDF export</li>
         <li><strong>OpenAPI / REST</strong> — standard HTTP interface with Swagger UI at <code>/q/swagger-ui</code></li>
         <li><strong>PostgreSQL</strong> — template storage and versioning in the workbench</li>
+        <li><strong>Elasticsearch 8.11</strong> — full-text search across templates and building blocks</li>
     </ul>
 
     <footer class="text-center mt-5 pt-4 border-top">

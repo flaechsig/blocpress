@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-03-23
+
+### Added
+
+- **Compliance-Review (UC-12 / TF-4 / TF-7)** — Gültigkeitszeitraum und Sperrmechanismus für Templates:
+  - `validUntil` + `reviewCycleYears` auf der Template-Entity (berechnet bei Freigabe)
+  - Status `RETIRED` — entfernt Template aus Elasticsearch und Production-DB
+  - `GET /api/workbench/templates/due-for-review` — listet Templates die binnen 60 Tagen ablaufen
+  - `ComplianceReviewScheduler` — täglicher Check um 08:00, Vorlaufzeit konfigurierbar via `BLOCPRESS_COMPLIANCE_LEAD_DAYS`
+  - Approval-Dialog im Frontend mit `validFrom`-Datepicker und `reviewCycleYears`-Auswahl
+  - render-Service: abgelaufene Templates werden mit 404 gesperrt
+
 ## [2.2.0] - 2026-03-13
 
 ### Added
