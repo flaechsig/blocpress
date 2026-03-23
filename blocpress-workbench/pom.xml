@@ -108,6 +108,12 @@
             <artifactId>quarkus-elasticsearch-rest-client</artifactId>
         </dependency>
 
+        <!-- Scheduler for compliance review checks (UC-12) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
         <!-- H2 Database for Testing -->
         <dependency>
             <groupId>io.quarkus</groupId>

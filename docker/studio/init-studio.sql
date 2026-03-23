@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS template (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     valid_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    valid_until TIMESTAMP,
+    review_cycle_years INTEGER,
     version INTEGER NOT NULL DEFAULT 1,
     content BYTEA NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
@@ -74,6 +76,7 @@ CREATE TABLE IF NOT EXISTS template (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     valid_from TIMESTAMP NOT NULL,
+    valid_until TIMESTAMP,
     version INTEGER NOT NULL DEFAULT 1,
     content BYTEA NOT NULL,
     UNIQUE(name, valid_from, version)

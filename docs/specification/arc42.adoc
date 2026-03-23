@@ -1203,11 +1203,13 @@ WC --> Designer : Success-Message\n"Template aktualisiert"
 
 note right of UC
   UC-5: Template Management Dashboard
-  - Status-Filter (ALL, DRAFT, SUBMITTED, APPROVED, REJECTED)
+  - Status-Filter (ALL, DRAFT, SUBMITTED, APPROVED, REJECTED, RETIRED)
   - Status-Übergänge mit Validierung
-  - Duplikation von APPROVED Templates
+  - Approval-Dialog: validFrom (Datepicker) + reviewCycleYears → validUntil berechnet
+  - Compliance-Badges: "Läuft ab" / "Abgelaufen" auf Template-Karten
+  - Duplikation von APPROVED/RETIRED Templates
   - Re-Upload für DRAFT Templates
-  - Kein User-Management (vereinachte Version)
+  - Kein User-Management (vereinfachte Version)
 end note
 
 @enduml
@@ -1237,7 +1239,7 @@ WB -> WB : template.validFrom = now()\npersist()
 
 == 3. Automatisches Deploy: workbench → production (Kopie via REST) ==
 
-WB -> RD : POST /api/render/templates/import\n{id, name, version, contentBase64, validFrom}
+WB -> RD : POST /api/render/templates/import\n{id, name, version, contentBase64, validFrom, validUntil}
 RD -> RD : Upsert in production.template\n(physische Kopie der ODT-Binärdaten)
 RD --> WB : 200 OK
 
@@ -1246,10 +1248,19 @@ RD --> WB : 200 OK
 note over RD
   Template steht ueber die
   oeffentliche API zur
-  Dokumentengenerierung bereit
-  (render liest aus production-DB,
-   nicht mehr von workbench)
+  Dokumentengenerierung bereit.
+  findLatestActiveByName() filtert:
+  validFrom <= now AND
+  (validUntil IS NULL OR validUntil > now)
 end note
+
+== 5. Zurueckziehen (RETIRED) ==
+
+Designer -> WB : Status → RETIRED\n(PUT /api/workbench/templates/{id}/status)
+WB -> WB : template.validUntil = now()\nstatus = RETIRED\nES-Index loeschen
+WB -> RD : DELETE /api/render/templates/import/{name}
+RD -> RD : ProductionTemplate loeschen\nCache invalidieren
+RD --> WB : 204 No Content
 
 @enduml
 ----
@@ -1296,46 +1307,36 @@ end note
 
 === Compliance Review-Überwachung
 
-*Szenario:* Geplanter Job in blocpress-proof prüft täglich fällige Reviews (TF-7, UC-12)
+*Szenario:* Täglicher Scheduler in blocpress-workbench prüft ablaufende Templates (TF-7, UC-12). Implementiert: `ComplianceReviewScheduler` täglich 08:00, konfigurierbare Vorlaufzeit (`blocpress.compliance.review-lead-days`, Default 60 Tage).
 
 [plantuml, laufzeit-compliance-check, svg]
 ----
 @startuml
-participant "Scheduler\n(Quartz)" as Scheduler
-participant "blocpress-proof\nComplianceManager\n(TF-7)" as CM
-participant "Repository\n(Schema: proof)" as Repo
+participant "Scheduler\n(Quarkus @Scheduled)" as Scheduler
+participant "blocpress-workbench\nComplianceReviewScheduler\n(TF-7)" as CM
+participant "Repository\n(Schema: workbench)" as Repo
+participant "Reviewer" as R
 
-Scheduler -> CM : checkReviews()\n(täglich 06:00 Uhr)
-CM -> Repo : findAllApprovedTemplates()
+Scheduler -> CM : checkDueForReview()\n(täglich 08:00 Uhr)
+CM -> Repo : Template.list(\n  status=APPROVED AND\n  validUntil IS NOT NULL AND\n  validUntil <= now + 60d)
 Repo --> CM : List<Template>
 
-loop für jedes Template
-  CM -> Repo : findLatestReview(templateId)
-  Repo --> CM : ComplianceReview (oder null)
-
-  alt kein Review existiert ODER letztes Review abgeschlossen
-    CM -> CM : calculateNextReviewDate()\nbasierend auf Review-Zyklus\n(1, 3 oder 5 Jahre)
-
-    alt nextReviewDate <= heute + 30 Tage
-      CM -> Repo : createReview(templateId,\ntype, dueDate, status: "Anstehend")
-      Repo --> CM : ReviewId
-    end
-  end
-end
-
-CM -> Repo : findOverdueReviews()
-Repo --> CM : List<ComplianceReview>
-
-loop für jedes überfällige Review
-  CM -> Repo : updateStatus(reviewId, "Überfällig")
+alt Templates gefunden
+  CM -> CM : LOG.warn("{} Template(s) laufen\ninnerhalb von 60 Tagen ab: …")
 end
 
 note right of CM
-  TF-7: Compliance-Reviews überprüfen
-  Läuft in blocpress-proof
-  Schema: proof
-  Fällige Reviews auf bp-proof UI sichtbar
+  TF-7: Compliance-Reviews überwachen
+  Läuft in blocpress-workbench
+  Schema: workbench
+  Konfigurierbar: BLOCPRESS_COMPLIANCE_LEAD_DAYS
 end note
+
+== Review-Ansicht (UC-12) ==
+
+R -> Repo : GET /api/workbench/templates/due-for-review
+Repo --> R : List<TemplateDetails> (mit validUntil, reviewCycleYears)
+R -> R : "Neu freigeben" → Approval-Dialog\n(neues validFrom + reviewCycleYears)
 @enduml
 ----
 
@@ -1814,12 +1815,16 @@ _Detaillierte Entities: xref:Element_Design_Concept.adoc#edc-entities[Entities i
 
 package "Schema: workbench" #LightBlue {
   ENTITY "Template\n(Entwurf)" as TWB {
-    + id: Long
+    + id: UUID
     + name: String
     + version: Integer
-    + status: String
-    + template_binary: bytea
-    + user_fields: JSONB
+    + status: String (DRAFT/SUBMITTED/APPROVED/REJECTED/RETIRED)
+    + content: bytea
+    + valid_from: Timestamp
+    + valid_until: Timestamp (null = unbegrenzt)
+    + review_cycle_years: Integer
+    + validation_result: JSONB
+    + rejection_reason: Text
   }
 
   ENTITY Baustein {
@@ -1867,6 +1872,7 @@ package "Schema: production" #LightYellow {
     + name: String
     + version: Integer
     + valid_from: Timestamp
+    + valid_until: Timestamp (null = unbegrenzt)
     + content: bytea
   }
 
@@ -1911,7 +1917,7 @@ TPR -right[dashed]-> TPROD : Kopie\n(Freigabe)
 @enduml
 ----
 
-NOTE: Die Template-Tabelle existiert mit identischer Struktur in den Datenbanken `workbench` und `production`. TI-2 (Option A) ist implementiert: Direktes physisches Kopieren via REST-API (`POST /api/render/templates/import`). Die Schemata `proof` und `admin` sind für zukünftige Module geplant.
+NOTE: Die Template-Tabelle existiert in den Datenbanken `workbench` (vollständig mit Status, Validierung, Compliance-Feldern) und `production` (vereinfacht: nur Pflichtfelder + `valid_until`). TI-2 (Option A) ist implementiert: Direktes physisches Kopieren via REST-API (`POST /api/render/templates/import`, `DELETE /api/render/templates/import/{name}`). UC-12 (Compliance Review) ist implementiert: `valid_until` und `review_cycle_years` auf beiden Tabellen; abgelaufene Templates werden in `findLatestActiveByName()` ausgeblendet (404). Die Schemata `proof` und `admin` sind für zukünftige Module geplant.
 
 === Benutzerverwaltung und Sicherheit
 

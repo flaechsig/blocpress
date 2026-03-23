@@ -78,7 +78,14 @@ export class BpWorkbench extends LitElement {
         // Reject dialog
         _rejectDialogOpen: { state: true },
         _rejectReason: { state: true },
-        _rejecting: { state: true }
+        _rejecting: { state: true },
+        // UC-12: Approval dialog with validity period
+        _approvalDialogOpen: { state: true },
+        _approvalTemplateId: { state: true },
+        _approvalValidFrom: { state: true },
+        _approvalCycleYears: { state: true },
+        _approving: { state: true },
+        _dueForReview: { state: true }
     };
 
     static styles = css`
@@ -1366,6 +1373,13 @@ export class BpWorkbench extends LitElement {
         this._rejectDialogOpen = false;
         this._rejectReason = '';
         this._rejecting = false;
+        // UC-12: Approval dialog
+        this._approvalDialogOpen = false;
+        this._approvalTemplateId = null;
+        this._approvalValidFrom = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
+        this._approvalCycleYears = '';
+        this._approving = false;
+        this._dueForReview = [];
         // Elasticsearch full-text search (UC-19)
         this._esQuery = '';
         this._esResults = null;   // null = inactive, {} = active (even if empty)
@@ -1377,6 +1391,7 @@ export class BpWorkbench extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this._loadTemplates();
+        this._loadDueForReview();
     }
 
     disconnectedCallback() {
@@ -1400,6 +1415,7 @@ export class BpWorkbench extends LitElement {
             ${this._uploadMode ? this._renderUploadForm() : ''}
 
             ${this._rejectDialogOpen ? this._renderRejectDialog() : ''}
+            ${this._approvalDialogOpen ? this._renderApprovalDialog() : ''}
 
             ${this._detailsView ? this._renderDetailsView() : ''}
 
@@ -1602,12 +1618,14 @@ export class BpWorkbench extends LitElement {
     }
 
     _renderFilterButtons() {
+        const dueCount = this._dueForReview ? this._dueForReview.length : 0;
         const filters = [
             { key: 'ALL', label: '📋 Alle', count: this._templates.length },
             { key: 'DRAFT', label: '📝 Entwurf', count: this._countByStatus('DRAFT') },
             { key: 'SUBMITTED', label: '🧪 Test', count: this._countByStatus('SUBMITTED') },
-            { key: 'APPROVED', label: '✅ Produktiv', count: this._countByStatus('APPROVED') },
-            { key: 'REJECTED', label: '❌ Abgelehnt', count: this._countByStatus('REJECTED') }
+            { key: 'APPROVED', label: `✅ Produktiv${dueCount > 0 ? ' ⚠' : ''}`, count: this._countByStatus('APPROVED') },
+            { key: 'REJECTED', label: '❌ Abgelehnt', count: this._countByStatus('REJECTED') },
+            { key: 'RETIRED', label: '🚫 Zurückgezogen', count: this._countByStatus('RETIRED') }
         ];
 
         return html`
@@ -1651,7 +1669,8 @@ export class BpWorkbench extends LitElement {
             'DRAFT': '#888',
             'SUBMITTED': '#1976d2',
             'APPROVED': '#388e3c',
-            'REJECTED': '#d32f2f'
+            'REJECTED': '#d32f2f',
+            'RETIRED': '#6d4c41'
         };
         return colors[status] || '#888';
     }
@@ -1661,9 +1680,24 @@ export class BpWorkbench extends LitElement {
             'DRAFT': '📝',
             'SUBMITTED': '🧪',
             'APPROVED': '✅',
-            'REJECTED': '❌'
+            'REJECTED': '❌',
+            'RETIRED': '🚫'
         };
         return icons[status] || '•';
+    }
+
+    _getComplianceBadge(template) {
+        if (template.status !== 'APPROVED' || !template.validUntil) return '';
+        const now = new Date();
+        const until = new Date(template.validUntil);
+        if (until <= now) {
+            return html`<span style="background:#d32f2f; color:#fff; border-radius:3px; padding:2px 6px; font-size:11px; margin-left:6px;">Abgelaufen</span>`;
+        }
+        const diffDays = Math.ceil((until - now) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 60) {
+            return html`<span style="background:#f57c00; color:#fff; border-radius:3px; padding:2px 6px; font-size:11px; margin-left:6px;">Läuft ab ${until.toLocaleDateString('de-DE')}</span>`;
+        }
+        return '';
     }
 
     _renderTemplateCard(template) {
@@ -1684,6 +1718,7 @@ export class BpWorkbench extends LitElement {
                 <div class="card-meta">
                     <span>Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}</span>
                     <span>${template.isValid ? '✓ Valid' : '✗ Invalid'}</span>
+                    ${this._getComplianceBadge(template)}
                 </div>
 
                 <div class="card-actions">
@@ -1758,7 +1793,7 @@ export class BpWorkbench extends LitElement {
             case 'SUBMITTED':
                 actions.push(
                     { label: '← Zurück', style: 'secondary', handler: () => this._changeStatus(template.id, 'DRAFT') },
-                    { label: '✓ Genehmigen', style: 'success', handler: () => this._changeStatus(template.id, 'APPROVED') },
+                    { label: '✓ Genehmigen', style: 'success', handler: () => this._openApprovalDialog(template.id) },
                     { label: '✗ Ablehnen', style: 'danger', handler: () => this._openRejectDialog(template.id) }
                 );
                 break;
@@ -1766,7 +1801,8 @@ export class BpWorkbench extends LitElement {
             case 'APPROVED':
                 actions.push(
                     { label: '← Zurück zu Test', style: 'secondary', handler: () => this._changeStatus(template.id, 'SUBMITTED') },
-                    { label: 'Als Kopie', style: 'primary', handler: () => this._duplicateTemplate(template) }
+                    { label: 'Als Kopie', style: 'primary', handler: () => this._duplicateTemplate(template) },
+                    { label: 'Zurückziehen', style: 'danger', handler: () => this._changeStatus(template.id, 'RETIRED') }
                 );
                 break;
 
@@ -1774,6 +1810,12 @@ export class BpWorkbench extends LitElement {
                 actions.push(
                     { label: '← Zurück', style: 'secondary', handler: () => this._changeStatus(template.id, 'DRAFT') },
                     { label: 'Löschen', style: 'danger', handler: () => this._deleteTemplate(template.id) }
+                );
+                break;
+
+            case 'RETIRED':
+                actions.push(
+                    { label: 'Als Kopie', style: 'primary', handler: () => this._duplicateTemplate(template) }
                 );
                 break;
         }
@@ -1818,14 +1860,15 @@ export class BpWorkbench extends LitElement {
         this._loadTemplates();
     }
 
-    async _changeStatus(templateId, newStatus) {
+    async _changeStatus(templateId, newStatus, extraFields) {
         try {
+            const body = { newStatus, ...extraFields };
             const response = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${templateId}/status`,
                 {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ newStatus })
+                    body: JSON.stringify(body)
                 }
             );
 
@@ -1836,8 +1879,98 @@ export class BpWorkbench extends LitElement {
 
             this._success = `Template Status geändert zu ${newStatus}`;
             await this._loadTemplates();
+            await this._loadDueForReview();
         } catch (err) {
             this._error = err.message;
+        }
+    }
+
+    async _loadDueForReview() {
+        try {
+            const res = await fetch(`${this._getApiBase()}/api/workbench/templates/due-for-review`);
+            if (res.ok) this._dueForReview = await res.json();
+        } catch (_) {
+            // non-critical, ignore
+        }
+    }
+
+    _openApprovalDialog(templateId) {
+        this._approvalTemplateId = templateId;
+        this._approvalValidFrom = new Date().toISOString().substring(0, 10);
+        this._approvalCycleYears = '';
+        this._approvalDialogOpen = true;
+    }
+
+    _computeValidUntilDisplay() {
+        if (!this._approvalValidFrom || !this._approvalCycleYears) return null;
+        const years = parseInt(this._approvalCycleYears, 10);
+        if (isNaN(years) || years <= 0) return null;
+        const from = new Date(this._approvalValidFrom);
+        from.setFullYear(from.getFullYear() + years);
+        return from.toLocaleDateString('de-DE');
+    }
+
+    _renderApprovalDialog() {
+        const validUntilDisplay = this._computeValidUntilDisplay();
+        return html`
+            <div class="modal-backdrop" @click=${() => { this._approvalDialogOpen = false; }}>
+                <div class="modal-box" @click=${e => e.stopPropagation()}>
+                    <h3>Freigabe erteilen</h3>
+                    <div style="display:grid; gap:12px; margin-bottom:16px;">
+                        <div>
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">
+                                Gültig ab
+                            </label>
+                            <input type="date"
+                                style="padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+                                .value=${this._approvalValidFrom}
+                                @change=${e => { this._approvalValidFrom = e.target.value; }}
+                            />
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">
+                                Reviewzeitraum (Jahre, leer = unbegrenzt)
+                            </label>
+                            <input type="number" min="1" max="99"
+                                style="width:80px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+                                placeholder="z. B. 3"
+                                .value=${this._approvalCycleYears}
+                                @input=${e => { this._approvalCycleYears = e.target.value; }}
+                            />
+                        </div>
+                        ${validUntilDisplay ? html`
+                            <div style="font-size:13px; color:#555;">
+                                Gültig bis: <strong>${validUntilDisplay}</strong>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end;">
+                        <button class="action-btn secondary" @click=${() => { this._approvalDialogOpen = false; }}>
+                            Abbrechen
+                        </button>
+                        <button class="action-btn success"
+                            ?disabled=${this._approving}
+                            @click=${() => this._confirmApproval()}>
+                            ${this._approving ? 'Wird freigegeben…' : 'Freigeben'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async _confirmApproval() {
+        if (this._approving) return;
+        this._approving = true;
+        try {
+            const extra = {
+                validFrom: this._approvalValidFrom || null,
+                reviewCycleYears: this._approvalCycleYears ? parseInt(this._approvalCycleYears, 10) : null
+            };
+            await this._changeStatus(this._approvalTemplateId, 'APPROVED', extra);
+            this._approvalDialogOpen = false;
+        } finally {
+            this._approving = false;
         }
     }
 

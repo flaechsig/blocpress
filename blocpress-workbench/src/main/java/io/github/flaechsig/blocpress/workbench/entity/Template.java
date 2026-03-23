@@ -73,6 +73,14 @@ public class Template extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     public List<String> ignoredPatterns = new ArrayList<>();
 
+    /** Ablaufdatum des Templates (berechnet: validFrom + reviewCycleYears). Null = kein Ablauf. */
+    @Column(name = "valid_until")
+    public LocalDateTime validUntil;
+
+    /** Reviewzeitraum in Jahren (gesetzt bei APPROVED). Null = unbegrenzt. */
+    @Column(name = "review_cycle_years")
+    public Integer reviewCycleYears;
+
     /** Begründung für die Ablehnung (gesetzt bei SUBMITTED → REJECTED). */
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     public String rejectionReason;

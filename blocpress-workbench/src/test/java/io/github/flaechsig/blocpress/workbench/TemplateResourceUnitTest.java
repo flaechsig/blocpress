@@ -120,7 +120,7 @@ class TemplateResourceUnitTest {
         ValidationResult validationResult = createValidValidationResult();
 
         TemplateResource.TemplateDetails details =
-            new TemplateResource.TemplateDetails(id, name, createdAt, status, validationResult, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, name, createdAt, status, validationResult, java.util.List.of(), null, null, null, null, null);
 
         assertEquals(id, details.id());
         assertEquals(name, details.name());
@@ -148,7 +148,7 @@ class TemplateResourceUnitTest {
             new ValidationResult(false, schema, errors, warnings, java.util.List.of(), java.util.List.of());
 
         TemplateResource.TemplateDetails details =
-            new TemplateResource.TemplateDetails(id, name, createdAt, status, validationResult, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, name, createdAt, status, validationResult, java.util.List.of(), null, null, null, null, null);
 
         assertFalse(details.validationResult().isValid());
         assertEquals(1, details.validationResult().errors().size());
@@ -164,9 +164,9 @@ class TemplateResourceUnitTest {
         ValidationResult vr = createValidValidationResult();
 
         TemplateResource.TemplateDetails details1 =
-            new TemplateResource.TemplateDetails(id, name, instant, status, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, name, instant, status, vr, java.util.List.of(), null, null, null, null, null);
         TemplateResource.TemplateDetails details2 =
-            new TemplateResource.TemplateDetails(id, name, instant, status, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, name, instant, status, vr, java.util.List.of(), null, null, null, null, null);
 
         assertEquals(details1, details2);
     }
@@ -178,11 +178,11 @@ class TemplateResourceUnitTest {
         ValidationResult vr = createValidValidationResult();
 
         TemplateResource.TemplateDetails draft =
-            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.DRAFT, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.DRAFT, vr, java.util.List.of(), null, null, null, null, null);
         TemplateResource.TemplateDetails submitted =
-            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.SUBMITTED, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.SUBMITTED, vr, java.util.List.of(), null, null, null, null, null);
         TemplateResource.TemplateDetails approved =
-            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.APPROVED, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, "Test", instant, TemplateStatus.APPROVED, vr, java.util.List.of(), null, null, null, null, null);
 
         assertEquals(TemplateStatus.DRAFT, draft.status());
         assertEquals(TemplateStatus.SUBMITTED, submitted.status());
@@ -256,7 +256,7 @@ class TemplateResourceUnitTest {
         UUID id = UUID.randomUUID();
         ValidationResult vr = createValidValidationResult();
         TemplateResource.TemplateDetails details =
-            new TemplateResource.TemplateDetails(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, vr, java.util.List.of(), null, null);
+            new TemplateResource.TemplateDetails(id, "Test", LocalDateTime.now(), TemplateStatus.DRAFT, vr, java.util.List.of(), null, null, null, null, null);
         String str = details.toString();
         assertNotNull(str);
         assertTrue(str.contains("Test") || str.contains("DRAFT"));

@@ -41,6 +41,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
@@ -73,6 +74,9 @@ public class TemplateResource {
 
     @ConfigProperty(name = "quarkus.rest-client.\"render\".url")
     String renderUrl;
+
+    @ConfigProperty(name = "blocpress.compliance.review-lead-days", defaultValue = "60")
+    int leadDays;
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -229,7 +233,10 @@ public class TemplateResource {
             template.validationResult,
             template.ignoredPatterns != null ? template.ignoredPatterns : List.of(),
             template.rejectionReason,
-            template.rejectedAt
+            template.rejectedAt,
+            template.validFrom,
+            template.validUntil,
+            template.reviewCycleYears
         );
     }
 
@@ -387,9 +394,19 @@ public class TemplateResource {
 
         template.status = request.newStatus();
 
-        // Set validFrom when transitioning to APPROVED
-        if (request.newStatus() == TemplateStatus.APPROVED && template.validFrom == null) {
-            template.validFrom = LocalDateTime.now();
+        if (request.newStatus() == TemplateStatus.APPROVED) {
+            LocalDateTime from = request.validFrom() != null
+                ? request.validFrom().atStartOfDay()
+                : (template.validFrom != null ? template.validFrom : LocalDateTime.now());
+            template.validFrom = from;
+            template.reviewCycleYears = request.reviewCycleYears();
+            template.validUntil = request.reviewCycleYears() != null
+                ? from.plusYears(request.reviewCycleYears())
+                : null;
+        }
+
+        if (request.newStatus() == TemplateStatus.RETIRED) {
+            template.validUntil = LocalDateTime.now();
         }
 
         template.persist();
@@ -404,8 +421,9 @@ public class TemplateResource {
                 deployJson.put("name", template.name);
                 deployJson.put("version", template.version);
                 deployJson.put("contentBase64", Base64.getEncoder().encodeToString(template.content));
-                if (template.validFrom != null) {
-                    deployJson.put("validFrom", template.validFrom.toString());
+                deployJson.put("validFrom", template.validFrom.toString());
+                if (template.validUntil != null) {
+                    deployJson.put("validUntil", template.validUntil.toString());
                 }
 
                 String deployBody = objectMapper.writeValueAsString(deployJson);
@@ -434,14 +452,60 @@ public class TemplateResource {
             }
         }
 
+        // UC-12: RETIRED — remove from Elasticsearch and production DB
+        if (request.newStatus() == TemplateStatus.RETIRED) {
+            try {
+                elasticsearchIndexService.delete(template.id);
+            } catch (Exception e) {
+                log.warn("Could not remove template '{}' from Elasticsearch: {}", template.name, e.getMessage());
+            }
+            removeFromProduction(template.name);
+        }
+
         var responseMap = new java.util.HashMap<String, Object>();
         responseMap.put("id", template.id);
         responseMap.put("status", template.status);
-        if (template.validFrom != null) {
-            responseMap.put("validFrom", template.validFrom);
+        responseMap.put("validFrom", template.validFrom);
+        if (template.validUntil != null) {
+            responseMap.put("validUntil", template.validUntil);
         }
 
         return Response.ok(responseMap).build();
+    }
+
+    /**
+     * UC-12: Returns all APPROVED templates whose validUntil is within the lead-day window.
+     */
+    @GET
+    @Path("/due-for-review")
+    public List<TemplateDetails> getDueForReview() {
+        LocalDateTime threshold = LocalDateTime.now().plusDays(leadDays);
+        return Template.<Template>list(
+                "status = 'APPROVED' AND validUntil IS NOT NULL AND validUntil <= ?1", threshold)
+            .stream()
+            .map(t -> new TemplateDetails(t.id, t.name, t.createdAt, t.status,
+                t.validationResult, t.ignoredPatterns, t.rejectionReason, t.rejectedAt,
+                t.validFrom, t.validUntil, t.reviewCycleYears))
+            .toList();
+    }
+
+    private void removeFromProduction(String templateName) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(renderUrl + "/render/templates/import/" + templateName))
+                .DELETE()
+                .timeout(Duration.ofSeconds(30))
+                .build();
+            HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+            HttpResponse<Void> resp = httpClient.send(req, HttpResponse.BodyHandlers.discarding());
+            if (resp.statusCode() >= 400) {
+                log.warn("Could not remove template '{}' from production: HTTP {}", templateName, resp.statusCode());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to call render DELETE for template '{}': {}", templateName, e.getMessage());
+        }
     }
 
     @POST
@@ -541,8 +605,9 @@ public class TemplateResource {
         return switch (from) {
             case DRAFT -> to == TemplateStatus.SUBMITTED;
             case SUBMITTED -> to == TemplateStatus.DRAFT || to == TemplateStatus.APPROVED || to == TemplateStatus.REJECTED;
-            case APPROVED -> to == TemplateStatus.SUBMITTED;
+            case APPROVED -> to == TemplateStatus.SUBMITTED || to == TemplateStatus.RETIRED;
             case REJECTED -> to == TemplateStatus.DRAFT;
+            case RETIRED -> false;
         };
     }
 
@@ -988,10 +1053,17 @@ public class TemplateResource {
         ValidationResult validationResult,
         List<String> ignoredPatterns,
         String rejectionReason,
-        LocalDateTime rejectedAt
+        LocalDateTime rejectedAt,
+        LocalDateTime validFrom,
+        LocalDateTime validUntil,
+        Integer reviewCycleYears
     ) {}
 
-    public record StatusUpdateRequest(TemplateStatus newStatus) {}
+    public record StatusUpdateRequest(
+        TemplateStatus newStatus,
+        LocalDate validFrom,          // optional, nur bei APPROVED relevant
+        Integer reviewCycleYears      // optional, null = kein Ablauf
+    ) {}
     public record RejectRequest(String reason) {}
 
     public record DuplicateRequest(String name) {}

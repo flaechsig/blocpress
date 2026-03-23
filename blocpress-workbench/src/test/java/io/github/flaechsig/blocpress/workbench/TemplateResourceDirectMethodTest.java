@@ -304,7 +304,7 @@ class TemplateResourceDirectMethodTest {
     @Transactional
     void updateStatus_ValidTransitionDraftToSubmitted_Changes() {
         Template template = createTemplate("Draft", 1, TemplateStatus.DRAFT);
-        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.SUBMITTED);
+        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.SUBMITTED, null, null);
 
         var response = resource.updateStatus(template.id, request);
 
@@ -322,7 +322,7 @@ class TemplateResourceDirectMethodTest {
         // The functionality is properly tested in WorkbenchIT (integration tests) where we can
         // use WireMock to mock the HTTP response or use TestContainers for a real render service.
         Template template = createTemplate("Submitted", 1, TemplateStatus.SUBMITTED);
-        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.APPROVED);
+        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.APPROVED, null, null);
 
         var response = resource.updateStatus(template.id, request);
 
@@ -336,7 +336,7 @@ class TemplateResourceDirectMethodTest {
     @Transactional
     void updateStatus_InvalidTransition_Throws400() {
         Template template = createTemplate("Approved", 1, TemplateStatus.APPROVED);
-        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.DRAFT);
+        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.DRAFT, null, null);
 
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
             resource.updateStatus(template.id, request);
@@ -349,7 +349,7 @@ class TemplateResourceDirectMethodTest {
     @Transactional
     void updateStatus_NonExistentTemplate_Throws404() {
         UUID randomId = UUID.randomUUID();
-        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.SUBMITTED);
+        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.SUBMITTED, null, null);
 
         WebApplicationException ex = assertThrows(WebApplicationException.class, () -> {
             resource.updateStatus(randomId, request);
