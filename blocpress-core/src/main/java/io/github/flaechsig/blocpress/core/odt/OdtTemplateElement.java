@@ -179,8 +179,8 @@ public class OdtTemplateElement implements TemplateElement {
                 var trueValue = element.getAttribute("text:string-value-if-false");
                 replaceWithSpan(trueValue);
             } else if ("text:section".equals(tagName)) {
-                // text:section has a hide logic -> false means display
-                element.setAttribute("text:is-hidden", "true");
+                // condition evaluated to FALSE → don't hide
+                element.setAttribute("text:is-hidden", "false");
                 element.removeAttribute("text:condition");
             }
         }
