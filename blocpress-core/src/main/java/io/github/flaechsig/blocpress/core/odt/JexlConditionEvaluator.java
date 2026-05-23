@@ -7,6 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Hilfsklasse zur Auswertung von ODF/Writer-Bedingungen mittels Apache Commons JEXL.
@@ -169,18 +171,35 @@ public final class JexlConditionEvaluator {
         return true;
     }
 
+    private static final Pattern STRING_LITERAL = Pattern.compile("\"(?:[^\"\\\\]|\\\\.)*\"");
+
     /**
      * Kleine Vorverarbeitung:
      * - Entferne "ooow:" Prefix (häufig in ODT-Conditions)
      * - Ent-escape HTML-Anführungszeichen (&quot;) durch echte Anführungszeichen
      * - Normalisiere logische Operatoren (AND/OR/NOT -> &&/||/!)
      * - Konvertiere einfaches '=' in '==' (token-sicher)
+     *
+     * Keyword-Replacements werden nur ausserhalb von String-Literalen angewendet.
      */
     private static String preprocessCondition(String raw) {
         String s = raw;
-
         s = s.replaceAll("(?<![\\w.])ooow:", "");
         s = s.replace("&quot;", "\"");
+
+        Matcher m = STRING_LITERAL.matcher(s);
+        StringBuilder out = new StringBuilder();
+        int last = 0;
+        while (m.find()) {
+            out.append(replaceKeywords(s.substring(last, m.start())));
+            out.append(m.group());
+            last = m.end();
+        }
+        out.append(replaceKeywords(s.substring(last)));
+        return out.toString();
+    }
+
+    private static String replaceKeywords(String s) {
         s = s.replaceAll("(?i)(?<![\\w.])AND(?![\\w.])", "&&");
         s = s.replaceAll("(?i)(?<![\\w.])OR(?![\\w.])", "||");
         s = s.replaceAll("(?i)(?<![\\w.])NOT(?![\\w.])", "!");
@@ -190,7 +209,6 @@ public final class JexlConditionEvaluator {
         s = s.replaceAll("(?i)(?<![\\w.])FALSE(?![\\w.])", "false");
         s = s.replaceAll("(?i)(?<![\\w.])<>(?![\\w.])", "!=");
         s = s.replaceAll("(?<![!<>=])=(?![=])", "==");
-
         return s;
     }
 

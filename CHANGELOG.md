@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-05-23
+
+### Fixed
+
+- **JexlConditionEvaluator**: TRUE/FALSE keyword normalisation no longer affects string literals inside conditions. Previously, `field == "TRUE"` was incorrectly rewritten to `field == "true"`, causing mismatches when data contained uppercase string sentinels. The same protection now applies to all keyword replacements (AND, OR, NOT, EQ, NEQ).
+
+---
+
 ## [2.3.0] - 2026-03-23
 
 ### Added
