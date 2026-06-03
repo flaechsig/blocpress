@@ -116,7 +116,7 @@ jobs:
       - name: Docker Buildx einrichten (docker-container driver für GHA-Cache)
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker-Image bauen und pushen
+      - name: Quickstart-Image bauen und pushen
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -125,6 +125,44 @@ jobs:
           tags: |
             flaechsig/blocpress-studio-quickstart:${{ inputs.version }}
             flaechsig/blocpress-studio-quickstart:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Einzel-Modul-Images (native). Nutzen die in "Native-Binaries bauen"
+      # erzeugten *-runner-Binaries via dem jeweiligen Dockerfile.native.
+      - name: render-Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: blocpress-render
+          file: blocpress-render/Dockerfile.native
+          push: true
+          tags: |
+            flaechsig/blocpress-render:${{ inputs.version }}
+            flaechsig/blocpress-render:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: workbench-Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: blocpress-workbench
+          file: blocpress-workbench/Dockerfile.native
+          push: true
+          tags: |
+            flaechsig/blocpress-workbench:${{ inputs.version }}
+            flaechsig/blocpress-workbench:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: studio-Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: blocpress-studio
+          file: blocpress-studio/Dockerfile.native
+          push: true
+          tags: |
+            flaechsig/blocpress-studio:${{ inputs.version }}
+            flaechsig/blocpress-studio:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
