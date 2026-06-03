@@ -25,9 +25,25 @@ public class WorkbenchApiProxy {
     @ConfigProperty(name = "workbench.url", defaultValue = "http://localhost:8082")
     String workbenchUrl;
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
+    // Lazy initialisiert: Ein lebender HttpClient (mit Threads/Selector) darf im
+    // GraalVM-Native-Image nicht zur Build-Zeit in den Image-Heap geraten.
+    private static volatile HttpClient httpClient;
+
+    private static HttpClient httpClient() {
+        HttpClient client = httpClient;
+        if (client == null) {
+            synchronized (WorkbenchApiProxy.class) {
+                client = httpClient;
+                if (client == null) {
+                    client = HttpClient.newBuilder()
+                            .connectTimeout(Duration.ofSeconds(10))
+                            .build();
+                    httpClient = client;
+                }
+            }
+        }
+        return client;
+    }
 
     @GET
     @Path("/{path: .*}")
@@ -98,7 +114,7 @@ public class WorkbenchApiProxy {
                 ? HttpRequest.BodyPublishers.ofByteArray(body)
                 : HttpRequest.BodyPublishers.noBody();
 
-        HttpResponse<byte[]> resp = HTTP_CLIENT.send(
+        HttpResponse<byte[]> resp = httpClient().send(
                 builder.method(method, publisher).build(),
                 HttpResponse.BodyHandlers.ofByteArray());
 

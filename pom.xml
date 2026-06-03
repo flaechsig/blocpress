@@ -339,6 +339,26 @@
 
     <profiles>
         <!--
+            Native-Build-Profil: Baut die Quarkus-Module als GraalVM-Native-Image.
+            Verwendung (kein lokales GraalVM noetig — Build laeuft im Mandrel-Container):
+              mvn package -Dnative -pl blocpress-render -am -DskipTests
+            Fuer core (reine Lib) sind die Properties wirkungslos.
+        -->
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+                <!-- Build im Container, damit lokal kein GraalVM/native-image installiert sein muss -->
+                <quarkus.native.container-build>true</quarkus.native.container-build>
+            </properties>
+        </profile>
+        <!--
             Release-Trigger: Startet den GitHub Actions Release-Workflow via gh CLI.
             Verwendung:
               mvn validate -Ptrigger-release -Drelease.version=2.3.0 -Drelease.next=2.4.0

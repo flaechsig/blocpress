@@ -363,6 +363,10 @@ ScsModules --> Monitor
 | *Docker-Container*
 | Jedes SCS-Modul als eigener Container, unabhängig skalierbar
 | Übertragbarkeit, Betriebseffizienz
+
+| *GraalVM Native Image (optional)*
+| Alle Quarkus-Module (`render`, `workbench`, `studio`) sind via `native`-Profil als eigenständige Native-Binaries baubar (Mandrel-Container-Build, kein lokales GraalVM). Startzeit ~0,06 s, kein JRE im Image, geringerer Speicher-Footprint. odfdom/Xerces benötigen Reflection-Konfiguration (in `blocpress-core`). `blocpress-render` nutzt im Native-Image den LibreOffice-CLI-Pfad statt JODConverter (dessen UNO-Jars sind versiegelt und nicht native-kompatibel); Nebenläufigkeit wird über ein Semaphore-Throttling mit Profil-Isolation pro `soffice`-Aufruf abgebildet.
+| Performance (Startzeit, Memory), Betriebseffizienz
 |===
 
 === Top-Level-Zerlegung

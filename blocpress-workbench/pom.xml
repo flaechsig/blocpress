@@ -43,6 +43,19 @@
             <groupId>io.github.flaechsig</groupId>
             <artifactId>blocpress-core</artifactId>
             <version>${project.version}</version>
+            <!--
+                Echtes commons-logging (via core: commons-jexl3 + odfdom/commons-validator)
+                ausschliessen. Quarkus stellt die native-taugliche Bridge
+                org.jboss.logging:commons-logging-jboss-logging bereit; beide gleichzeitig
+                brechen das GraalVM-Native-Image (LogFactoryImpl/Log4jApiLogFactory,
+                Elasticsearch-RestClient-Injection).
+            -->
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

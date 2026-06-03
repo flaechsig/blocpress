@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-06-03
+
+### Added
+
+- **GraalVM-Native-Image-Support für alle drei Quarkus-Module** (`blocpress-render`, `blocpress-workbench`, `blocpress-studio`):
+  - Neues Maven-Profil `native` (Parent-POM) baut die Apps als eigenständige Native-Binaries — im Mandrel-Container, ohne lokales GraalVM (`-Dnative`).
+  - Startzeit ~0,06 s (statt JVM-Sekunden), kein JRE im Image.
+  - `Dockerfile.native` je Modul + `docker/studio/Dockerfile.native` (natives All-in-one-Quickstart-Image) + `docker-compose.native.yml`.
+  - Reflection-Konfiguration für odfdom (ODF-Element-/Attribut-/Manifest-Klassen) und Apache Xerces in `blocpress-core` (`META-INF/native-image/.../reflect-config.json`).
+
+### Changed
+
+- **`blocpress-render`: Dokumentkonvertierung von JODConverter (UNO) auf den LibreOffice-CLI-Pfad umgestellt.** Die OpenOffice-UNO-Jars sind versiegelt und nicht GraalVM-Native-kompatibel. `LibreOfficePool` drosselt jetzt die Nebenläufigkeit über eine Semaphore (`blocpress.libreoffice.workers`); `LibreOfficeProcessor` nutzt pro Aufruf ein eigenes LibreOffice-Profil (`-env:UserInstallation`) und ist damit parallel-sicher.
+- **`LibreOfficeProcessor`**: Arbeitsverzeichnis wird zur Laufzeit aus `java.io.tmpdir` abgeleitet (vorher build-time `user.home`, im Native-Image eingefroren).
+- **`blocpress-studio`**: `HttpClient` im `WorkbenchApiProxy` lazy initialisiert (kein build-time `static final` im Image-Heap).
+
+---
+
 ## [2.4.2] - 2026-05-23
 
 ### Fixed

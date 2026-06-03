@@ -1,0 +1,23 @@
+[
+  { "name": "org.apache.xerces.jaxp.SAXParserFactoryImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.jaxp.SAXParserImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.jaxp.DocumentBuilderFactoryImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.jaxp.DocumentBuilderImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.SAXParser", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.DOMParser", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.DOMParserImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.BasicParserConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.XIncludeAwareParserConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.XIncludeParserConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.XML11Configuration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.StandardParserConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.NonValidatingConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.IntegratedParserConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.DTDConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.SecureProcessingConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.parsers.SecurityConfiguration", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.dom.DOMXSImplementationSourceImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.impl.dv.dtd.DTDDVFactoryImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.impl.dv.xs.SchemaDVFactoryImpl", "allDeclaredConstructors": true, "allPublicConstructors": true },
+  { "name": "org.apache.xerces.impl.dv.xs.ExtendedSchemaDVFactoryImpl", "allDeclaredConstructors": true, "allPublicConstructors": true }
+]

@@ -1,0 +1,23 @@
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Kein JRE noetig — eigenstaendiges GraalVM-Native-Binary.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl; \
+    rm -rf /var/lib/apt/lists/*;
+
+ENV HOME=/tmp
+WORKDIR /app
+
+# GraalVM-Native-Binary (gebaut via: mvn package -Dnative -pl blocpress-studio -am)
+COPY target/*-runner /app/application
+RUN chmod +x /app/application
+
+EXPOSE 8082
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
+  CMD curl -sf http://localhost:8082/q/health/ready || exit 1
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

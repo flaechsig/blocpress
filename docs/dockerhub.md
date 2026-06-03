@@ -71,7 +71,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | Tag | Description |
 |-----|-------------|
 | `latest` | Latest stable release |
-| `2.0.0` | Current stable release |
+| `2.5.0` | Current stable release (GraalVM native) |
 
 ---
 
@@ -90,7 +90,9 @@ See the [documentation](https://flaechsig.github.io/blocpress/) for authoring de
 
 ## Technology Stack
 
-- Java 21 · Quarkus · LibreOffice headless · PostgreSQL · OpenAPI
+- Java 21 · Quarkus (GraalVM native image) · LibreOffice headless · PostgreSQL · OpenAPI
+
+> Since **v2.5.0** the images are built as GraalVM native binaries — ~0.06s startup, no JRE in the container.
 
 ## License
 
