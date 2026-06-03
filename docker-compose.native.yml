@@ -1,0 +1,15 @@
+# Override fuer native (GraalVM) Images.
+# Voraussetzung: native Binaries vorher bauen, z. B.:
+#   mvn package -Dnative -pl blocpress-render,blocpress-workbench,blocpress-studio -am -DskipTests
+# Start:
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
+services:
+  workbench:
+    build:
+      dockerfile: Dockerfile.native
+  render:
+    build:
+      dockerfile: Dockerfile.native
+  studio:
+    build:
+      dockerfile: Dockerfile.native

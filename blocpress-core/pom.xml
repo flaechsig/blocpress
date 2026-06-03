@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.flaechsig</groupId>
         <artifactId>blocpress-parent</artifactId>
-        <version>2.4.3-SNAPSHOT</version>
+        <version>2.5.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -28,6 +28,33 @@
             <groupId>org.odftoolkit</groupId>
             <artifactId>odfdom-java</artifactId>
             <version>0.13.0</version>
+        </dependency>
+        <!--
+            Optionale Abhaengigkeit von commons-compress (via odfdom). ODT nutzt nur
+            ZIP/Deflate, aber im GraalVM-Native-Image schlaegt die Build-Zeit-
+            Klasseninitialisierung von commons-compress fehl, wenn org.tukaani:xz
+            fehlt (NoClassDefFoundError: org/tukaani/xz/MemoryLimitException).
+        -->
+        <dependency>
+            <groupId>org.tukaani</groupId>
+            <artifactId>xz</artifactId>
+            <version>1.10</version>
+        </dependency>
+        <!--
+            Weitere optionale commons-compress-Codecs. Werden fuer ODT (ZIP/Deflate)
+            nicht gebraucht, aber das GraalVM-Build-Zeit-Linking (link-at-build-time)
+            zieht ihre Konstruktoren ueber CompressorStreamFactory/ZipFile in die
+            Closure; ohne diese Libs schlaegt das Linking fehl (zstd/brotli).
+        -->
+        <dependency>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+            <version>1.5.6-9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.brotli</groupId>
+            <artifactId>dec</artifactId>
+            <version>0.1.2</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>

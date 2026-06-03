@@ -38,7 +38,7 @@
       },
       "description": "Open-source Java document rendering engine that converts LibreOffice ODT templates to PDF, RTF, and ODT via REST API. Built on Quarkus and Java 21.",
       "url": "https://flaechsig.github.io/blocpress/",
-      "softwareVersion": "2.3.2",
+      "softwareVersion": "2.5.0",
       "license": "https://github.com/flaechsig/blocpress/blob/main/LICENSE",
       "codeRepository": "https://github.com/flaechsig/blocpress",
       "programmingLanguage": "Java"
@@ -197,7 +197,7 @@
                         Release Notes
                     </a>
                     <span class="badge bg-light text-dark fs-6 fw-semibold px-3 py-2"
-                          style="border-radius: 8px;">v2.3.2</span>
+                          style="border-radius: 8px;">v2.5.0</span>
                 </div>
             </div>
 
@@ -432,7 +432,7 @@
     <h2 class="mt-5 mb-3 accent">Technology Stack</h2>
     <ul>
         <li><strong>Java 21</strong> — modern LTS runtime</li>
-        <li><strong>Quarkus</strong> — fast startup, low memory footprint, native-ready</li>
+        <li><strong>Quarkus + GraalVM native image</strong> — optional native binaries with ~0.06s startup and no JRE in the container</li>
         <li><strong>LibreOffice headless</strong> — battle-tested ODT processing and PDF export</li>
         <li><strong>OpenAPI / REST</strong> — standard HTTP interface with Swagger UI at <code>/q/swagger-ui</code></li>
         <li><strong>PostgreSQL</strong> — template storage and versioning in the workbench</li>

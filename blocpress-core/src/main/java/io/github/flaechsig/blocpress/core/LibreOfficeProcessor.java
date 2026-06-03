@@ -21,15 +21,29 @@ import java.util.List;
  */
 public class LibreOfficeProcessor {
 
-    private static final Path WORK_BASE = Path.of(System.getProperty("user.home"), ".blocpress");
+    /**
+     * Basis-Arbeitsverzeichnis, zur Laufzeit aus {@code java.io.tmpdir} abgeleitet.
+     * <p>Bewusst KEIN {@code static final} mit {@code user.home}: GraalVM-Native-Image
+     * friert {@code static final}-Werte zur Build-Zeit ein (im Build-Container ist
+     * {@code user.home} z. B. {@code /}), was zur Laufzeit zu {@code AccessDeniedException}
+     * fuehrt. {@code java.io.tmpdir} wird im Native-Image zuverlaessig zur Laufzeit aufgeloest.</p>
+     */
+    private static Path workBase() {
+        return Path.of(System.getProperty("java.io.tmpdir", "/tmp"), "blocpress");
+    }
 
     /**
      * Refreshes and transforms document to specified output format
      */
     public static byte[] refreshAndTransform(byte[] input, @NonNull OutputFormat format) throws IOException {
-        Files.createDirectories(WORK_BASE);
-        Path in = Files.createTempFile(WORK_BASE, "blocpress_", ".odt");
-        Path workDir = Files.createTempDirectory(WORK_BASE, "blocpress_out");
+        Path workBase = workBase();
+        Files.createDirectories(workBase);
+        Path in = Files.createTempFile(workBase, "blocpress_", ".odt");
+        Path workDir = Files.createTempDirectory(workBase, "blocpress_out");
+        // Eigenes LibreOffice-Profil pro Aufruf: ohne dedizierte UserInstallation teilen
+        // sich parallele soffice-Prozesse das Default-Profil und kollidieren am Single-
+        // Instance-Lock. Ein eindeutiges Profil macht den CLI-Pfad nebenlaeufigkeitssicher.
+        Path userProfile = Files.createTempDirectory(workBase, "blocpress_profile");
         try {
             Files.write(in, input);
             var convert = switch (format) {
@@ -40,6 +54,7 @@ public class LibreOfficeProcessor {
 
             List<String> cmd = new ArrayList<>();
             cmd.add("soffice");
+            cmd.add("-env:UserInstallation=" + userProfile.toUri());
             cmd.add("--headless");
             cmd.add("--nologo");
             cmd.add("--nodefault");
@@ -77,6 +92,20 @@ public class LibreOfficeProcessor {
                 entries.forEach(f -> f.toFile().delete());
             }
             Files.deleteIfExists(workDir);
+            deleteRecursively(userProfile);
+        }
+    }
+
+    /** Loescht ein Verzeichnis samt Inhalt (best-effort; LibreOffice legt im Profil Unterordner an). */
+    private static void deleteRecursively(Path dir) {
+        if (dir == null || !Files.exists(dir)) {
+            return;
+        }
+        try (var paths = Files.walk(dir)) {
+            paths.sorted(java.util.Comparator.reverseOrder())
+                    .forEach(p -> p.toFile().delete());
+        } catch (IOException ignored) {
+            // best-effort cleanup
         }
     }
 }

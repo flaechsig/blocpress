@@ -1,0 +1,27 @@
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Kein JRE noetig — eigenstaendiges GraalVM-Native-Binary.
+# poppler-utils + imagemagick bleiben (PDF-Vorschau/Thumbnails).
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      poppler-utils \
+      imagemagick; \
+    rm -rf /var/lib/apt/lists/*; \
+    sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+
+ENV HOME=/tmp
+WORKDIR /app
+
+# GraalVM-Native-Binary (gebaut via: mvn package -Dnative -pl blocpress-workbench -am)
+COPY target/*-runner /app/application
+RUN chmod +x /app/application
+
+EXPOSE 8081
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
+  CMD curl -sf http://localhost:8081/q/health/ready || exit 1
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

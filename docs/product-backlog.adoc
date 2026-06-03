@@ -413,4 +413,9 @@ _GitHub Actions CI/CD-Pipeline für automatisierte Releases auf Maven Central, D
 | 2
 | icon:check-circle[role=green] DONE
 
+| —
+| GraalVM-Native-Image-Build (`native`-Profil im Parent-POM, Container-Build via Mandrel — kein lokales GraalVM nötig): `blocpress-render`, `blocpress-workbench` und `blocpress-studio` bauen als eigenständige Native-Binaries (Start ~0,06 s, kein JRE). Pro Modul `Dockerfile.native` + natives All-in-one-Quickstart-Image (`docker/studio/Dockerfile.native`) + `docker-compose.native.yml`. Reflection-Config für odfdom/Xerces in `blocpress-core`. `blocpress-render` von JODConverter (sealed UNO-Jars, nicht native-kompatibel) auf den LibreOffice-CLI-Pfad mit Profil-Isolation + Concurrency-Throttling umgestellt.
+| 2
+| icon:check-circle[role=green] DONE
+
 |===

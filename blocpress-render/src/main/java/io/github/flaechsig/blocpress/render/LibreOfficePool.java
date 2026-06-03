@@ -2,118 +2,71 @@ package io.github.flaechsig.blocpress.render;
 
 import io.github.flaechsig.blocpress.core.LibreOfficeProcessor;
 import io.github.flaechsig.blocpress.core.OutputFormat;
-import io.quarkus.runtime.ShutdownEvent;
-import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jodconverter.core.document.DefaultDocumentFormatRegistry;
-import org.jodconverter.core.document.DocumentFormat;
-import org.jodconverter.core.office.OfficeException;
-import org.jodconverter.local.LocalConverter;
-import org.jodconverter.local.office.LocalOfficeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Optional;
-import java.util.stream.IntStream;
+import java.util.concurrent.Semaphore;
 
 /**
- * Verwaltet einen Pool persistenter LibreOffice-Instanzen für parallele Dokumentkonvertierung.
+ * Begrenzt die Nebenläufigkeit der LibreOffice-Dokumentkonvertierung.
  *
- * <p>Beim Start werden {@code blocpress.libreoffice.workers} LibreOffice-Prozesse gestartet,
- * die jeweils auf einem eigenen UNO-Port lauschen (ab {@code blocpress.libreoffice.port-start}).
- * JodConverter verteilt eingehende Konvertierungsaufträge auf freie Instanzen.</p>
+ * <p>Die Konvertierung läuft über einen externen {@code soffice}-Prozess
+ * ({@link LibreOfficeProcessor}), der pro Aufruf ein eigenes LibreOffice-Profil nutzt
+ * und damit nebenläufigkeitssicher ist. Diese Klasse drosselt die Zahl gleichzeitig
+ * laufender Konvertierungen über eine {@link Semaphore} auf
+ * {@code blocpress.libreoffice.workers}, um Speicher/CPU zu begrenzen.</p>
  *
- * <p>Ist LibreOffice nicht verfügbar, fällt der Pool auf den CLI-Modus zurück
- * ({@link LibreOfficeProcessor}).</p>
+ * <p>Der frühere JodConverter/UNO-In-Process-Pool wurde entfernt: Die OpenOffice-UNO-Jars
+ * sind versiegelt und nicht mit GraalVM-Native-Image kompatibel. Der CLI-Pfad erlaubt den
+ * nativen Build und bildet die Nebenläufigkeit über dieses Throttling nach.</p>
  */
 @ApplicationScoped
 public class LibreOfficePool {
 
     private static final Logger LOG = LoggerFactory.getLogger(LibreOfficePool.class);
-
-    @ConfigProperty(name = "blocpress.libreoffice.home")
-    Optional<String> officeHome;
+    private static final int DEFAULT_WORKERS = 2;
 
     @ConfigProperty(name = "blocpress.libreoffice.workers", defaultValue = "2")
     int workers;
 
-    @ConfigProperty(name = "blocpress.libreoffice.port-start", defaultValue = "2002")
-    int portStart;
+    private volatile Semaphore slots;
 
-    private LocalOfficeManager manager;
-    private boolean poolAvailable = false;
-
-    void start(@Observes StartupEvent e) {
-        int[] ports = IntStream.range(0, workers).map(i -> portStart + i).toArray();
-        try {
-            LocalOfficeManager.Builder builder = LocalOfficeManager.builder()
-                    .portNumbers(ports)
-                    .taskExecutionTimeout(120_000L)
-                    .maxTasksPerProcess(200);
-            officeHome.ifPresent(builder::officeHome);
-            manager = builder.build();
-            manager.start();
-            poolAvailable = true;
-            LOG.info("LibreOffice pool started: {} worker(s), ports {}-{}",
-                    workers, portStart, portStart + workers - 1);
-        } catch (Exception ex) {
-            LOG.warn("LibreOffice pool unavailable, falling back to CLI mode: {}", ex.getMessage());
-        }
-    }
-
-    void stop(@Observes ShutdownEvent e) {
-        if (manager != null) {
-            try {
-                manager.stop();
-                LOG.info("LibreOffice pool stopped");
-            } catch (OfficeException ex) {
-                LOG.warn("Error stopping LibreOffice pool: {}", ex.getMessage());
+    /** Lazy-Initialisierung, damit die Klasse auch ohne CDI ({@code new LibreOfficePool()}) nutzbar ist. */
+    private Semaphore slots() {
+        Semaphore s = slots;
+        if (s == null) {
+            synchronized (this) {
+                s = slots;
+                if (s == null) {
+                    int permits = workers > 0 ? workers : DEFAULT_WORKERS;
+                    s = new Semaphore(permits, true);
+                    slots = s;
+                    LOG.info("LibreOffice CLI throttle initialised: {} parallel conversion(s)", permits);
+                }
             }
         }
+        return s;
     }
 
     /**
-     * Konvertiert ODT-Bytes in das gewünschte Ausgabeformat.
-     * Nutzt den Pool falls verfügbar, sonst CLI-Fallback.
+     * Konvertiert ODT-Bytes in das gewünschte Ausgabeformat über den LibreOffice-CLI-Pfad.
+     * Die Zahl gleichzeitiger Konvertierungen ist auf {@code workers} begrenzt.
      */
     public byte[] convert(byte[] odtBytes, OutputFormat format) throws IOException {
-        if (!poolAvailable) {
-            return LibreOfficeProcessor.refreshAndTransform(odtBytes, format);
-        }
-
-        Path inputFile = Files.createTempFile("lo-in-", ".odt");
-        Path outputFile = Files.createTempFile("lo-out-", "." + format.getSuffix());
+        Semaphore s = slots();
         try {
-            Files.write(inputFile, odtBytes);
-            DocumentFormat sourceFormat = DefaultDocumentFormatRegistry.getFormatByExtension("odt");
-            if (sourceFormat == null) {
-                throw new IOException("ODT format not found in JodConverter registry");
-            }
-            DocumentFormat targetFormat = switch (format) {
-                case PDF -> DefaultDocumentFormatRegistry.getFormatByExtension("pdf");
-                case RTF -> DefaultDocumentFormatRegistry.getFormatByExtension("rtf");
-                case ODT -> DefaultDocumentFormatRegistry.getFormatByExtension("odt");
-            };
-            if (targetFormat == null) {
-                throw new IOException("Target format not found in JodConverter registry: " + format);
-            }
-            LocalConverter.make(manager)
-                    .convert(inputFile.toFile())
-                    .as(sourceFormat)
-                    .to(outputFile.toFile())
-                    .as(targetFormat)
-                    .execute();
-            return Files.readAllBytes(outputFile);
-        } catch (OfficeException ex) {
-            throw new IOException("LibreOffice conversion failed: " + ex.getMessage(), ex);
+            s.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for a LibreOffice conversion slot", e);
+        }
+        try {
+            return LibreOfficeProcessor.refreshAndTransform(odtBytes, format);
         } finally {
-            Files.deleteIfExists(inputFile);
-            Files.deleteIfExists(outputFile);
+            s.release();
         }
     }
 }
