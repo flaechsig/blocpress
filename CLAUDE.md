@@ -44,7 +44,7 @@ mvn package -pl blocpress-req-trace,blocpress-core,blocpress-render -Dquarkus.co
 
 - Java 21+
 - Maven 3.9+
-- Docker (for integration tests and render builds)
+- Docker (for integration tests, render builds, and render's `@QuarkusTest`s — they start PostgreSQL via Quarkus DevServices)
 - LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
   render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
   req-check gate fails for REQ-0004 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
@@ -96,7 +96,7 @@ Living documentation under `docs/`, with a build-enforced link between requireme
 - `architecture/` — arc42 (`index.adoc`, `UNKNOWN` placeholders allowed) + `decisions/ADR-NNN.adoc`.
 
 **Traceability gate** (two build-only Maven modules, no LLM):
-- `blocpress-req-trace` — JUnit-Platform `TestExecutionListener` (ServiceLoader); tests tagged `@Tag("REQ-NNNN")` are written per module to `target/req-coverage.json`. Add it as a **test** dependency wherever tests tag requirements (currently `blocpress-core`).
+- `blocpress-req-trace` — JUnit-Platform `TestExecutionListener` (ServiceLoader); tests tagged `@Tag("REQ-NNNN")` are written per module to `target/req-coverage.json`. Add it as a **test** dependency wherever tests tag requirements (currently `blocpress-core` and `blocpress-render`).
 - `blocpress-req-check` — **last reactor module**, bound to `verify`. Compares coverage against `docs/spec/requirements/` + the spec layer, fails on 8 error classes, and (re)generates the read views. Skip with `-Dreq.check.skip=true` (views are still generated). `mvn verify` runs it automatically; scoped smoke: `mvn -q clean verify -pl blocpress-req-trace,blocpress-core,blocpress-req-check`.
 - **Never hand-edit generated files** (`STATUS.md`, `SPEC.md`, `CATALOG.md`, `planning/README.md`).
 
