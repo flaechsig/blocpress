@@ -9,6 +9,7 @@ import org.odftoolkit.odfdom.doc.OdfTextDocument;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URL;
+import java.util.Locale;
 
 @Slf4j
 public class RenderEngine {
@@ -48,15 +49,27 @@ public class RenderEngine {
      *
      * @see OdfTextDocument für Details zum ODT-Dokumentenmodell.
      */
-    @SneakyThrows
     public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data) {
+        return mergeTemplate(template, data, LocaleSupport.FALLBACK_LOCALE);
+    }
+
+    /**
+     * Wie {@link #mergeTemplate(URL, JsonNode)}, mit einstellbarer Ersatzsprache.
+     *
+     * @param defaultLocale Sprache fuer Number-/Date-Styles der Vorlage, die selbst keine Sprache
+     *                      ({@code number:language}) angeben. Eine Sprachangabe im Style hat Vorrang.
+     *                      Wird bewusst explizit uebergeben (nicht {@code Locale.getDefault()}/{@code LANG}),
+     *                      damit das Ergebnis nicht von der Laufzeitumgebung abhaengt.
+     */
+    @SneakyThrows
+    public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data, @NonNull Locale defaultLocale) {
         byte[] output;
         TemplateDocument doc = TemplateDocument.getInstance(template);
 
         expandTextBlocks(doc);
         processConditions(doc, data);
         processLoops(doc, data);
-        replaceFieldsWithStaticText(doc, data);
+        replaceFieldsWithStaticText(doc, data, defaultLocale);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             doc.save(out);
@@ -108,11 +121,12 @@ public class RenderEngine {
      *
      * @param doc The template document to process
      * @param data The JSON data containing field values
+     * @param defaultLocale Locale for number/date styles without their own language
      */
-    private static void replaceFieldsWithStaticText(@NonNull TemplateDocument doc, JsonNode data) {
+    private static void replaceFieldsWithStaticText(@NonNull TemplateDocument doc, JsonNode data, Locale defaultLocale) {
         for (var field : doc.collectUserFields()) {
             var newValue = getFieldValue(field.getName(), data);
-            doc.setFieldValue(field, newValue);
+            doc.setFieldValue(field, newValue, defaultLocale);
         }
     }
 

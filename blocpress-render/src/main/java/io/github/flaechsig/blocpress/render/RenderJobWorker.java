@@ -43,6 +43,9 @@ public class RenderJobWorker {
     @Inject
     WebhookSender webhookSender;
 
+    @Inject
+    RenderLocaleConfig localeConfig;
+
     @Scheduled(every = "${blocpress.async.poll-interval:2s}")
     @Transactional
     public void processNextJob() {
@@ -64,7 +67,7 @@ public class RenderJobWorker {
 
             var json = MAPPER.readTree(job.data);
             var odt = tempFile.toUri().toURL();
-            byte[] merged = RenderEngine.mergeTemplate(odt, json);
+            byte[] merged = RenderEngine.mergeTemplate(odt, json, localeConfig.defaultLocale());
             byte[] result = libreOfficePool.convert(merged, format);
 
             Files.deleteIfExists(tempFile);

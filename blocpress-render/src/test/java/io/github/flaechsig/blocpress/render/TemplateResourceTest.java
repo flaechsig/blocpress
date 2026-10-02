@@ -48,6 +48,9 @@ class TemplateResourceTest {
         var field = RenderResource.class.getDeclaredField("libreOfficePool");
         field.setAccessible(true);
         field.set(resource, new LibreOfficePool());
+        var localeField = RenderResource.class.getDeclaredField("localeConfig");
+        localeField.setAccessible(true);
+        localeField.set(resource, RenderLocaleConfig.of("de-DE"));
     }
 
     @Test

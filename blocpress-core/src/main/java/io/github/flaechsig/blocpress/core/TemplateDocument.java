@@ -103,7 +103,15 @@ public interface TemplateDocument {
      * @param userField The template element representing the user-defined field to be updated.
      * @param value     The new value to be assigned to the specified user field.
      */
-    void setFieldValue(TemplateElement userField, String value);
+    default void setFieldValue(TemplateElement userField, String value) {
+        setFieldValue(userField, value, LocaleSupport.FALLBACK_LOCALE);
+    }
+
+    /**
+     * Like {@link #setFieldValue(TemplateElement, String)}, with the locale used for number/date
+     * styles that do not declare a language themselves (a language in the style takes precedence).
+     */
+    void setFieldValue(TemplateElement userField, String value, Locale defaultLocale);
 
     /**
      * @return All data list keys which represent array elements in the template data.
