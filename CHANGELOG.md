@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Startprüfung:** `blocpress-render` bricht beim Start mit klarer Meldung ab, wenn für die eingestellte Sprache keine Sprachdaten vorhanden sind, statt still im en-Format zu formatieren. Verlangt eine Vorlage eine Sprache ohne Sprachdaten, wird einmalig gewarnt.
 - **`blocpress-core` API:** `RenderEngine.mergeTemplate(URL, JsonNode, Locale)` und `TemplateDocument.setFieldValue(..., Locale)` reichen die Ersatzsprache explizit durch (unabhängig von `Locale.getDefault()`). Die bisherigen Signaturen bleiben und verwenden `de-DE` (`LocaleSupport.FALLBACK_LOCALE`) — keine Verhaltensänderung für bestehende Aufrufer. Eigene Implementierungen des Interfaces `TemplateDocument` müssen statt `setFieldValue(TemplateElement, String)` nun `setFieldValue(TemplateElement, String, Locale)` implementieren (die alte Methode ist jetzt eine `default`-Methode).
 
+### Changed
+
+- **Native-Docker-Images deutlich kleiner:** Die `Dockerfile.native` (render, workbench, studio, Quickstart) setzen das Ausführungsrecht jetzt per `COPY --chmod=755` statt per nachgelagertem `RUN chmod`, das jedes Binary ein zweites Mal in einen eigenen Layer schrieb. Gemessen: render 1008 → 848 MB, workbench 442 → 312 MB, studio 204 → 148 MB, Quickstart (native) 2940 → 2595 MB. Benötigt BuildKit (Standard ab Docker 23, im Release-Workflow über buildx).
+
 ---
 
 ## [2.5.0] - 2026-06-03

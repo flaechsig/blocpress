@@ -18,8 +18,9 @@ ENV HOME=/tmp
 WORKDIR /app
 
 # GraalVM-Native-Binary (gebaut via: mvn package -Dnative -pl blocpress-workbench -am)
-COPY target/*-runner /app/application
-RUN chmod +x /app/application
+# --chmod statt nachgelagertem RUN chmod: ein eigener chmod-Layer wuerde das komplette
+# Binary ein zweites Mal ins Image schreiben (~160 MB). Benoetigt BuildKit.
+COPY --chmod=755 target/*-runner /app/application
 
 EXPOSE 8081
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
