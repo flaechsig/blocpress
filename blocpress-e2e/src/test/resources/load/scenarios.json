@@ -1,0 +1,156 @@
+{
+  "_comment": "Lastmix fuer RenderLoadIT: vorhandene Vorlagen (Pfade relativ zu blocpress-e2e/), reihum verwendet. 'expect' = Texte, die im PDF stehen muessen; 'forbid' = Texte, die nicht vorkommen duerfen (Whitespace normalisiert). Soll-Werte = deutsches Format, ermittelt mit blocpress-render 2.5.1.",
+  "scenarios": [
+    {
+      "name": "invoice",
+      "template": "../docs/samples/quickstart/invoice.odt",
+      "covers": "Tabellen-Schleife, Zahl/Waehrung mit und ohne Sprachangabe, Datum",
+      "data": {
+        "invoice": {
+          "number": "LT-2026-0042",
+          "date": "2026-10-02",
+          "currency": "€",
+          "paymentTermsDays": 30
+        },
+        "customer": {
+          "firstname": "Erika",
+          "lastname": "Mustermann",
+          "street": "Hauptstr. 5",
+          "postcode": "50667",
+          "city": "Köln"
+        },
+        "positions": [
+          {
+            "name": "Render-Lizenz",
+            "description": "Jahreslizenz",
+            "quantity": 12,
+            "unitPrice": 1234.5,
+            "total": 14814.0
+          },
+          {
+            "name": "Wartung",
+            "description": "Supportvertrag",
+            "quantity": 3,
+            "unitPrice": 999.99,
+            "total": 2999.97
+          },
+          {
+            "name": "Schulung",
+            "description": "Workshop",
+            "quantity": 1,
+            "unitPrice": 450.0,
+            "total": 450.0
+          }
+        ],
+        "summary": {
+          "netTotal": 18263.97,
+          "taxRate": 19,
+          "taxAmount": 3470.15,
+          "grossTotal": 21734.12
+        }
+      },
+      "expect": [
+        "LT-2026-0042",
+        "02.10.2026",
+        "Render-Lizenz",
+        "Schulung",
+        "1234,50 €",
+        "999,99 €",
+        "14814,00 €",
+        "Net Total: 18263,97 €",
+        "VAT (19 %): 3470,15 €",
+        "Total Amount Due: 21734,12 €"
+      ],
+      "forbid": []
+    },
+    {
+      "name": "numberformats",
+      "template": "../blocpress-core/src/test/resources/numberformats.odt",
+      "covers": "alle Zahlenformate (mit/ohne Sprache), Waehrung, Prozent",
+      "data": {
+        "numbertest": 500000
+      },
+      "expect": [
+        "500000,00",
+        "500.000",
+        "500.000,00",
+        "500000,00 %",
+        "500.000 €",
+        "500.000,00 €",
+        "500.000,00 EUR"
+      ],
+      "forbid": [
+        "500,000"
+      ]
+    },
+    {
+      "name": "condition-frau",
+      "template": "../blocpress-core/src/test/resources/IfCondition.odt",
+      "covers": "bedingter Text, Zweig A",
+      "data": {
+        "kunde": {
+          "anrede": "FRAU",
+          "nachname": "Müller"
+        }
+      },
+      "expect": [
+        "Liebe Frau Müller"
+      ],
+      "forbid": [
+        "Lieber Herr"
+      ]
+    },
+    {
+      "name": "condition-herr",
+      "template": "../blocpress-core/src/test/resources/IfCondition.odt",
+      "covers": "bedingter Text, Zweig B",
+      "data": {
+        "kunde": {
+          "anrede": "HERR",
+          "nachname": "Schmidt"
+        }
+      },
+      "expect": [
+        "Lieber Herr Schmidt"
+      ],
+      "forbid": [
+        "Liebe Frau"
+      ]
+    },
+    {
+      "name": "loop-table",
+      "template": "../blocpress-core/src/test/resources/loop_table.odt",
+      "covers": "Tabellenzeilen je Array-Element, Zahlenformate",
+      "data": {
+        "kunde": "Max Mustermann",
+        "produkte": [
+          {
+            "name": "Apfel",
+            "menge": 1200,
+            "preis": 1.0
+          },
+          {
+            "name": "Birne",
+            "menge": 2,
+            "preis": 1234.5
+          },
+          {
+            "name": "Banane",
+            "menge": 3,
+            "preis": 0.5
+          }
+        ]
+      },
+      "expect": [
+        "Apfel",
+        "Birne",
+        "Banane",
+        "1200",
+        "1234,50",
+        "1,00",
+        "0,50"
+      ],
+      "forbid": []
+    }
+  ]
+}
