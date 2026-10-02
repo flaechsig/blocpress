@@ -419,3 +419,16 @@ _GitHub Actions CI/CD-Pipeline für automatisierte Releases auf Maven Central, D
 | icon:check-circle[role=green] DONE
 
 |===
+
+<<<
+== Status dieses Dokuments
+
+[IMPORTANT]
+====
+*Eingefroren seit 2026-10-02.* Der Inhalt wurde nach `docs/spec/` überführt
+(Epics `spec/epics/`, Stories `spec/stories/US-0001..US-0032`, jeweils mit
+`derived_from` auf die Zeilen dieses Dokuments). Neue und geänderte Anforderungen
+nur noch dort pflegen. Dieses Dokument bleibt als Beleg stehen, bis es nach der
+Retirement-Disziplin (`docs/CONVENTIONS.md`) stillgelegt wird. Abweichungen zum Code
+sind in `docs/planning/ROADMAP.md` gelistet.
+====
