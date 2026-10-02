@@ -59,10 +59,9 @@ Die 28 aus dem Backlog überführten Stories tragen **keine** Requirements — s
 Belege: [Messprotokoll](../guides/measurements/render-2.5.1-2026-10-02.md),
 [Hands-On](../guides/render-sizing.md), [US-0034](../spec/stories/US-0034.md).
 
-- **Fehler: Job-Pfad im Native-Image** ([US-0006](../spec/stories/US-0006.md)) —
-  `POST /api/render/jobs` und `GET …/jobs/{id}` liefern HTTP 500: `AsyncRenderResource.JobStatus`
-  (Record in `Response` verpackt) ist nicht für Reflection registriert. Fix: `@RegisterForReflection`
-  an `JobStatus` (und vorsorglich `JobRequest`) + nativer Test. Kandidat für 2.5.2.
+- ~~**Fehler: Job-Pfad im Native-Image**~~ — **behoben** (2026-10-02, `@RegisterForReflection`
+  an `JobStatus`/`JobRequest`, `AsyncRenderJobTest`, nativ per `RenderLoadIT -Dload.async=true`
+  geprüft); erscheint mit dem nächsten Release.
 - **Job-Durchsatz** — `RenderJobWorker` holt je Takt (2 s) genau einen Job → ≤ 0,5 Jobs/s je
   Instanz. Vorschlag: je Takt Jobs holen, bis die Warteschlange leer oder alle Worker belegt sind.
 - **Worker-Default (entschieden 2026-10-02):** Standardgröße ist **2 CPU / 2 Worker** — passend

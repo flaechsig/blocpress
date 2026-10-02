@@ -177,7 +177,8 @@ jedem PDF stehen.
 
 ## 7. Bekannte Grenzen (Stand 2.5.1)
 
-- **Job-Pfad (`/api/render/jobs`) im Native-Image defekt:** Das Einreichen liefert HTTP 500
-  ohne Job-ID (der Job wird trotzdem verarbeitet). Bis zur Korrektur den synchronen Pfad nutzen.
+- **Job-Pfad (`/api/render/jobs`) im Native-Image 2.5.0/2.5.1 defekt:** Das Einreichen liefert
+  HTTP 500 ohne Job-ID (der Job wird trotzdem verarbeitet). Behoben im nächsten Release; bis
+  dahin den synchronen Pfad nutzen.
 - **Job-Durchsatz:** Der Job-Worker holt alle 2 s (`BLOCPRESS_ASYNC_POLL_INTERVAL`) genau
   **einen** Job — höchstens ~0,5 Jobs/s je Instanz, unabhängig von CPU und Workern.

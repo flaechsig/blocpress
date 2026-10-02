@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.render;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
@@ -33,6 +34,10 @@ public class AsyncRenderResource {
     private static final Logger LOG = LoggerFactory.getLogger(AsyncRenderResource.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    // Im Native-Image registriert Quarkus nur direkte Rueckgabe-/Parametertypen fuer Jackson.
+    // JobStatus steckt in einer Response und fehlte deshalb — Folge in 2.5.0/2.5.1: HTTP 500
+    // beim Einreichen und Statusabruf (Job lief trotzdem, Client erfuhr die ID nicht).
+    @RegisterForReflection
     public record JobRequest(
             String templateName,
             Object data,
@@ -40,6 +45,7 @@ public class AsyncRenderResource {
             String webhookUrl
     ) {}
 
+    @RegisterForReflection
     public record JobStatus(
             UUID id,
             String status,
