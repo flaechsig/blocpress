@@ -17,6 +17,8 @@
     <description>Requirements-Traceability-Gate: vergleicht die von blocpress-req-trace erzeugten target/req-coverage.json gegen docs/spec/requirements/ und die Spec-Schicht und bricht den Build bei Inkonsistenzen ab. Als letztes Reactor-Modul an die verify-Phase gebunden. Erzeugt im selben Lauf die generierten Lese-Ansichten (STATUS.md, CATALOG.md, SPEC.md, planning/README.md). Kein LLM, keine externen Bibliotheken.</description>
 
     <properties>
+        <!-- Reines Build-Zubehoer: nie nach Maven Central veroeffentlichen -->
+        <maven.deploy.skip>true</maven.deploy.skip>
         <!-- Kein JaCoCo-Coverage-Gate auf reinem Build-Werkzeug. -->
         <jacoco.skip>true</jacoco.skip>
     </properties>

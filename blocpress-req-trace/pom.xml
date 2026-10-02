@@ -16,6 +16,11 @@
     <name>blocpress-req-trace</name>
     <description>Requirements-Traceability: JUnit-Platform-Listener, der @Tag("REQ-NNNN") pro Modul nach target/req-coverage.json schreibt. Reines Build-Zubehoer — kein LLM zur Laufzeit.</description>
 
+    <properties>
+        <!-- Reines Build-Zubehoer: nie nach Maven Central veroeffentlichen -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <dependencies>
         <!-- SPI fuer den TestExecutionListener; Version passend zu junit-jupiter 5.12.2 -->
         <dependency>

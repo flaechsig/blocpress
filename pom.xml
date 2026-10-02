@@ -490,6 +490,12 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
+                            <!-- Build-Zubehoer (Traceability-Gate) landet bei -am im Reactor,
+                                 gehoert aber nicht nach Maven Central. -->
+                            <excludeArtifacts>
+                                <excludeArtifact>blocpress-req-trace</excludeArtifact>
+                                <excludeArtifact>blocpress-req-check</excludeArtifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>

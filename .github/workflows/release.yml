@@ -62,11 +62,15 @@ jobs:
       # ------------------------------------------------------------------
       # Build & Test
       # ------------------------------------------------------------------
-      - name: Build & Unit-Tests
-        run: mvn clean test -pl blocpress-core,blocpress-workbench
+      # Wie ci.yml: LibreOffice fuer die PDF/RTF-Tests (REQ-0004), Reactor inkl.
+      # blocpress-req-trace (Test-Dependency von core/render) und req-check-Gate.
+      - name: Install LibreOffice (headless)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui
 
-      - name: Integration-Tests
-        run: mvn verify -pl blocpress-core,blocpress-workbench -DskipUTs
+      - name: Build, Tests und Traceability-Gate
+        run: mvn -B clean verify -pl blocpress-req-trace,blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-req-check
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
 
