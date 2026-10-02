@@ -64,9 +64,25 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required when `BLOCPRESS_AUTH_ENABLED=true` (or `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) — the service refuses to start without one. | — |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | — |
 | `RENDER_URL` | Internal URL of this service (used by blocpress-workbench) | `http://localhost:8080` |
+| `BLOCPRESS_LO_WORKERS` | Number of concurrent LibreOffice conversions (each ~150 MiB). Set to the CPU limit rounded down, at least 1 — more workers than cores lower throughput and raise memory. | `2` |
 | `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
 > **Note:** JWT authentication is **off by default** so existing integrations keep working. If the service is reachable from outside a trusted network, set `BLOCPRESS_AUTH_ENABLED=true` with your own key and issuer. The internal template import (`/api/render/templates/import`) is never authenticated — expose it only to blocpress-workbench.
+
+---
+
+## Sizing
+
+Measured with 2.5.1 (native): one render ≈ 0.5 CPU-seconds, throughput ≈ 2 renders/s per CPU core.
+
+| Load | CPU (request = limit) | `BLOCPRESS_LO_WORKERS` | Memory (request = limit) | ≈ renders/s per pod |
+|------|------|------|------|------|
+| low | 1 | 1 | 384Mi | 2 |
+| medium | 2 | 2 | 640Mi | 3.7 |
+| more | replicas of *medium* | 2 | 640Mi | 3.7 × replicas |
+
+The CPU limit is the usual bottleneck (CFS throttling); more workers than cores do not help.
+Guide and load test: [render-sizing.md](https://github.com/flaechsig/blocpress/blob/main/docs/guides/render-sizing.md).
 
 ---
 

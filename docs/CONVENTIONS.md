@@ -51,6 +51,9 @@ docs/
     requirements/CATALOG.md     # GENERIERT — Lese-Ansicht, nicht editieren
     epics/E-NAME.md             # Thema (grob)
     stories/US-NNNN.md          # Nutzersicht, verweist auf Requirements
+  guides/                # HANDGESCHRIEBEN — Anleitungen für Nutzer/Betreiber (Hands-On)
+    measurements/               # datierte Messprotokolle, auf die Anleitungen sich stützen
+    examples/                   # lauffähige Beispiele (z.B. Kubernetes-Manifest)
   planning/              # ABGELEITETER Überblick + Anker für nächste Aktivitäten
     README.md                   # GENERIERT — Status-Rollup, Matrix, Lücken
     ROADMAP.md                  # handgepflegt, Anker (noch ohne Priorisierung)

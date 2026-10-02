@@ -328,6 +328,15 @@ In the figure you see "Max Mustermann". At development time the value of **User 
 .Complete document with single fields, lists and text blocks
 image::text_block_processed.png[]
 
+== Sizing blocpress-render
+
+One render needs roughly 0.5 CPU-seconds. Throughput follows the CPU limit (≈ 2 renders/s per
+core), not the number of LibreOffice workers: use one worker per CPU core (`BLOCPRESS_LO_WORKERS`,
+at least 1), plan ~150 MiB memory per worker plus base, and scale with replicas. A good start is
+*1 CPU, 1 worker, 384Mi* per pod. Measure your own templates with the load test
+(`mvn verify -pl blocpress-e2e -Pload`) — step-by-step guide (German):
+link:docs/guides/render-sizing.md[docs/guides/render-sizing.md].
+
 == Development & Build
 
 === Building the Project
