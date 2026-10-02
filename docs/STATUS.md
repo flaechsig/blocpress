@@ -13,12 +13,12 @@ Erzählerischer Einstieg: **[README](README.md)**. Diese Seite ist der generiert
 
 | Status | Anzahl |
 |---|---|
-| implemented | 7 |
+| implemented | 9 |
 | planned | 0 |
 | proposed | 0 |
 | rejected | 0 |
 | superseded | 0 |
-| **Gesamt** | **7** |
+| **Gesamt** | **9** |
 
 ### arc42-Kapitel
 

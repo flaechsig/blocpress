@@ -24,11 +24,9 @@ Fäden, jeweils mit Verweis auf die Story/das Requirement.
 Bei der Überführung des Backlogs (2026-10-02) sichtbar geworden; in den Stories
 als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
 
-- **JWT-Absicherung (TI-4)** — [US-0007](../spec/stories/US-0007.md): Backlog sagt DONE,
-  im Code ist JWT abgeschaltet (`mp.jwt.*` auskommentiert, alle Endpunkte `@PermitAll`).
-  Sicherheitsrelevant — Ziel bestätigen oder per ADR verwerfen.
-- **CI-Umfang** — [US-0029](../spec/stories/US-0029.md): `ci.yml` testet nur core und
-  workbench; render, studio, e2e laufen nicht in der CI.
+- **CI-Umfang** — [US-0029](../spec/stories/US-0029.md): `ci.yml` testet seit 2026-10-02
+  alle Module außer e2e (inkl. Gate); offen: soll die E2E-Suite (braucht gebautes
+  Quickstart-Image) in die CI?
 - **blocpress-proof / blocpress-admin** — der Backlog beschreibt eigene Module; proof ist
   in der Workbench aufgegangen (E-Freigabe), admin existiert nicht (E-Administration,
   US-0020..0022). Gilt das Zielbild eigener Module noch? → `/adr`.
@@ -47,6 +45,8 @@ Die 28 aus dem Backlog überführten Stories tragen **keine** Requirements — s
 - Regressionslauf/Diff/Ignorieren (US-0018), Compliance-Review/Scheduler (US-0019)
 - Coverage-Analyse (US-0012), Bausteine (US-0013), WebDAV (US-0014),
   Fuzzy-/Prefix-Suche (US-0015)
+- Import-Endpunkt (`POST /api/render/templates/import`) antwortet auf eine leere/ungültige
+  Anfrage mit 500 statt 400 (aufgefallen bei ADR-002, 2026-10-02).
 
 ## Bereits umgesetzt (via Nachweis-Bindung an bestehende Core-Tests)
 

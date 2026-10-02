@@ -20,8 +20,8 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 26 |
-| 🟡 in-progress | 4 |
+| ✅ verified | 27 |
+| 🟡 in-progress | 3 |
 | ⚪ open | 3 |
 | **Summe** | **33** |
 
@@ -275,9 +275,9 @@ wird.
 
 **Warum.** Regressionen sollen vor dem Merge auffallen, nicht beim Release.
 
-> **Abweichung zum Altbestand:** `ci.yml` baut und testet nur
-> `blocpress-core` und `blocpress-workbench`. render, studio und e2e laufen in der
-> CI nicht (render/studio setzen `skipITs=true`). Daher `in-progress`.
+> **Stand 2026-10-02:** `ci.yml` baut und testet jetzt alle Module außer e2e
+> (inkl. LibreOffice und req-check-Gate). Offen ist nur noch die E2E-Suite gegen das
+> Quickstart-Image (braucht das gebaute Image). Daher weiter `in-progress`.
 
 **Evidence:** .github/workflows/ci.yml · **Herkunft:** docs/product-backlog.adoc:381-384
 
@@ -378,23 +378,21 @@ Infrastrukturkomponente (Kafka/RabbitMQ). Ergebnisse werden zweistufig bereinigt
 
 **Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/AsyncRenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJob.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJobWorker.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderDashboardResource.java · **Herkunft:** docs/product-backlog.adoc:86-94 (UC-23, TI-8)
 
-### US-0007 — Render-API per JWT absichern  🟡 `in-progress`
+### US-0007 — Render-API optional per JWT absichern  ✅ `verified`
 
-Als **Betreiber** möchte ich die Render-API per JWT absichern und Public Key
-sowie Issuer über Umgebungsvariablen konfigurieren, damit nur berechtigte
-Anwendungen Dokumente erzeugen.
+Als **Betreiber** möchte ich die Render-API bei Bedarf per JWT absichern
+(`BLOCPRESS_AUTH_ENABLED=true`) und Public Key sowie Issuer über Umgebungsvariablen
+konfigurieren, damit nur berechtigte Anwendungen Dokumente erzeugen — ohne dass
+bestehende Integrationen ohne Token brechen (Default: aus).
 
 **Warum.** Die Render-API ist die einzige öffentlich exponierte Schnittstelle;
 Absicherung gehört dorthin, Schlüssel gehören nicht ins Image.
 
-> **Widerspruch zum Altbestand:** Der Backlog führt TI-4 als DONE. Im Code ist die
-> JWT-Prüfung **abgeschaltet**: `quarkus-smallrye-jwt` ist eingebunden, die
-> `mp.jwt.*`-Konfiguration aber auskommentiert („DISABLED FOR DEV"), und alle
-> Endpunkte von `RenderResource`/`TemplateImportResource` tragen `@PermitAll`.
-> Jobs-, Dashboard- und Import-Pfade sind explizit freigegeben. Daher
-> `in-progress`, nicht `verified` — der Mensch entscheidet, ob das Ziel noch gilt.
+> **Historie:** Der Altbestand führte TI-4 als DONE, im Code war JWT jedoch
+> abgeschaltet (`mp.jwt.*` auskommentiert, alle Endpunkte `@PermitAll`). Aufgelöst
+> durch [ADR-002](../../architecture/decisions/ADR-002.adoc): optional, Default aus.
 
-**Evidence:** blocpress-render/pom.xml, blocpress-render/src/main/resources/application.properties, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderResource.java · **Herkunft:** docs/product-backlog.adoc:56-59 (TI-4)
+**Requirements:** REQ-0008, REQ-0009 · **Evidence:** blocpress-render/pom.xml, blocpress-render/src/main/resources/application.properties, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderAuthConfig.java, docs/architecture/decisions/ADR-002.adoc · **Herkunft:** docs/product-backlog.adoc:56-59 (TI-4)
 
 ## E-Rendering — Render-Pipeline (Vorlage + Daten → Dokument)  🟡 `in-progress`
 

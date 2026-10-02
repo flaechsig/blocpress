@@ -44,8 +44,10 @@ curl -X POST http://localhost:8080/api/render/template \
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/render/template` | None | Render from inline template (multipart or JSON/base64) |
-| `POST` | `/api/render/{name}` | JWT | Render from stored, approved template |
+| `POST` | `/api/render/template` | optional JWT¹ | Render from inline template (multipart or JSON/base64) |
+| `POST` | `/api/render/{name}` | optional JWT¹ | Render from stored, approved template |
+
+¹ Only when `BLOCPRESS_AUTH_ENABLED=true` (default: off) — see Environment Variables.
 
 Full API docs available at `/q/swagger-ui` once the container is running.
 
@@ -58,12 +60,13 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL JDBC URL (production schema) | `jdbc:postgresql://localhost:5432/production` |
 | `QUARKUS_DATASOURCE_USERNAME` | Database username | `workbench` |
 | `QUARKUS_DATASOURCE_PASSWORD` | Database password | `workbench` |
-| `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM) | built-in dev key |
-| `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer URL | `https://blocpress.dev` |
+| `BLOCPRESS_AUTH_ENABLED` | Require a JWT Bearer token for all endpoints below `/api/render/` (rendering, jobs, dashboard). Requests without a valid token get HTTP 401. The internal template import and `/q/*` stay open. | `false` |
+| `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required when `BLOCPRESS_AUTH_ENABLED=true` (or `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) — the service refuses to start without one. | — |
+| `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | — |
 | `RENDER_URL` | Internal URL of this service (used by blocpress-workbench) | `http://localhost:8080` |
 | `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
-> **Note:** The built-in dev key is for local testing only. Always override `MP_JWT_VERIFY_PUBLICKEY` and `MP_JWT_VERIFY_ISSUER` in production.
+> **Note:** JWT authentication is **off by default** so existing integrations keep working. If the service is reachable from outside a trusted network, set `BLOCPRESS_AUTH_ENABLED=true` with your own key and issuer. The internal template import (`/api/render/templates/import`) is never authenticated — expose it only to blocpress-workbench.
 
 ---
 

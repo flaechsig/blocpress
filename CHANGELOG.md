@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Optionale JWT-Absicherung der Render-API (ADR-002).** Mit `BLOCPRESS_AUTH_ENABLED=true` verlangen alle Endpunkte unter `/api/render/` (Rendern, `{name}`, Jobs, Dashboard) ein gültiges Bearer-Token, sonst HTTP 401. Schlüssel über `MP_JWT_VERIFY_PUBLICKEY` bzw. `MP_JWT_VERIFY_PUBLICKEY_LOCATION`, Issuer über `MP_JWT_VERIFY_ISSUER`; ohne Schlüssel bricht der Start ab. Default bleibt **aus** — keine Änderung für bestehende Integrationen. Der interne Template-Import bleibt unauthentifiziert.
+
+### Fixed
+
+- **Dokumentation der Authentifizierung korrigiert:** OpenAPI-Beschreibung und Docker-Hub-README versprachen JWT für `/api/render/{name}` und einen eingebauten Dev-Schlüssel; tatsächlich war die API vollständig offen. Der Dev-Schlüssel ist aus der Produktionskonfiguration entfernt.
+
+---
+
 ## [2.5.1] - 2026-10-02
 
 ### Fixed

@@ -6,7 +6,6 @@ import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
 import io.github.flaechsig.blocpress.render.model.RenderByNameRequest;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
-import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -62,7 +61,6 @@ public class RenderResource {
     @jakarta.ws.rs.Path("/template")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces({"application/pdf", "application/rtf", "application/vnd.oasis.opendocument.text"})
-    @PermitAll
     public File renderDocumentMultipart(
             @HeaderParam("Accept") String accept,
             @FormParam("template") InputStream templateInputStream,
@@ -89,7 +87,6 @@ public class RenderResource {
     @jakarta.ws.rs.Path("/template")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({"application/pdf", "application/rtf", "application/vnd.oasis.opendocument.text"})
-    @PermitAll
     public File renderDocumentJson(RenderRequest renderRequest) {
         logger.info("Rendering document from base64-encoded template");
         OutputFormat format = switch (renderRequest.getOutputType()) {
@@ -126,7 +123,6 @@ public class RenderResource {
     @jakarta.ws.rs.Path("/{name}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({"application/pdf", "application/rtf", "application/vnd.oasis.opendocument.text"})
-    @PermitAll
     public File renderDocumentByName(
             @PathParam("name") String name,
             RenderByNameRequest renderByNameRequest) {

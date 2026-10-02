@@ -7,20 +7,24 @@ info:
 
     **Stateless rendering** (`POST /api/render/template`) generates a document from a
     template you supply inline — either as a multipart file upload or as a base64-encoded
-    JSON request. No authentication required.
+    JSON request.
 
     **Name-based rendering** (`POST /api/render/{name}`) renders a document using an
     approved template stored in the production template store. The latest active version
-    of the named template is used. Requires a valid JWT Bearer token.
+    of the named template is used.
 
-    **Authentication:** The server ships with a built-in dev key (issuer `https://blocpress.dev`).
-    To use your own identity provider, override the environment variables
-    `MP_JWT_VERIFY_PUBLICKEY` and `MP_JWT_VERIFY_ISSUER` when starting the container.
+    **Authentication (optional):** Disabled by default. When the service is started with
+    `BLOCPRESS_AUTH_ENABLED=true`, every endpoint below `/api/render/` (rendering, jobs,
+    dashboard) requires a valid JWT Bearer token; requests without one get HTTP 401. The
+    verification key is configured via `MP_JWT_VERIFY_PUBLICKEY` (or
+    `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) and `MP_JWT_VERIFY_ISSUER`.
 
 servers:
   - url: http://localhost:8080
 
+# Optional: ohne Token, solange BLOCPRESS_AUTH_ENABLED=false (Default)
 security:
+  - {}
   - BearerJWT: []
 
 tags:
@@ -35,7 +39,7 @@ paths:
       summary: Generate document from ODT template (stateless)
       description: >
         Submit an ODT template and JSON data to generate a document.
-        No authentication required — the template is provided inline with each request.
+        The template is provided inline with each request.
 
         Two request formats are supported, selected via the `Content-Type` header:
 
@@ -44,7 +48,6 @@ paths:
 
         - **`application/json`**: Submit a base64-encoded ODT template with JSON data
           and output type in a single JSON body.
-      security: []
       parameters:
         - name: Accept
           in: header

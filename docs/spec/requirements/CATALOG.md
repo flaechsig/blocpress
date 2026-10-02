@@ -164,3 +164,47 @@ _Quelle: [`REQ-0007.md`](REQ-0007.md)_
 
 ---
 
+## REQ-0008  ·  `implemented`
+
+> WHERE JWT authentication is enabled, the render service shall reject requests to the rendering, job and dashboard endpoints that carry no valid bearer token with HTTP 401; while it is disabled, these endpoints shall remain accessible without a token.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+| **Source** | MicroProfile JWT Auth; RFC 6750 (Bearer Token Usage) |
+
+**Rationale:** Die Render-API ist die einzige öffentlich exponierte Schnittstelle. Betreiber ohne vorgeschaltetes Gateway brauchen eine eingebaute Absicherung; bestehende Integrationen (u.a. tarifnova) rufen aber ohne Token auf. Deshalb optional und per Laufzeit-Schalter (BLOCPRESS_AUTH_ENABLED), Default aus — siehe ADR-002. Der zweite Halbsatz hält ausdrücklich fest, dass der Default nichts bricht.
+
+**Evidence:**
+
+- `blocpress-render/src/main/resources/application.properties`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderAuthEnabledTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderAuthDisabledTest.java`
+
+_Quelle: [`REQ-0008.md`](REQ-0008.md)_
+
+---
+
+## REQ-0009  ·  `implemented`
+
+> IF JWT authentication is enabled and no token verification key is configured, THEN the render service shall refuse to start with an error naming the missing setting.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+
+**Rationale:** Ohne Schlüssel kann kein Token geprüft werden: Entweder scheitert jede Anfrage erst zur Laufzeit, oder der Betreiber glaubt sich abgesichert, ohne es zu sein. Ein Startabbruch macht die Fehlkonfiguration sofort sichtbar — gleiches Muster wie REQ-0007 für fehlende Sprachdaten. Siehe ADR-002.
+
+**Evidence:**
+
+- `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderAuthConfig.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderAuthConfigTest.java`
+
+_Quelle: [`REQ-0009.md`](REQ-0009.md)_
+
+---
+

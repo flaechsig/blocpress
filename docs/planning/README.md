@@ -40,12 +40,12 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 - **US-0030** Release mit einem Befehl  `ohne Requirements`
 - **US-0031** Zusammenspiel der Module Ende-zu-Ende prüfen  `ohne Requirements`
 
-## E-RenderService — Render-Service (REST-API, Auth, Jobs)  ·  `geplant`
+## E-RenderService — Render-Service (REST-API, Auth, Jobs)  ·  `in Arbeit`
 
 - **US-0004** Dokument synchron per REST rendern  `ohne Requirements`
 - **US-0005** Freigegebene Vorlage per Name rendern (versioniert)  `ohne Requirements`
 - **US-0006** Asynchron rendern über eine Job-Queue  `ohne Requirements`
-- **US-0007** Render-API per JWT absichern  `ohne Requirements`
+- **US-0007** Render-API optional per JWT absichern  `umgesetzt` → [REQ-0008](../spec/requirements/REQ-0008.md), [REQ-0009](../spec/requirements/REQ-0009.md)
 
 ## E-Rendering — Render-Pipeline (Vorlage + Daten → Dokument)  ·  `in Arbeit`
 
@@ -81,6 +81,8 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 | [REQ-0005](../spec/requirements/REQ-0005.md) | US-0033 |
 | [REQ-0006](../spec/requirements/REQ-0006.md) | US-0033 |
 | [REQ-0007](../spec/requirements/REQ-0007.md) | US-0033 |
+| [REQ-0008](../spec/requirements/REQ-0008.md) | US-0007 |
+| [REQ-0009](../spec/requirements/REQ-0009.md) | US-0007 |
 
 ## Requirements ohne Story
 

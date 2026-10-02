@@ -44,7 +44,7 @@ mvn package -pl blocpress-req-trace,blocpress-core,blocpress-render -Dquarkus.co
 
 - Java 21+
 - Maven 3.9+
-- Docker (for integration tests and render builds)
+- Docker (for integration tests, render builds, and render's `@QuarkusTest`s — they start PostgreSQL via Quarkus DevServices)
 - LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
   render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
   req-check gate fails for REQ-0004 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
