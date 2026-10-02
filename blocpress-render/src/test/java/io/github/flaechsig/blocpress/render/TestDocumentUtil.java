@@ -54,11 +54,9 @@ public final class TestDocumentUtil {
     }
 
     public static String normalizeText(String s) {
-        return s.replace("\r\n", "\n")
-                .replace('\r', '\n')
-                .replaceAll("[ \\t\\x0B\\f]+", " ")
-                .replaceAll("\\n{3,}", "\n\n")
-                .trim();
+        // Zeilenumbrueche werden wie Leerzeichen behandelt: der Umbruch in PDF/RTF haengt
+        // von den installierten Schriften ab (lokal vs. CI-Runner), der Inhalt nicht.
+        return s.replaceAll("\\s+", " ").trim();
     }
 
     public static String normalizeXml(String xml) {

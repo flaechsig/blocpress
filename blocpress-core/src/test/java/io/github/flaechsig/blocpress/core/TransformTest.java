@@ -44,7 +44,16 @@ public class TransformTest {
         byte[] pdf = LibreOfficeProcessor.refreshAndTransform(odtBytes, OutputFormat.PDF);
 
         assertEquals("%PDF-", new String(pdf, 0, 5, StandardCharsets.US_ASCII));
-        assertEquals(expected, extractPdfContent(pdf));
+        assertEquals(words(expected), words(extractPdfContent(pdf)));
+    }
+
+    /**
+     * Vergleicht Inhalt und Wortfolge, nicht den Zeilenumbruch: der Umbruch im PDF haengt
+     * von den installierten Schriften ab und unterscheidet sich z.B. zwischen lokalem
+     * Rechner und CI-Runner.
+     */
+    private static String words(String text) {
+        return text.replaceAll("\\s+", " ").trim();
     }
 
     @Test
