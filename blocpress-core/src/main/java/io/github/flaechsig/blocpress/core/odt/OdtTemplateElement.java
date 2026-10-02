@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import io.github.flaechsig.blocpress.core.TemplateElement;
-import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.text.TextSpanElement;
 import org.odftoolkit.odfdom.pkg.OdfElement;
+import org.odftoolkit.odfdom.pkg.OdfFileDom;
 import org.w3c.dom.Node;
 
 import java.util.*;
@@ -180,8 +180,13 @@ public class OdtTemplateElement implements TemplateElement {
                 replaceWithSpan(trueValue);
             } else if ("text:section".equals(tagName)) {
                 // condition evaluated to FALSE → don't hide
-                element.setAttribute("text:is-hidden", "false");
+                // mit Namensraum setzen: fehlt das Attribut, erzeugte setAttribute("text:is-hidden") ein
+                // Attribut ohne Namensraum (ungueltiges ODF, in styles.xml als "is-hidden" serialisiert)
+                element.setAttributeNS(TEXT_NS, "text:is-hidden", "false");
                 element.removeAttribute("text:condition");
+                // text:display="condition" ohne Bedingung blendet LibreOffice den Bereich aus — im
+                // PDF fehlten dadurch alle bedingten Bereiche. Ohne text:display gilt "true" (sichtbar).
+                element.removeAttribute("text:display");
             }
         }
     }
@@ -310,7 +315,8 @@ public class OdtTemplateElement implements TemplateElement {
 
     private void replaceWithSpan(String text) {
         var parent = element.getParentNode();
-        var dom = (OdfContentDom) parent.getOwnerDocument();
+        // Rumpf (content.xml) oder Kopf-/Fusszeile (styles.xml): Ersatz im selben DOM anlegen
+        var dom = (OdfFileDom) parent.getOwnerDocument();
         var span = dom.newOdfElement(TextSpanElement.class);
         span.setTextContent(text);
         parent.insertBefore(span, element);

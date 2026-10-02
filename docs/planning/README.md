@@ -54,6 +54,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 - **US-0002** Bedingungen und Listen in einer Vorlage  `umgesetzt` → [REQ-0002](../spec/requirements/REQ-0002.md), [REQ-0003](../spec/requirements/REQ-0003.md)
 - **US-0032** Gemeinsame Textbausteine einbinden  `ohne Requirements`
 - **US-0033** Zahlen und Daten im Sprachformat der Vorlage  `umgesetzt` → [REQ-0005](../spec/requirements/REQ-0005.md), [REQ-0006](../spec/requirements/REQ-0006.md), [REQ-0007](../spec/requirements/REQ-0007.md)
+- **US-0035** Platzhalter in Kopf- und Fußzeilen  `umgesetzt` → [REQ-0010](../spec/requirements/REQ-0010.md)
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  ·  `geplant`
 
@@ -84,6 +85,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 | [REQ-0007](../spec/requirements/REQ-0007.md) | US-0033 |
 | [REQ-0008](../spec/requirements/REQ-0008.md) | US-0007 |
 | [REQ-0009](../spec/requirements/REQ-0009.md) | US-0007 |
+| [REQ-0010](../spec/requirements/REQ-0010.md) | US-0035 |
 
 ## Requirements ohne Story
 

@@ -8,10 +8,10 @@ import io.github.flaechsig.blocpress.core.TemplateDocument;
 import io.github.flaechsig.blocpress.core.TemplateElement;
 import io.github.flaechsig.blocpress.core.TemplateSectionElement;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
-import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.text.TextSectionElement;
 import org.odftoolkit.odfdom.dom.element.text.TextSpanElement;
 import org.odftoolkit.odfdom.pkg.OdfElement;
+import org.odftoolkit.odfdom.pkg.OdfFileDom;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -167,7 +167,24 @@ public class OdtTemplateDocument implements TemplateDocument {
     }
 
     /**
-     * Collects conditional template elements from document content
+     * Bereiche, in denen Platzhalter und Bedingungen aufgeloest werden: der Dokumentrumpf
+     * (content.xml) und die Kopf-/Fusszeilen aller Master-Pages ({@code office:master-styles} in
+     * styles.xml — header, header-left, header-first, footer, footer-left, footer-first, ...).
+     * Schleifen und Textbausteine bleiben auf den Rumpf beschraenkt.
+     */
+    @SneakyThrows
+    private List<OdfElement> fieldScopes() {
+        List<OdfElement> scopes = new ArrayList<>();
+        scopes.add(document.getContentRoot());
+        OdfElement masterStyles = document.getOfficeMasterStyles();
+        if (masterStyles != null) {
+            scopes.add(masterStyles);
+        }
+        return scopes;
+    }
+
+    /**
+     * Collects conditional template elements from the document body and from headers/footers
      */
     @Override
     @SneakyThrows
@@ -175,13 +192,15 @@ public class OdtTemplateDocument implements TemplateDocument {
         String[] tagNames = {"text:section", "text:p", "text:span", "text:conditional-text"};
         List<TemplateElement> elements = new ArrayList<>();
 
-        for (var tagName : tagNames) {
-            elements.addAll(
-                    OdtHelper.getNodes(document.getContentRoot(), tagName).stream()
-                            .filter(OdtTemplateElement::isConditional)
-                            .map(e -> (TemplateElement) e)
-                            .toList()
-            );
+        for (OdfElement scope : fieldScopes()) {
+            for (var tagName : tagNames) {
+                elements.addAll(
+                        OdtHelper.getNodes(scope, tagName).stream()
+                                .filter(OdtTemplateElement::isConditional)
+                                .map(e -> (TemplateElement) e)
+                                .toList()
+                );
+            }
         }
         return elements;
     }
@@ -199,11 +218,10 @@ public class OdtTemplateDocument implements TemplateDocument {
     public List<TemplateElement> collectUserFields() {
         List<TemplateElement> fields = new ArrayList<>();
 
-        OdtHelper.getNodes(document.getContentRoot(), "text:user-field-get").stream()
-                .forEach(n -> fields.add(n));
-        OdtHelper.getNodes(document.getContentRoot(), "text:variable-get").stream()
-                .forEach(n -> fields.add(n));
-
+        for (OdfElement scope : fieldScopes()) {
+            fields.addAll(OdtHelper.getNodes(scope, "text:user-field-get"));
+            fields.addAll(OdtHelper.getNodes(scope, "text:variable-get"));
+        }
         return fields;
     }
 
@@ -241,7 +259,8 @@ public class OdtTemplateDocument implements TemplateDocument {
             return;
         }
 
-        OdfContentDom dom = (OdfContentDom) parent.getOwnerDocument();
+        // Rumpf (content.xml) oder Kopf-/Fusszeile (styles.xml) — das Ersatz-Element im selben DOM anlegen
+        OdfFileDom dom = (OdfFileDom) parent.getOwnerDocument();
         TextSpanElement span = dom.newOdfElement(TextSpanElement.class);
         span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue, defaultLocale));
 

@@ -6,7 +6,6 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
-import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.pkg.OdfElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,45 +73,53 @@ public final class UserFieldFormatter {
         }
 
         // 1) Rohwert lesen: office:value (präferiert) oder Text-Inhalt
-        DataType officeValueType = findFieldType(document, field);
+        List<Document> styleDoms = styleLookupOrder(document, field);
+        DataType officeValueType = findFieldType(styleDoms, field);
         String raw = officeValue.toString().trim();
         String styleName = field.getAttributeNS(STYLE_NS, "data-style-name");
 
         // 2) Falls office:value-type float oder numeric, parsen wir als Zahl
         return switch (officeValueType) {
-            case FLOAT -> formatNumber(document, styleName, raw, defaultLocale);
-            case CURRENCY -> formatNumber(document, styleName, raw, defaultLocale);
-            case DATE -> formatDate(document, styleName, raw, defaultLocale);
+            case FLOAT -> formatNumber(styleDoms, styleName, raw, defaultLocale);
+            case CURRENCY -> formatNumber(styleDoms, styleName, raw, defaultLocale);
+            case DATE -> formatDate(styleDoms, styleName, raw, defaultLocale);
             default -> raw;
         };
     }
 
-    private static DataType findFieldType(@NonNull OdfTextDocument document, @NonNull OdfElement field) {
-        try {
-            OdfContentDom contentDom = document.getContentDom();
-            Document stylesDom = document.getStylesDom();
-
-            // 1) Direkt aus dem übergebenen Feld (user-field-get) den style:data-style-name holen
-            String dataStyleName = field.getAttributeNS(STYLE_NS, "data-style-name");
-            if (StringUtils.isNotBlank(dataStyleName)) {
-                DataType detected = detectTypeFromStyle(contentDom, stylesDom, dataStyleName);
-                if (detected != null) {
-                    return detected;
-                }
-            }
-
-            return DataType.UNKNOWN;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    /**
+     * Wo die Formate (data-styles) eines Feldes zu suchen sind. Ein Feld im Rumpf (content.xml)
+     * sieht die Formate aus content.xml und — nachrangig — aus styles.xml. Ein Feld in Kopf-/Fußzeile
+     * (styles.xml, office:master-styles) darf nur Formate aus styles.xml verwenden; gleichnamige Formate
+     * in content.xml (LibreOffice nummeriert beide Dateien unabhaengig, z.B. "N3") gehoeren nicht dazu.
+     */
+    @SneakyThrows
+    private static List<Document> styleLookupOrder(OdfTextDocument document, OdfElement field) {
+        Document stylesDom = document.getStylesDom();
+        if (field.getOwnerDocument() == stylesDom) {
+            return List.of(stylesDom);
         }
+        return List.of(document.getContentDom(), stylesDom);
+    }
+
+    private static DataType findFieldType(List<Document> styleDoms, @NonNull OdfElement field) {
+        // Direkt aus dem übergebenen Feld (user-field-get) den style:data-style-name holen
+        String dataStyleName = field.getAttributeNS(STYLE_NS, "data-style-name");
+        if (StringUtils.isNotBlank(dataStyleName)) {
+            DataType detected = detectTypeFromStyle(styleDoms, dataStyleName);
+            if (detected != null) {
+                return detected;
+            }
+        }
+        return DataType.UNKNOWN;
     }
 
     /**
      * Ermittelt den Typ ("date", "currency", "float", ...) anhand des Style-Namens.
-     * Sucht sowohl in contentDom als auch in stylesDom nach passenden Style-Elementen.
+     * Durchsucht die DOMs in der Reihenfolge von {@link #styleLookupOrder}; das erste passende gewinnt.
      */
-    private static DataType detectTypeFromStyle(OdfContentDom contentDom, Document stylesDom, String styleName) {
-        if (StringUtils.isBlank(styleName) || contentDom == null || stylesDom == null) return null;
+    private static DataType detectTypeFromStyle(List<Document> styleDoms, String styleName) {
+        if (StringUtils.isBlank(styleName)) return null;
 
         // Liste der relevanten Style-Tags und die zu erwartende Rückgabe
         Map<String, DataType> tagToType = Map.of(
@@ -124,31 +131,13 @@ public final class UserFieldFormatter {
                 "number:currency-style", DataType.CURRENCY
         );
 
-        for (Map.Entry<String, DataType> e : tagToType.entrySet()) {
-            String tag = e.getKey();
-            DataType expectedType = e.getValue();
-
-            // content.xml prüfen
-            NodeList nl = contentDom.getElementsByTagName(tag);
-            for (int i = 0; i < nl.getLength(); i++) {
-                var node = nl.item(i);
-                if (!(node instanceof Element elem)) {
-                    continue;
-                }
-                if (styleName.equals(elem.getAttribute("style:name"))) {
-                    return expectedType;
-                }
-            }
-
-            // styles.xml prüfen
-            nl = stylesDom.getElementsByTagName(tag);
-            for (int i = 0; i < nl.getLength(); i++) {
-                var node = nl.item(i);
-                if (!(node instanceof Element elem)) {
-                    continue;
-                }
-                if (styleName.equals(elem.getAttribute("style:name"))) {
-                    return expectedType;
+        for (Document dom : styleDoms) {
+            for (Map.Entry<String, DataType> e : tagToType.entrySet()) {
+                NodeList nl = dom.getElementsByTagName(e.getKey());
+                for (int i = 0; i < nl.getLength(); i++) {
+                    if (nl.item(i) instanceof Element elem && styleName.equals(elem.getAttribute("style:name"))) {
+                        return e.getValue();
+                    }
                 }
             }
         }
@@ -158,7 +147,7 @@ public final class UserFieldFormatter {
     }
 
     @SneakyThrows
-    private static String formatDate(OdfTextDocument document, String styleName, String raw, Locale defaultLocale) {
+    private static String formatDate(List<Document> styleDoms, String styleName, String raw, Locale defaultLocale) {
         if (StringUtils.isBlank(raw)) return "";
 
         List<DateTimeFormatter> parseCandidates = List.of(
@@ -184,7 +173,7 @@ public final class UserFieldFormatter {
             return raw;
         }
 
-        DateTimeFormatter outFmt = buildDateFormatter(document, styleName, defaultLocale);
+        DateTimeFormatter outFmt = buildDateFormatter(styleDoms, styleName, defaultLocale);
 
         try {
             if (parsed.query(TemporalQueries.localDate()) != null) {
@@ -203,19 +192,18 @@ public final class UserFieldFormatter {
         }
     }
 
-    @SneakyThrows
-    private static DateTimeFormatter buildDateFormatter(OdfTextDocument document, String styleName, Locale defaultLocale) {
+    private static DateTimeFormatter buildDateFormatter(List<Document> styleDoms, String styleName, Locale defaultLocale) {
         DateTimeFormatter fallback = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        if (document == null || StringUtils.isBlank(styleName)) {
+        if (StringUtils.isBlank(styleName)) {
             return fallback;
         }
 
-        OdfContentDom contentDom = document.getContentDom();
-        Document stylesDom = document.getStylesDom();
-
-        Element styleElement = findDateStyleElement(contentDom, styleName);
-        if (styleElement == null && stylesDom != null) {
-            styleElement = findDateStyleElement(stylesDom, styleName);
+        Element styleElement = null;
+        for (Document dom : styleDoms) {
+            styleElement = findDateStyleElement(dom, styleName);
+            if (styleElement != null) {
+                break;
+            }
         }
         if (styleElement == null) {
             return fallback;
@@ -259,7 +247,7 @@ public final class UserFieldFormatter {
         return null;
     }
 
-    private static String formatNumber(OdfTextDocument document, String style, String value, Locale defaultLocale) {
+    private static String formatNumber(List<Document> styleDoms, String style, String value, Locale defaultLocale) {
         if (StringUtils.isBlank(style)) {
             return value;
         }
@@ -280,30 +268,23 @@ public final class UserFieldFormatter {
         }
 
         // Versuch DecimalFormat aus number-style zu erzeugen
-        DecimalFormat df = findDecimalFormatForStyle(document, style, defaultLocale);
+        DecimalFormat df = findDecimalFormatForStyle(styleDoms, style, defaultLocale);
 
         return df.format(numericValue);
     }
 
-    @SneakyThrows
-    private static DecimalFormat findDecimalFormatForStyle(OdfTextDocument document, String styleName, Locale defaultLocale) {
-        OdfContentDom contentDom = document.getContentDom();
-        Document stylesDom = document.getStylesDom();
-
+    private static DecimalFormat findDecimalFormatForStyle(List<Document> styleDoms, String styleName, Locale defaultLocale) {
         String[] styleElements = {"number:number-style", "number:percentage-style", "number:currency-style"};
         Map<String, NumberStyle> styleNodes = new HashMap<>();
 
-        for (String style : styleElements) {
-            NodeList nl = contentDom.getElementsByTagName(style);
-            for (int i = 0; i < nl.getLength(); i++) {
-                var item = (Element) nl.item(i);
-                styleNodes.put(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
-            }
-            nl = stylesDom.getElementsByTagName(style);
-            for (int i = 0; i < nl.getLength(); i++) {
-                var item = (Element) nl.item(i);
-                // only add if absent to let content.xml override styles.xml when names collide
-                styleNodes.putIfAbsent(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
+        // Reihenfolge aus styleLookupOrder: bei Namensgleichheit gewinnt das zuerst durchsuchte DOM
+        for (Document dom : styleDoms) {
+            for (String style : styleElements) {
+                NodeList nl = dom.getElementsByTagName(style);
+                for (int i = 0; i < nl.getLength(); i++) {
+                    var item = (Element) nl.item(i);
+                    styleNodes.putIfAbsent(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
+                }
             }
         }
 

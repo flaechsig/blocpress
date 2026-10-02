@@ -154,6 +154,12 @@ Conceptually:
 
 Result in the document: `Miller` as shown in the example above.
 
+=== Headers and footers
+
+Placeholders, conditional text and conditional sections work in headers and footers of all page
+styles (first page, left/right pages) exactly as in the document body — e.g. an offer reference
+in the footer of every page. Repeating groups (arrays) are only supported in the body.
+
 === Number and date formats (language)
 
 If a field uses a number, currency, percentage or date format (Format → Fields → User Field

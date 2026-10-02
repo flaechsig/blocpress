@@ -45,6 +45,7 @@ _Quelle: [`REQ-0001.md`](REQ-0001.md)_
 - `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/JexlConditionEvaluator.java`
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/IfConditionTest.java`
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/SectionVisibilityTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/SectionPdfTest.java`
 
 _Quelle: [`REQ-0002.md`](REQ-0002.md)_
 
@@ -205,6 +206,32 @@ _Quelle: [`REQ-0008.md`](REQ-0008.md)_
 - `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderAuthConfigTest.java`
 
 _Quelle: [`REQ-0009.md`](REQ-0009.md)_
+
+---
+
+## REQ-0010  ·  `implemented`
+
+> WHEN a header or footer of any master page contains user fields, conditional text or conditional sections, the render engine shall resolve them with the same rules as in the document body, including number and date formatting.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+| **Source** | OpenDocument (ODF) 1.3 — style:master-page (style:header, style:footer, -left, -first) |
+
+**Rationale:** Kopf- und Fußzeilen tragen oft genau die Angaben, die auf jeder Seite stehen müssen — Referenz-/Vorgangsnummern für Support und Logs, Kundennummer, Seitenkopf mit Anrede. blocpress verarbeitete bisher nur den Dokumentrumpf (content.xml); in Kopf-/Fußzeilen (styles.xml) blieb der Beispielwert der Vorlage stehen, weil LibreOffice die Felder dort aus der unveränderten Deklaration neu berechnet (Anlass: tarifnova, offer.reference in der Fußzeile). Bewusst mit blocpress' eigener Formatierung statt durch Setzen der Deklaration, damit die Sprachregeln (REQ-0005/0006) und die JEXL-Bedingungslogik in Kopf/Fuß dieselben sind wie im Rumpf. Schleifen in Kopf-/Fußzeilen sind ausgenommen.
+
+**Evidence:**
+
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateDocument.java`
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/UserFieldFormatter.java`
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateElement.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/HeaderFooterTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/HeaderFooterPdfTest.java`
+- `blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/HeaderFooterFieldDetectionTest.java`
+
+_Quelle: [`REQ-0010.md`](REQ-0010.md)_
 
 ---
 
