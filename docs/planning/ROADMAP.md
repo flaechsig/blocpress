@@ -61,7 +61,7 @@ Belege: [Messprotokoll](../guides/measurements/render-2.5.1-2026-10-02.md),
 
 - ~~**Fehler: Job-Pfad im Native-Image**~~ — **behoben** (2026-10-02, `@RegisterForReflection`
   an `JobStatus`/`JobRequest`, `AsyncRenderJobTest`, nativ per `RenderLoadIT -Dload.async=true`
-  geprüft); erscheint mit dem nächsten Release.
+  geprüft); enthalten in 2.6.0.
 - **Job-Durchsatz** — `RenderJobWorker` holt je Takt (2 s) genau einen Job → ≤ 0,5 Jobs/s je
   Instanz. Vorschlag: je Takt Jobs holen, bis die Warteschlange leer oder alle Worker belegt sind.
 - **Worker-Default (entschieden 2026-10-02):** Standardgröße ist **2 CPU / 2 Worker** — passend

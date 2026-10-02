@@ -24,6 +24,8 @@ jobs:
       # PDF/RTF-Konvertierung (REQ-0004): render-Tests brauchen soffice, und ohne
       # LibreOffice wird core-TransformTest uebersprungen -> req-check-Gate rot.
       - name: Install LibreOffice (headless)
+        # apt-Spiegel haengen gelegentlich (2026-10-02: >20 min) — lieber sauber abbrechen
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui
