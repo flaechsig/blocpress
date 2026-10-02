@@ -65,11 +65,11 @@ Belege: [Messprotokoll](../guides/measurements/render-2.5.1-2026-10-02.md),
   an `JobStatus` (und vorsorglich `JobRequest`) + nativer Test. Kandidat für 2.5.2.
 - **Job-Durchsatz** — `RenderJobWorker` holt je Takt (2 s) genau einen Job → ≤ 0,5 Jobs/s je
   Instanz. Vorschlag: je Takt Jobs holen, bis die Warteschlange leer oder alle Worker belegt sind.
-- **Default `BLOCPRESS_LO_WORKERS=2`** — passt nur ab 2 CPU. Bei ≤ 1 CPU (häufigste
-  k8s-Größe) kostet der 2. Worker ~150 MiB und 10–18 % Durchsatz. Vorschlag: Default aus der
-  verfügbaren CPU ableiten (CPU-Kontingent abgerundet, mind. 1) oder Default 1.
-- **Compose-/Doku-Ressourcen** — `docker-compose.yml` setzt keine Limits für render; Vorschlag:
-  `cpus: "1"`, `mem_limit: 384m`, `BLOCPRESS_LO_WORKERS=1` als Beispiel.
+- **Worker-Default (entschieden 2026-10-02):** Standardgröße ist **2 CPU / 2 Worker** — passend
+  zum Default `BLOCPRESS_LO_WORKERS=2`; Guide, Docker-Hub-README, Beispiel-Manifest und
+  Compose-Limits (JVM 768m, native 640m) entsprechend. Offen nur noch als Komfort: Worker
+  automatisch aus dem CPU-Kontingent ableiten, damit kleinere Limits nicht von Hand
+  nachgezogen werden müssen.
 - **`tutorial-sysadmin.html`** — Abschnitt „Configure JWT authentication" setzt noch den
   eingebauten Dev-Schlüssel voraus; seit ADR-002 ist JWT optional (`BLOCPRESS_AUTH_ENABLED`).
 

@@ -3,7 +3,8 @@
 > **Kurz:** Ein Render braucht rund **0,5 CPU-Sekunden**. Plane **1 Worker je CPU-Kern**
 > (mindestens 1), **~150 MiB Speicher je Worker** plus Grundbedarf, und skaliere bei mehr
 > Last über **Replicas**, nicht über Worker. Der Engpass ist fast immer das **CPU-Limit**.
-> Startwert: **1 CPU, 1 Worker, 384Mi** ≈ 2 Renders/s je Pod.
+> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod — passend zum
+> Default `BLOCPRESS_LO_WORKERS=2`. **Wer weniger CPU gibt, muss die Worker senken.**
 
 Diese Anleitung erklärt, wie du die Ressourcen für `blocpress-render` **misst statt rätst**.
 Sie stützt sich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
@@ -129,18 +130,30 @@ Was man daran sieht:
 
 ## 5. Startempfehlung
 
-| Erwartete Last | CPU (Request = Limit) | Worker | Speicher (Request = Limit) | ≈ Durchsatz je Pod |
+| Größe | CPU (Request = Limit) | Worker | Speicher native / JVM (Request = Limit) | ≈ Durchsatz je Pod |
 |---|---|---|---|---|
-| gering, ≤ 1–2 Renders/s | **1** | **1** | **384Mi** | 2/s |
-| mittel, ≤ 3–4 Renders/s | **2** | **2** | **640Mi** | 3,7/s |
-| mehr | Replicas der mittleren Größe | 2 je Pod | 640Mi je Pod | 3,7/s × Replicas |
+| **Standard** | **2** | **2** (Default) | **640Mi** / 768Mi | 3,7/s |
+| sparsam (Test/Staging, geringe Last) | 1 | **1** — Worker senken! | 384Mi / — | 2/s |
+| mehr Last | Replicas der Standardgröße | 2 je Pod | 640Mi je Pod | 3,7/s × Replicas |
+
+- **Standard = Default.** blocpress startet mit `BLOCPRESS_LO_WORKERS=2`; mit 2 CPU passt das.
+  Bekommt der Pod weniger CPU, stimmt der Default nicht mehr: **Worker = CPU-Limit abgerundet,
+  mindestens 1** (bei 500m mit 2 Workern: 18 % weniger Durchsatz, doppelter Speicher).
+- Die sparsame Größe ist je Kern sogar etwas effizienter (2,04 statt 1,85 Renders/s), reserviert
+  aber weniger Reserve für Lastspitzen und keine Redundanz — für Produktion lieber zwei
+  Standard-Pods als einen großen.
+- **JVM-Image** (`Dockerfile`, z.B. `docker-compose.yml`): gleicher Durchsatz, aber mehr
+  Speicher — gemessen 585Mi Spitze bei 2 CPU / 2 Worker, daher 768Mi.
 
 - **Request = Limit** bei CPU *und* Speicher macht den Pod zur QoS-Klasse *Guaranteed* und
-  das Verhalten vorhersagbar. Ein CPU-Limit unter 1 lohnt nicht: die Antwortzeit verdoppelt
-  sich schon ohne Last.
+  das Verhalten vorhersagbar. Request 1 / Limit 2 ist günstiger und darf bis 2 CPU nutzen,
+  wenn der Knoten frei ist — dazu gibt es aber keine eigenen Messwerte (unter Konkurrenz
+  verhält sich der Pod dann wie „1 CPU, 2 Worker“). Ein CPU-Limit unter 1 lohnt nicht: die
+  Antwortzeit verdoppelt sich schon ohne Last.
 - **Client-Timeout** mindestens 30 s, besser die Parallelität am Client begrenzen.
-- Ein vollständiges Beispiel für die kleine Größe: [`examples/blocpress-render-k8s.yaml`](examples/blocpress-render-k8s.yaml).
-  Mit docker-compose entsprechend `cpus: "1"` und `mem_limit: 384m` am render-Service.
+- Vollständiges Beispiel (Standardgröße): [`examples/blocpress-render-k8s.yaml`](examples/blocpress-render-k8s.yaml).
+  `docker-compose.yml` setzt am render-Service `cpus: "2"`, `mem_limit: 768m` (JVM) bzw.
+  `docker-compose.native.yml` `640m` (native).
 
 > **Mit eigenen Vorlagen nachmessen.** Große Vorlagen (viele Seiten, Bilder, lange Tabellen)
 > brauchen mehr als 0,5 CPU-s und mehr Speicher je Render. Die Werte oben sind ein Start,

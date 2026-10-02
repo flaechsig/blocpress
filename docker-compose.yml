@@ -67,6 +67,12 @@ services:
       QUARKUS_DATASOURCE_USERNAME: workbench
       QUARKUS_DATASOURCE_PASSWORD: workbench
       QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:4200,http://localhost:8081,http://localhost:8080,http://localhost:4200"
+      # Worker = CPU-Limit abgerundet (mind. 1) — wer cpus senkt, senkt auch die Worker
+      BLOCPRESS_LO_WORKERS: "2"
+    # Standardgroesse aus docs/guides/render-sizing.md: 2 CPU / 2 Worker (~3,7 Renders/s).
+    # Speicher fuer das JVM-Image gemessen: Spitze 585Mi bei 16 parallelen Renders (+Puffer).
+    cpus: "2"
+    mem_limit: 768m
     depends_on:
       postgres:
         condition: service_healthy

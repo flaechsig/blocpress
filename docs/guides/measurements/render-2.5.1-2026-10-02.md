@@ -8,7 +8,7 @@ Zahlenformate, bedingter Text in zwei Zweigen, Tabellen-Schleife) · **Client-Ti
 Jede Zeile: frische Instanz, sequenzieller Referenzlauf (5 Renders, Aufwärmen), dann N parallele
 Clients. Speicherspitze = `memory.peak` (inkl. Referenzlauf); CPU-s / gedrosselt = Differenz aus
 `cpu.stat` während der Laststufe (gedrosselte Sekunden über CPUs summiert — Vergleichswert).
-**Alle 1.488 synchronen Renders der Laststufen waren inhaltlich korrekt** (Pflichttexte im deutschen Format,
+**Alle 1.488 synchronen Renders der Laststufen (native) waren inhaltlich korrekt**, ebenso die 104 der JVM-Vergleichsmessung (Pflichttexte im deutschen Format,
 Wortfolge gleich der Referenz).
 
 ## Docker: CPU-Limit × Worker
@@ -59,6 +59,14 @@ Wortfolge gleich der Referenz).
 | docker, 4 CPU, 1Gi | 4 | sync | 4 | 20 | 20 | 0 | 6.52 | 0.61 | 0.64 | 0.64 | 674Mi | 11.77 | 11 / 0.02 |  |
 | docker, 4 CPU, 1Gi | 4 | sync | 8 | 32 | 32 | 0 | 6.39 | 1.25 | 1.29 | 1.86 | 687Mi | 18.96 | 23 / 0.06 |  |
 | docker, 4 CPU, 1Gi | 4 | sync | 16 | 64 | 64 | 0 | 6.40 | 2.46 | 3.78 | 4.39 | 739Mi | 37.43 | 38 / 0.23 |  |
+
+## Zum Vergleich: JVM-Image (Stand `main`, 2.6.0-SNAPSHOT, `blocpress-render/Dockerfile`)
+
+| Konfiguration | Worker | Pfad | N | Renders | OK | Fehler | Durchsatz/s | p50 s | p95 s | max s | Speicherspitze | CPU-s | gedrosselt (Perioden / s) | Hinweis |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| docker JVM, 2 CPU, 2Gi | 2 | sync | 1 | 20 | 20 | 0 | 2.10 | 0.47 | 0.50 | 0.50 | 391Mi | 10.27 | 0 / 0.00 |  |
+| docker JVM, 2 CPU, 2Gi | 2 | sync | 4 | 20 | 20 | 0 | 3.50 | 1.04 | 1.55 | 1.61 | 566Mi | 10.40 | 32 / 0.62 |  |
+| docker JVM, 2 CPU, 2Gi | 2 | sync | 16 | 64 | 64 | 0 | 3.64 | 3.89 | 6.78 | 8.42 | 585Mi | 34.08 | 104 / 8.40 |  |
 
 ## Kubernetes (k3d, Beispiel-Manifest `../examples/blocpress-render-k8s.yaml`)
 
