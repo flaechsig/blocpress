@@ -12,26 +12,32 @@ Blocpress is a lightweight document template/rendering engine. It takes LibreOff
 ## Build Commands
 
 ```bash
-# Build everything (compile + unit tests)
+# Build everything (compile + tests + req-check gate)
 mvn clean verify
 
 # Build without tests
 mvn clean package -DskipTests
 
-# Run only unit tests (core module)
-mvn test -pl blocpress-core
+# Partial builds: core and render depend on blocpress-req-trace (test scope), which is
+# NOT installed in ~/.m2 — always include it in -pl, e.g.:
 
-# Run a single unit test
-mvn test -pl blocpress-core -Dtest=ShowVariableTest
+# Run only unit tests (core module)
+mvn clean test -pl blocpress-req-trace,blocpress-core
+
+# Run a single unit test (-Dsurefire... keeps req-trace from failing on "no tests matched")
+mvn clean test -pl blocpress-req-trace,blocpress-core -Dtest=ShowVariableTest -Dsurefire.failIfNoSpecifiedTests=false
 
 # Run a single test method
-mvn test -pl blocpress-core -Dtest=ShowVariableTest#renderTemplate
+mvn clean test -pl blocpress-req-trace,blocpress-core -Dtest=ShowVariableTest#renderTemplate -Dsurefire.failIfNoSpecifiedTests=false
 
-# Run integration tests (requires Docker — starts container via TestContainers)
-mvn verify -pl blocpress-render
+# Traceability gate smoke (core requirements only)
+mvn -q clean verify -pl blocpress-req-trace,blocpress-core,blocpress-req-check
+
+# Run render integration tests (requires Docker — ITs are skipped by default)
+mvn verify -pl blocpress-req-trace,blocpress-core,blocpress-render -DskipITs=false
 
 # Build Docker image
-mvn package -pl blocpress-render -Dquarkus.container-image.build=true -DskipTests
+mvn package -pl blocpress-req-trace,blocpress-core,blocpress-render -Dquarkus.container-image.build=true -DskipTests
 ```
 
 ## Requirements
@@ -39,7 +45,9 @@ mvn package -pl blocpress-render -Dquarkus.container-image.build=true -DskipTest
 - Java 21+
 - Maven 3.9+
 - Docker (for integration tests and render builds)
-- LibreOffice 24+ (only needed at runtime in blocpress-render for PDF/RTF conversion; unit tests work without it)
+- LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
+  render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
+  req-check gate fails for REQ-0004 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
 
 ## Architecture
 
