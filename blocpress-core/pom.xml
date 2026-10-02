@@ -79,6 +79,14 @@
             <version>5.12.2</version>
             <scope>test</scope>
         </dependency>
+        <!-- Requirements-Traceability: registriert den JUnit-Listener, der @Tag("REQ-NNNN")
+             nach target/req-coverage.json schreibt (ausgewertet vom blocpress-req-check-Gate). -->
+        <dependency>
+            <groupId>io.github.flaechsig</groupId>
+            <artifactId>blocpress-req-trace</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>

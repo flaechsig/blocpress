@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -20,6 +21,7 @@ public class LoopTest {
             .toUri();
 
     @Test
+    @Tag("REQ-0003")
     public void testProductLoop() throws Exception {
         String json = """
                 {

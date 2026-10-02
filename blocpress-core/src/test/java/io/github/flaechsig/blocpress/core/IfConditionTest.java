@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -11,6 +12,7 @@ import static io.github.flaechsig.blocpress.util.ResourceUtil.extractOdtContent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@Tag("REQ-0002")
 public class IfConditionTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final URI baseUri =  Path.of(System.getProperty("user.dir"),  "src/test/resources")
