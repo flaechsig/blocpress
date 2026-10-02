@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.flaechsig</groupId>
+        <artifactId>blocpress-parent</artifactId>
+        <version>2.6.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>blocpress-req-check</artifactId>
+    <packaging>jar</packaging>
+
+    <name>blocpress-req-check</name>
+    <description>Requirements-Traceability-Gate: vergleicht die von blocpress-req-trace erzeugten target/req-coverage.json gegen docs/spec/requirements/ und die Spec-Schicht und bricht den Build bei Inkonsistenzen ab. Als letztes Reactor-Modul an die verify-Phase gebunden. Erzeugt im selben Lauf die generierten Lese-Ansichten (STATUS.md, CATALOG.md, SPEC.md, planning/README.md). Kein LLM, keine externen Bibliotheken.</description>
+
+    <properties>
+        <!-- Kein JaCoCo-Coverage-Gate auf reinem Build-Werkzeug. -->
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>req-traceability-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>io.github.flaechsig.blocpress.reqcheck.ReqCheck</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

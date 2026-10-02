@@ -5,6 +5,8 @@
 /blocpress-workbench/target
 /blocpress-studio/target/
 /blocpress-e2e/target/
+/blocpress-req-trace/target/
+/blocpress-req-check/target/
 /blocpress-render/blocpress-render.iml
 /blocpress-render/blocpress-server.iml
 /.continue/

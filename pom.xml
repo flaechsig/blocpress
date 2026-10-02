@@ -13,11 +13,15 @@
     <url>https://github.com/flaechsig/blocpress</url>
 
     <modules>
+        <!-- req-trace VOR den getesteten Modulen: liefert den JUnit-Listener als Test-Dependency. -->
+        <module>blocpress-req-trace</module>
         <module>blocpress-core</module>
         <module>blocpress-render</module>
         <module>blocpress-workbench</module>
         <module>blocpress-studio</module>
         <module>blocpress-e2e</module>
+        <!-- req-check als LETZTES Modul: scannt in der verify-Phase alle target/req-coverage.json. -->
+        <module>blocpress-req-check</module>
     </modules>
 
     <properties>
