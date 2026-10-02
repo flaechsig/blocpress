@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.w3c.dom.Element;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Verifies that text:section elements have the correct text:is-hidden attribute
  * after condition evaluation — LibreOffice respects this attribute to show/hide sections.
  */
+@Tag("REQ-0002")
 public class SectionVisibilityTest {
 
     private final ObjectMapper mapper = new ObjectMapper();

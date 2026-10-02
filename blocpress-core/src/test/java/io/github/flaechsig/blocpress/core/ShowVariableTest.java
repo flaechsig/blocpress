@@ -2,6 +2,7 @@ package io.github.flaechsig.blocpress.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -19,6 +20,7 @@ public class ShowVariableTest {
             .toUri();
 
     @Test
+    @Tag("REQ-0001")
     public void renderTemplate() throws Exception {
         String json = new String(loadDocumentAsBytes("/kuendigung.json"));
         JsonNode node = mapper.readTree(json);
