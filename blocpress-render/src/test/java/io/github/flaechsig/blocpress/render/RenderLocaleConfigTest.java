@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
@@ -20,18 +21,21 @@ class RenderLocaleConfigTest {
     }
 
     @Test
+    @Tag("REQ-0007")
     void rejectsLocaleWithoutLanguageData() {
         var e = assertThrows(IllegalStateException.class, () -> RenderLocaleConfig.parseAndValidate("xx-XX"));
         assertTrue(e.getMessage().contains("keine Sprachdaten"), e.getMessage());
     }
 
     @Test
+    @Tag("REQ-0007")
     void rejectsInvalidOrEmptyTag() {
         assertThrows(IllegalStateException.class, () -> RenderLocaleConfig.parseAndValidate(""));
         assertThrows(IllegalStateException.class, () -> RenderLocaleConfig.parseAndValidate("!!"));
     }
 
     @Test
+    @Tag("REQ-0006")
     void factoryExposesValidatedLocale() {
         assertEquals(Locale.US, RenderLocaleConfig.of("en-US").defaultLocale());
     }

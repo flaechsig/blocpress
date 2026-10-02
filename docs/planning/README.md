@@ -52,6 +52,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 - **US-0001** Platzhalter automatisch aus JSON füllen  `umgesetzt` → [REQ-0001](../spec/requirements/REQ-0001.md)
 - **US-0002** Bedingungen und Listen in einer Vorlage  `umgesetzt` → [REQ-0002](../spec/requirements/REQ-0002.md), [REQ-0003](../spec/requirements/REQ-0003.md)
 - **US-0032** Gemeinsame Textbausteine einbinden  `ohne Requirements`
+- **US-0033** Zahlen und Daten im Sprachformat der Vorlage  `umgesetzt` → [REQ-0005](../spec/requirements/REQ-0005.md), [REQ-0006](../spec/requirements/REQ-0006.md), [REQ-0007](../spec/requirements/REQ-0007.md)
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  ·  `geplant`
 
@@ -77,6 +78,9 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 | [REQ-0002](../spec/requirements/REQ-0002.md) | US-0002 |
 | [REQ-0003](../spec/requirements/REQ-0003.md) | US-0002 |
 | [REQ-0004](../spec/requirements/REQ-0004.md) | US-0003 |
+| [REQ-0005](../spec/requirements/REQ-0005.md) | US-0033 |
+| [REQ-0006](../spec/requirements/REQ-0006.md) | US-0033 |
+| [REQ-0007](../spec/requirements/REQ-0007.md) | US-0033 |
 
 ## Requirements ohne Story
 

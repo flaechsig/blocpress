@@ -20,10 +20,10 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 25 |
+| ✅ verified | 26 |
 | 🟡 in-progress | 4 |
 | ⚪ open | 3 |
-| **Summe** | **32** |
+| **Summe** | **33** |
 
 ## E-Administration — Administration (Benutzer, Rollen, Audit)  ⚪ `open`
 
@@ -443,6 +443,19 @@ Vorlage.
 > dann ein Requirement — siehe ROADMAP.
 
 **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateSectionElement.java, blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java · **Herkunft:** docs/product-backlog.adoc:36-39 (TF-5, Text-Blöcke)
+
+### US-0033 — Zahlen und Daten im Sprachformat der Vorlage  ✅ `verified`
+
+Als **Vorlagengestalter** möchte ich, dass Zahlen und Daten in der Sprache formatiert
+werden, die ich im Format der Vorlage festlege — und andernfalls in einer vom
+Betreiber eingestellten Sprache —, damit `500.000,00 EUR` nicht je nach
+Laufzeitumgebung als `500,000.00 EUR` erscheint.
+
+**Warum.** Formatierte Beträge in Verträgen und Angeboten sind rechtlich und
+fachlich relevant. Mit 2.5.0 wurden sie im Native-Image stillschweigend im
+en-Format ausgegeben (behoben in 2.5.1).
+
+**Requirements:** REQ-0005, REQ-0006, REQ-0007
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  🟡 `in-progress`
 

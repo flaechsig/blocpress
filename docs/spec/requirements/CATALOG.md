@@ -96,3 +96,71 @@ _Quelle: [`REQ-0004.md`](REQ-0004.md)_
 
 ---
 
+## REQ-0005  ·  `implemented`
+
+> WHEN a number, currency, percentage or date style referenced by a user field declares a language, the render engine shall format the value with that language's decimal and grouping separators, regardless of the configured default locale.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+| **Source** | OpenDocument (ODF) 1.3 — number:language / number:country |
+
+**Rationale:** Der Gestalter legt das Zahlenformat bewusst in LibreOffice fest; die Sprache im Format ist Teil der Vorlage. Ein Vertrag mit number:language="de" darf nie als 500,000.00 EUR erscheinen — unabhängig davon, wo und mit welcher Einstellung der Dienst läuft. Genau das ist mit 2.5.0 im Native-Image bei tarifnova passiert (alle Angebots-PDFs im en-Format, auch bei ausdrücklich deutschem Format).
+
+**Evidence:**
+
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/UserFieldFormatter.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/DefaultLocaleTest.java`
+
+_Quelle: [`REQ-0005.md`](REQ-0005.md)_
+
+---
+
+## REQ-0006  ·  `implemented`
+
+> WHEN a number, currency, percentage or date style referenced by a user field declares no language, the render engine shall format the value using the default locale supplied by the caller, independent of the operating-system locale.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+
+**Rationale:** Die Ersatzsprache war fest einprogrammiert (de/DE) und von außen nicht einstellbar; die Betriebssystem-Locale (LANG, user.language) wirkt im Native-Image nicht verlässlich und hängt von der Laufzeitumgebung ab. ODF würde für Styles ohne Sprache die Standardsprache des Dokuments nehmen — bewusst abweichend gilt hier eine explizite Einstellung des Aufrufers, damit das Ergebnis reproduzierbar ist. Der Render-Service liefert sie aus blocpress.render.default-locale (BLOCPRESS_DEFAULT_LOCALE, Default de-DE = bisheriges Verhalten).
+
+**Evidence:**
+
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/UserFieldFormatter.java`
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java`
+- `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderLocaleConfig.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/DefaultLocaleTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderLocaleConfigTest.java`
+
+_Quelle: [`REQ-0006.md`](REQ-0006.md)_
+
+---
+
+## REQ-0007  ·  `implemented`
+
+> IF the configured default locale is not a valid BCP-47 tag or no number-format data is available for it at runtime, THEN the render service shall refuse to start with an error naming the locale.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+
+**Rationale:** Fehlende Sprachdaten waren die Ursache der 2.5.0-Regression: Ein Native-Image enthält nur die beim Build eingebundenen Locales, für alle anderen fällt DecimalFormatSymbols stillschweigend auf das Root-/en-Format zurück. Ein lauter Fehler beim Start ist besser als falsch formatierte Verträge im Betrieb, die erst beim Empfänger auffallen.
+
+**Evidence:**
+
+- `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderLocaleConfig.java`
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LocaleSupport.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderLocaleConfigTest.java`
+
+_Quelle: [`REQ-0007.md`](REQ-0007.md)_
+
+---
+
