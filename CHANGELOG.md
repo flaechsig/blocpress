@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Job-Pfad im Native-Image (Regression aus 2.5.0):** `POST /api/render/jobs` und `GET /api/render/jobs/{id}` lieferten im Native-Image HTTP 500 — der Antwort-Record `JobStatus` war nicht für Reflection registriert. Der Job wurde trotzdem verarbeitet, der Client erfuhr aber seine ID nicht. Jetzt `@RegisterForReflection`; Ende-zu-Ende-Test für den Job-Pfad ergänzt, nativ per Lasttest geprüft (20/20 Jobs korrekt).
 - **Dokumentation der Authentifizierung korrigiert:** OpenAPI-Beschreibung und Docker-Hub-README versprachen JWT für `/api/render/{name}` und einen eingebauten Dev-Schlüssel; tatsächlich war die API vollständig offen. Der Dev-Schlüssel ist aus der Produktionskonfiguration entfernt.
 
 ---

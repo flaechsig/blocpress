@@ -391,9 +391,12 @@ Infrastrukturkomponente (Kafka/RabbitMQ). Ergebnisse werden zweistufig bereinigt
 > **Abweichung zum Altbestand:** Ein Audit-Eintrag entsteht nur beim synchronen
 > Rendern **per Name**, nicht bei `POST /api/render/template`.
 >
-> **Nachweis-Lücke:** Job-Queue, Worker, Webhook und Dashboard haben keinen Test.
+> **Nachweis (2026-10-02):** `AsyncRenderJobTest` deckt Einreichen → Status → Ergebnis ab;
+> `RenderLoadIT -Dload.async=true` prüft den Pfad im Native-Image (dort war er in 2.5.0/2.5.1
+> wegen fehlender Reflection-Registrierung defekt). Weiterhin ohne Test: Webhook, Bereinigung.
+> **Grenze:** ≤ 0,5 Jobs/s je Instanz (ein Job je 2-s-Takt), siehe ROADMAP.
 
-**Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/AsyncRenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJob.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJobWorker.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderDashboardResource.java · **Herkunft:** docs/product-backlog.adoc:86-94 (UC-23, TI-8)
+**Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/AsyncRenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJob.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJobWorker.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderDashboardResource.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/AsyncRenderJobTest.java · **Herkunft:** docs/product-backlog.adoc:86-94 (UC-23, TI-8)
 
 ### US-0007 — Render-API optional per JWT absichern  ✅ `verified`
 
