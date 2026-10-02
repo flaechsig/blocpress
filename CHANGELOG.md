@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-10-02
+
+### Fixed
+
+- **Native-Image formatiert Zahlen wieder im richtigen Sprachformat (Regression aus 2.5.0).** Das Native-Image von `blocpress-render` enthielt nur die Build-Locale; `DecimalFormatSymbols` fiel für alle anderen Sprachen stillschweigend auf das Root-/en-Format zurück — `500,000 EUR` statt `500.000 EUR`, `83.00` statt `83,00`, auch bei Formaten mit ausdrücklich `number:language="de" number:country="DE"`. `blocpress-render` wird jetzt mit `quarkus.locales=all` gebaut. `LANG` im Container war dafür nie wirksam.
+
+### Added
+
+- **Einstellbare Ersatzsprache `BLOCPRESS_DEFAULT_LOCALE`** (`blocpress.render.default-locale`, BCP-47, Default `de-DE`) für Zahlen-/Datumsformate der Vorlage, die selbst keine Sprache angeben. Eine Sprache im Format der Vorlage hat immer Vorrang. Ersetzt das bisher fest einprogrammierte `de`/`DE` in `UserFieldFormatter`.
+- **Startprüfung:** `blocpress-render` bricht beim Start mit klarer Meldung ab, wenn für die eingestellte Sprache keine Sprachdaten vorhanden sind, statt still im en-Format zu formatieren. Verlangt eine Vorlage eine Sprache ohne Sprachdaten, wird einmalig gewarnt.
+- **`blocpress-core` API:** `RenderEngine.mergeTemplate(URL, JsonNode, Locale)` und `TemplateDocument.setFieldValue(..., Locale)` reichen die Ersatzsprache explizit durch (unabhängig von `Locale.getDefault()`). Die bisherigen Signaturen bleiben und verwenden `de-DE` (`LocaleSupport.FALLBACK_LOCALE`) — keine Verhaltensänderung für bestehende Aufrufer. Eigene Implementierungen des Interfaces `TemplateDocument` müssen statt `setFieldValue(TemplateElement, String)` nun `setFieldValue(TemplateElement, String, Locale)` implementieren (die alte Methode ist jetzt eine `default`-Methode).
+
+### Changed
+
+- **Native-Docker-Images deutlich kleiner:** Die `Dockerfile.native` (render, workbench, studio, Quickstart) setzen das Ausführungsrecht jetzt per `COPY --chmod=755` statt per nachgelagertem `RUN chmod`, das jedes Binary ein zweites Mal in einen eigenen Layer schrieb. Gemessen: render 1008 → 848 MB, workbench 442 → 312 MB, studio 204 → 148 MB, Quickstart (native) 2940 → 2595 MB. Benötigt BuildKit (Standard ab Docker 23, im Release-Workflow über buildx).
+
+---
+
 ## [2.5.0] - 2026-06-03
 
 ### Added

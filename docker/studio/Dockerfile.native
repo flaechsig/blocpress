@@ -90,10 +90,11 @@ RUN echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/16/main/pg_hba.con
 # Application native binaries
 # (mvn package -Dnative -pl blocpress-studio,blocpress-render,blocpress-workbench -am)
 # ---------------------------------------------------------------------------
-COPY blocpress-studio/target/*-runner    /app/studio/application
-COPY blocpress-render/target/*-runner    /app/render/application
-COPY blocpress-workbench/target/*-runner /app/workbench/application
-RUN chmod +x /app/studio/application /app/render/application /app/workbench/application
+# --chmod statt nachgelagertem RUN chmod: ein eigener chmod-Layer wuerde das komplette
+# Binary ein zweites Mal ins Image schreiben (~160 MB). Benoetigt BuildKit.
+COPY --chmod=755 blocpress-studio/target/*-runner    /app/studio/application
+COPY --chmod=755 blocpress-render/target/*-runner    /app/render/application
+COPY --chmod=755 blocpress-workbench/target/*-runner /app/workbench/application
 
 # ---------------------------------------------------------------------------
 # Database initialisation SQL
@@ -104,8 +105,7 @@ COPY docker/studio/init-studio.sql /docker-entrypoint-initdb.d/init-studio.sql
 # supervisord config + startup script
 # ---------------------------------------------------------------------------
 COPY docker/studio/supervisord.native.conf /etc/supervisor/conf.d/blocpress.conf
-COPY docker/studio/entrypoint.sh           /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chmod=755 docker/studio/entrypoint.sh /entrypoint.sh
 
 # ---------------------------------------------------------------------------
 # Built-in dev JWT (matches docs/samples/quickstart/token.txt)

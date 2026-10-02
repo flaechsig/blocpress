@@ -154,6 +154,31 @@ Conceptually:
 
 Result in the document: `Miller` as shown in the example above.
 
+=== Number and date formats (language)
+
+If a field uses a number, currency, percentage or date format (Format → Fields → User Field
+with a number format), blocpress formats the JSON value itself — decimal and grouping separators
+depend on the *language* of that format:
+
+. **The language in the template wins.** A format with an explicit language
+  (`number:language="de" number:country="DE"`) always renders German: `500.000,00`.
+. **Otherwise the default locale applies.** For formats without a language, blocpress uses the
+  default locale — `de-DE` unless configured otherwise.
+
+The default locale is passed explicitly; it does *not* depend on `LANG`, `user.language` or
+`Locale.getDefault()`:
+
+* Java API: `RenderEngine.mergeTemplate(templateUrl, data, Locale.forLanguageTag("en-US"))`
+  (the two-argument variant keeps `de-DE`).
+* `blocpress-render`: environment variable `BLOCPRESS_DEFAULT_LOCALE` (BCP-47 tag, e.g. `en-US`),
+  property `blocpress.render.default-locale`. The service checks at startup that language data for
+  this locale is available and refuses to start otherwise — instead of silently formatting
+  `500,000` in English.
+
+NOTE: A GraalVM native image only contains the locales included at build time. `blocpress-render`
+is built with `quarkus.locales=all`; if you build your own native image with a reduced list, include
+every language your templates use.
+
 === Conditions: show/hide content
 
 Templates can contain conditional elements.

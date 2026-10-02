@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.flaechsig</groupId>
     <artifactId>blocpress-parent</artifactId>
-    <version>2.6.0-SNAPSHOT</version>
+    <version>2.5.1</version>
     <packaging>pom</packaging>
 
     <name>blocpress parent</name>
@@ -490,6 +490,12 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
+                            <!-- Build-Zubehoer (Traceability-Gate) landet bei -am im Reactor,
+                                 gehoert aber nicht nach Maven Central. -->
+                            <excludeArtifacts>
+                                <excludeArtifact>blocpress-req-trace</excludeArtifact>
+                                <excludeArtifact>blocpress-req-check</excludeArtifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>

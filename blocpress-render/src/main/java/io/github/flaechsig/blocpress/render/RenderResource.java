@@ -55,6 +55,9 @@ public class RenderResource {
     @Inject
     RenderJobWorker renderJobWorker;
 
+    @Inject
+    RenderLocaleConfig localeConfig;
+
     @POST
     @jakarta.ws.rs.Path("/template")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -176,7 +179,7 @@ public class RenderResource {
     private File mergeAndTransform(Path templatePath, JsonNode json, OutputFormat format) throws IOException {
         var odt = templatePath.toUri().toURL();
         logger.info("Calling merge");
-        var merge = RenderEngine.mergeTemplate(odt, json);
+        var merge = RenderEngine.mergeTemplate(odt, json, localeConfig.defaultLocale());
         logger.info("Calling transform");
         var result = libreOfficePool.convert(merge, format);
         logger.info("Build output");

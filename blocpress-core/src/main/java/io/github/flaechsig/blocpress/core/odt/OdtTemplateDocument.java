@@ -231,7 +231,7 @@ public class OdtTemplateDocument implements TemplateDocument {
      * @throws NullPointerException if the provided userField is null
      */
     @SneakyThrows
-    public void setFieldValue(@NonNull TemplateElement userField, String value) {
+    public void setFieldValue(@NonNull TemplateElement userField, String value, @NonNull Locale defaultLocale) {
         var odfElement = ((OdtTemplateElement) userField).element;
         var newValue = value != null ? value : "";
 
@@ -243,7 +243,7 @@ public class OdtTemplateDocument implements TemplateDocument {
 
         OdfContentDom dom = (OdfContentDom) parent.getOwnerDocument();
         TextSpanElement span = dom.newOdfElement(TextSpanElement.class);
-        span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue));
+        span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue, defaultLocale));
 
         parent.insertBefore(span, odfElement);
         parent.removeChild(odfElement);

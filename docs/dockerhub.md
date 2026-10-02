@@ -61,6 +61,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM) | built-in dev key |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer URL | `https://blocpress.dev` |
 | `RENDER_URL` | Internal URL of this service (used by blocpress-workbench) | `http://localhost:8080` |
+| `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
 > **Note:** The built-in dev key is for local testing only. Always override `MP_JWT_VERIFY_PUBLICKEY` and `MP_JWT_VERIFY_ISSUER` in production.
 

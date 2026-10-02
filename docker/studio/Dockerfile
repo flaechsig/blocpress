@@ -105,8 +105,7 @@ COPY docker/studio/init-studio.sql /docker-entrypoint-initdb.d/init-studio.sql
 # supervisord config + startup script
 # ---------------------------------------------------------------------------
 COPY docker/studio/supervisord.conf /etc/supervisor/conf.d/blocpress.conf
-COPY docker/studio/entrypoint.sh    /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chmod=755 docker/studio/entrypoint.sh /entrypoint.sh
 
 # ---------------------------------------------------------------------------
 # Built-in dev JWT (matches docs/samples/quickstart/token.txt)

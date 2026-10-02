@@ -1,6 +1,7 @@
 package io.github.flaechsig.blocpress.core.odt;
 
 import io.github.flaechsig.blocpress.core.DataType;
+import io.github.flaechsig.blocpress.core.LocaleSupport;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Helper für text:user-field-get / text:variable-get.
@@ -41,6 +43,9 @@ public final class UserFieldFormatter {
 
     private static final String STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
 
+    /** Locales, fuer die bereits gewarnt wurde (Warnung einmal je Locale statt je Feld). */
+    private static final Set<Locale> WARNED_LOCALES = ConcurrentHashMap.newKeySet();
+
     private UserFieldFormatter() { /* utility */ }
 
     /**
@@ -52,6 +57,18 @@ public final class UserFieldFormatter {
      * @return der formatierte String (Fallback: der Rohtext)
      */
     public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue) {
+        return formatUserFieldValue(document, field, officeValue, LocaleSupport.FALLBACK_LOCALE);
+    }
+
+    /**
+     * Wie {@link #formatUserFieldValue(OdfTextDocument, OdfElement, Object)}, mit einstellbarer
+     * Ersatzsprache.
+     *
+     * @param defaultLocale Sprache fuer Number-/Date-Styles, die selbst keine Sprache
+     *                      ({@code number:language}) angeben. Eine Sprachangabe im Style hat Vorrang.
+     */
+    public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue,
+                                              @NonNull Locale defaultLocale) {
         if (document == null || field == null || officeValue == null || StringUtils.isBlank(officeValue.toString())) {
             return "";
         }
@@ -63,9 +80,9 @@ public final class UserFieldFormatter {
 
         // 2) Falls office:value-type float oder numeric, parsen wir als Zahl
         return switch (officeValueType) {
-            case FLOAT -> formatNumber(document, styleName, raw);
-            case CURRENCY -> formatNumber(document, styleName, raw);
-            case DATE -> formatDate(document, styleName, raw);
+            case FLOAT -> formatNumber(document, styleName, raw, defaultLocale);
+            case CURRENCY -> formatNumber(document, styleName, raw, defaultLocale);
+            case DATE -> formatDate(document, styleName, raw, defaultLocale);
             default -> raw;
         };
     }
@@ -141,7 +158,7 @@ public final class UserFieldFormatter {
     }
 
     @SneakyThrows
-    private static String formatDate(OdfTextDocument document, String styleName, String raw) {
+    private static String formatDate(OdfTextDocument document, String styleName, String raw, Locale defaultLocale) {
         if (StringUtils.isBlank(raw)) return "";
 
         List<DateTimeFormatter> parseCandidates = List.of(
@@ -167,7 +184,7 @@ public final class UserFieldFormatter {
             return raw;
         }
 
-        DateTimeFormatter outFmt = buildDateFormatter(document, styleName);
+        DateTimeFormatter outFmt = buildDateFormatter(document, styleName, defaultLocale);
 
         try {
             if (parsed.query(TemporalQueries.localDate()) != null) {
@@ -187,7 +204,7 @@ public final class UserFieldFormatter {
     }
 
     @SneakyThrows
-    private static DateTimeFormatter buildDateFormatter(OdfTextDocument document, String styleName) {
+    private static DateTimeFormatter buildDateFormatter(OdfTextDocument document, String styleName, Locale defaultLocale) {
         DateTimeFormatter fallback = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         if (document == null || StringUtils.isBlank(styleName)) {
             return fallback;
@@ -204,9 +221,7 @@ public final class UserFieldFormatter {
             return fallback;
         }
 
-        String language = StringUtils.defaultIfBlank(styleElement.getAttribute("number:language"), "de");
-        String country = StringUtils.defaultIfBlank(styleElement.getAttribute("number:country"), "DE");
-        Locale locale = Locale.of(language, country);
+        Locale locale = resolveLocale(styleElement, defaultLocale);
 
         StringBuilder pattern = new StringBuilder();
         var children = styleElement.getChildNodes();
@@ -244,7 +259,7 @@ public final class UserFieldFormatter {
         return null;
     }
 
-    private static String formatNumber(OdfTextDocument document, String style, String value) {
+    private static String formatNumber(OdfTextDocument document, String style, String value, Locale defaultLocale) {
         if (StringUtils.isBlank(style)) {
             return value;
         }
@@ -265,13 +280,13 @@ public final class UserFieldFormatter {
         }
 
         // Versuch DecimalFormat aus number-style zu erzeugen
-        DecimalFormat df = findDecimalFormatForStyle(document, style);
+        DecimalFormat df = findDecimalFormatForStyle(document, style, defaultLocale);
 
         return df.format(numericValue);
     }
 
     @SneakyThrows
-    private static DecimalFormat findDecimalFormatForStyle(OdfTextDocument document, String styleName) {
+    private static DecimalFormat findDecimalFormatForStyle(OdfTextDocument document, String styleName, Locale defaultLocale) {
         OdfContentDom contentDom = document.getContentDom();
         Document stylesDom = document.getStylesDom();
 
@@ -282,22 +297,41 @@ public final class UserFieldFormatter {
             NodeList nl = contentDom.getElementsByTagName(style);
             for (int i = 0; i < nl.getLength(); i++) {
                 var item = (Element) nl.item(i);
-                styleNodes.put(item.getAttribute("style:name"), createNumberStyle(item));
+                styleNodes.put(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
             }
             nl = stylesDom.getElementsByTagName(style);
             for (int i = 0; i < nl.getLength(); i++) {
                 var item = (Element) nl.item(i);
                 // only add if absent to let content.xml override styles.xml when names collide
-                styleNodes.putIfAbsent(item.getAttribute("style:name"), createNumberStyle(item));
+                styleNodes.putIfAbsent(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
             }
         }
 
         return buildDecimalFormatFromNumberStyleElement(styleNodes.get(styleName));
     }
 
-    private static NumberStyle createNumberStyle(Element elem) {
-        String country = StringUtils.defaultIfBlank(elem.getAttribute("number:country"), "DE");
-        String language = StringUtils.defaultIfBlank(elem.getAttribute("number:language"), "de");
+    /**
+     * Sprache eines Number-/Date-Styles: {@code number:language}/{@code number:country} aus der
+     * Vorlage haben Vorrang; nur wenn der Style keine Sprache nennt, gilt {@code defaultLocale}.
+     * Fehlen die Sprachdaten zur Laufzeit (Native-Image), wird laut gewarnt statt still auf das
+     * en-Format zurueckzufallen.
+     */
+    static Locale resolveLocale(Element style, Locale defaultLocale) {
+        String language = style.getAttribute("number:language");
+        if (StringUtils.isBlank(language)) {
+            return defaultLocale;
+        }
+        Locale locale = Locale.of(language, StringUtils.defaultString(style.getAttribute("number:country")));
+        if (!LocaleSupport.isAvailable(locale) && WARNED_LOCALES.add(locale)) {
+            log.warn("Vorlage verlangt Sprache '{}', fuer die keine Sprachdaten vorhanden sind — "
+                    + "Zahlen/Daten werden im Root-Format (en) ausgegeben. Native-Image mit passendem "
+                    + "quarkus.locales bauen.", locale.toLanguageTag());
+        }
+        return locale;
+    }
+
+    private static NumberStyle createNumberStyle(Element elem, Locale defaultLocale) {
+        Locale locale = resolveLocale(elem, defaultLocale);
         int decimalPlaces = 0;
         int minimalDecimalPlaces = 0;
         int minIntegerDigits = 1;
@@ -329,12 +363,12 @@ public final class UserFieldFormatter {
                 throw e;
             }
         }
-        return new NumberStyle(minIntegerDigits, decimalPlaces, minimalDecimalPlaces, grouping, symbol, country, language);
+        return new NumberStyle(minIntegerDigits, decimalPlaces, minimalDecimalPlaces, grouping, symbol, locale);
     }
 
 
     private static DecimalFormat buildDecimalFormatFromNumberStyleElement(NumberStyle style) {
-        DecimalFormatSymbols dfs = DecimalFormatSymbols.getInstance(style.getLocale());
+        DecimalFormatSymbols dfs = DecimalFormatSymbols.getInstance(style.locale());
         return new DecimalFormat(style.formatString(), dfs);
     }
 
@@ -355,8 +389,7 @@ public final class UserFieldFormatter {
      * for the fractional portion of a number.
      * - `symbol`: Represents a formatting symbol, such as a percentage or currency
      * symbol, associated with the number style.
-     * - `country`: Indicates the country code used for locale-specific formatting.
-     * - `language`: Specifies the language code used for locale-specific formatting.
+     * - `locale`: The locale used for locale-specific formatting (decimal and grouping separators).
      */
     record NumberStyle(
             int minIntegerDigits,
@@ -364,8 +397,7 @@ public final class UserFieldFormatter {
             int minDecimalPlaces,
             boolean grouping,
             String symbol,
-            String country,
-            String language
+            Locale locale
     ) {
         /**
          * Formats and returns a string representation of a numeric value based on
@@ -399,15 +431,6 @@ public final class UserFieldFormatter {
                 pattern += "'" + symbol + "'";
             }
             return pattern;
-        }
-
-        /**
-         * Retrieves a locale instance based on the `language` and `country` fields of the containing record.
-         *
-         * @return a {@code Locale} object constructed from the `language` and `country` values.
-         */
-        public Locale getLocale() {
-            return Locale.of(language, country);
         }
 
     }
