@@ -18,6 +18,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 - **US-0026** Module als Docker-Images mit Healthcheck  `ohne Requirements`
 - **US-0027** In Minuten ausprobieren (Quickstart)  `ohne Requirements`
 - **US-0028** Native Images für schnellen Start  `ohne Requirements`
+- **US-0034** render für die eigene Last richtig bemessen  `ohne Requirements`
 
 ## E-Formate — Formatkonvertierung (ODT → PDF/RTF)  ·  `umgesetzt`
 

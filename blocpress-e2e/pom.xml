@@ -71,6 +71,13 @@
             <version>2.19.2</version>
             <scope>test</scope>
         </dependency>
+        <!-- Lasttest (RenderLoadIT): Textvergleich der gerenderten PDFs -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>2.0.27</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -122,6 +129,10 @@
                 <configuration>
                     <skipITs>${e2e.skip}</skipITs>
                     <argLine></argLine>
+                    <!-- Lasttest nur ueber -Pload, nie im normalen E2E-Lauf -->
+                    <excludes>
+                        <exclude>**/load/**</exclude>
+                    </excludes>
                     <systemPropertyVariables>
                         <jacoco.agent.jar>${project.build.directory}/jacoco/jacocoagent.jar</jacoco.agent.jar>
                         <jacoco.exec.dir>${project.build.directory}</jacoco.exec.dir>
@@ -256,4 +267,34 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <!--
+            Lasttest fuer blocpress-render (RenderLoadIT) — nie Teil des normalen Builds.
+            Anleitung: docs/guides/render-sizing.md
+              mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 \
+                  -Dload.cpus=0.5,1,2 -Dload.workers=2,4 -Dload.levels=1,2,4,8,16
+            Alle Parameter: LoadConfig (-Dload.*), werden an die Test-JVM durchgereicht.
+        -->
+        <profile>
+            <id>load</id>
+            <properties>
+                <e2e.skip>false</e2e.skip>
+                <e2e.report.skip>true</e2e.report.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/load/RenderLoadIT.java</include>
+                            </includes>
+                            <excludes combine.self="override"/>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

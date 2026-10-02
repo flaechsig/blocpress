@@ -1,0 +1,82 @@
+# Beispiel: blocpress-render in Kubernetes, bemessen nach docs/guides/render-sizing.md
+# (Standardgroesse "2 CPU / 2 Worker", gemessen ~3,7 Renders/s je Pod; sparsam: 1 / 1 / 384Mi).
+# Hinweis: Das Messprotokoll fuer k8s wurde mit der sparsamen Groesse (1/1/384Mi) erstellt.
+# Die PostgreSQL hier ist nur fuer Tests/Messungen gedacht — produktiv eine echte DB verwenden.
+#
+#   kubectl apply -f blocpress-render-k8s.yaml
+#   mvn verify -pl blocpress-e2e -Pload -Dload.mode=k8s -Dload.k8s.namespace=blocpress \
+#       -Dload.k8s.deployment=blocpress-render -Dload.k8s.selector=app=blocpress-render
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blocpress
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-db
+  namespace: blocpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: blocpress-db}
+  template:
+    metadata:
+      labels: {app: blocpress-db}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - {name: POSTGRES_DB, value: production}
+            - {name: POSTGRES_USER, value: workbench}
+            - {name: POSTGRES_PASSWORD, value: workbench}
+          ports: [{containerPort: 5432}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-db
+  namespace: blocpress
+spec:
+  selector: {app: blocpress-db}
+  ports: [{port: 5432}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-render
+  namespace: blocpress
+spec:
+  replicas: 1                      # mehr Last -> mehr Replicas, nicht mehr Worker
+  selector:
+    matchLabels: {app: blocpress-render}
+  template:
+    metadata:
+      labels: {app: blocpress-render}
+    spec:
+      containers:
+        - name: render
+          image: flaechsig/blocpress-render:2.5.1
+          env:
+            - {name: QUARKUS_DATASOURCE_JDBC_URL, value: "jdbc:postgresql://blocpress-db:5432/production"}
+            - {name: QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY, value: update}
+            - {name: BLOCPRESS_LO_WORKERS, value: "2"}       # = CPU-Limit abgerundet, mind. 1
+            - {name: BLOCPRESS_DEFAULT_LOCALE, value: de-DE}  # Ersatzsprache fuer Zahlen/Daten
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {cpu: "2", memory: 640Mi}
+            limits:   {cpu: "2", memory: 640Mi}  # gemessene Spitze ~454Mi bei 16 parallelen Renders
+          readinessProbe:
+            httpGet: {path: /q/health/ready, port: 8080}
+          livenessProbe:
+            httpGet: {path: /q/health/live, port: 8080}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-render
+  namespace: blocpress
+spec:
+  selector: {app: blocpress-render}
+  ports: [{port: 8080}]

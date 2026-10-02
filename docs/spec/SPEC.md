@@ -20,10 +20,10 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 27 |
+| ✅ verified | 28 |
 | 🟡 in-progress | 3 |
 | ⚪ open | 3 |
-| **Summe** | **33** |
+| **Summe** | **34** |
 
 ## E-Administration — Administration (Benutzer, Rollen, Audit)  ⚪ `open`
 
@@ -111,6 +111,23 @@ LibreOffice-Kommandozeilenaufruf (`soffice --convert-to`) mit Profil-Isolation
 und begrenzter Parallelität umgestellt.
 
 **Evidence:** pom.xml, blocpress-render/Dockerfile.native, docker/studio/Dockerfile.native, blocpress-core/src/main/resources/META-INF/native-image/org.odftoolkit/odfdom/reflect-config.json · **Herkunft:** docs/product-backlog.adoc:416-419
+
+### US-0034 — render für die eigene Last richtig bemessen  ✅ `verified`
+
+Als **Betreiber** möchte ich messen können, wie sich blocpress-render unter paralleler
+Last verhält — Durchsatz, Antwortzeiten, Speicherspitze, CPU-Drosselung und die
+**inhaltliche Korrektheit** jedes Dokuments —, und daraus CPU-/Speicher-Requests und
+-Limits sowie die Worker-Zahl ableiten, statt sie zu raten.
+
+**Warum.** Bei tarifnova waren die Ressourcen geraten: Mit 2.4.2 OOMKilled am
+512Mi-Limit, mit 2.5.1 wurde das CPU-Limit zum Engpass (CFS-Throttling). Sequenzielle
+Tests zeigen davon nichts, und Fehler unter Last (0-Byte-PDFs in 2.4.2, falsches
+Zahlenformat in 2.5.0) fallen nur auf, wenn jeder Render inhaltlich geprüft wird.
+
+Lasttest: `mvn verify -pl blocpress-e2e -Pload` (nie im normalen Build) gegen Docker,
+eine laufende Instanz oder Kubernetes. Anleitung: `docs/guides/render-sizing.md`.
+
+**Evidence:** blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/load/RenderLoadIT.java, blocpress-e2e/src/test/resources/load/scenarios.json, docs/guides/render-sizing.md, docs/guides/measurements/render-2.5.1-2026-10-02.md, docs/guides/examples/blocpress-render-k8s.yaml
 
 ## E-Formate — Formatkonvertierung (ODT → PDF/RTF)  ✅ `verified`
 
@@ -308,7 +325,7 @@ wird per JaCoCo-TCP-Dump aus den Container-JVMs (Ports 6300/6301) bzw. über
 `quarkus-jacoco` gemessen, weil der Quarkus-Classloader die normale
 JaCoCo-Instrumentierung umgeht.
 
-**Evidence:** blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/StudioE2EIT.java, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/RenderApiIT.java, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/PoolBenchmarkIT.java, blocpress-e2e/pom.xml, blocpress-workbench/pom.xml · **Herkunft:** docs/product-backlog.adoc:406-414, :221-224
+**Evidence:** blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/StudioE2EIT.java, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/RenderApiIT.java, blocpress-e2e/pom.xml, blocpress-workbench/pom.xml · **Herkunft:** docs/product-backlog.adoc:406-414, :221-224
 
 ## E-RenderService — Render-Service (REST-API, Auth, Jobs)  🟡 `in-progress`
 

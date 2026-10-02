@@ -10,6 +10,8 @@ services:
   render:
     build:
       dockerfile: Dockerfile.native
+    # Native-Image braucht weniger Speicher: Spitze 454Mi bei 2 CPU / 2 Worker (+Puffer)
+    mem_limit: 640m
   studio:
     build:
       dockerfile: Dockerfile.native

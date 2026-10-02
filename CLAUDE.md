@@ -38,6 +38,9 @@ mvn verify -pl blocpress-req-trace,blocpress-core,blocpress-render -DskipITs=fal
 
 # Build Docker image
 mvn package -pl blocpress-req-trace,blocpress-core,blocpress-render -Dquarkus.container-image.build=true -DskipTests
+
+# Load test for blocpress-render (never in the normal build; needs Docker) — see docs/guides/render-sizing.md
+mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 -Dload.cpus=1 -Dload.workers=1 -Dload.levels=1,4,16
 ```
 
 ## Requirements

@@ -33,6 +33,7 @@ Von oben nach unten — die Doku folgt dieser Herunterbrechung:
 | **Wo wir stehen / was als Nächstes**            | [planning/ROADMAP.md](planning/ROADMAP.md)             |
 | **Aktueller Status** (generiert)                | [STATUS.md](STATUS.md)                                 |
 | **Wie diese Doku funktioniert** (Konventionen)  | [CONVENTIONS.md](CONVENTIONS.md)                       |
+| **Betrieb: render richtig bemessen** (Hands-On) | [guides/render-sizing.md](guides/render-sizing.md)     |
 
 ## Verhältnis zur bestehenden Doku
 

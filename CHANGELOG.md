@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lasttest für blocpress-render (`RenderLoadIT`, `mvn verify -pl blocpress-e2e -Pload`):** Parallelitätsstufen, Durchsatz, p50/p95/max, Speicherspitze und CPU-Drosselung aus der cgroup (`memory.peak`, `cpu.stat`) — gegen Docker mit `--cpus`/`--memory`, eine laufende Instanz oder Kubernetes. Jeder Render wird inhaltlich geprüft (Pflichttexte im Zahlenformat, Wortfolge). Nie Teil des normalen Builds.
+- **Hands-On „render richtig bemessen“** (`docs/guides/render-sizing.md`) mit Messprotokoll zu 2.5.1 und Kubernetes-Beispiel: ~0,5 CPU-s je Render, 1 Worker je CPU-Kern, Standardgröße 2 CPU / 2 Worker / 640Mi (native).
+- **Ressourcen-Limits für render in `docker-compose.yml`** (`cpus: "2"`, `mem_limit: 768m`, `BLOCPRESS_LO_WORKERS=2`) bzw. `640m` in `docker-compose.native.yml` — gemessene Standardgröße statt unbegrenzt.
+
 - **Optionale JWT-Absicherung der Render-API (ADR-002).** Mit `BLOCPRESS_AUTH_ENABLED=true` verlangen alle Endpunkte unter `/api/render/` (Rendern, `{name}`, Jobs, Dashboard) ein gültiges Bearer-Token, sonst HTTP 401. Schlüssel über `MP_JWT_VERIFY_PUBLICKEY` bzw. `MP_JWT_VERIFY_PUBLICKEY_LOCATION`, Issuer über `MP_JWT_VERIFY_ISSUER`; ohne Schlüssel bricht der Start ab. Default bleibt **aus** — keine Änderung für bestehende Integrationen. Der interne Template-Import bleibt unauthentifiziert.
+
+### Removed
+
+- `PoolBenchmarkIT` (nur Laufzeiten gegen das Quickstart-Image) — ersetzt durch `RenderLoadIT`.
 
 ### Fixed
 
