@@ -21,11 +21,18 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build and unit-test
-        run: mvn clean test -pl blocpress-core,blocpress-workbench
+      # PDF/RTF-Konvertierung (REQ-0004): render-Tests brauchen soffice, und ohne
+      # LibreOffice wird core-TransformTest uebersprungen -> req-check-Gate rot.
+      - name: Install LibreOffice (headless)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui
 
-      - name: Integration tests (workbench, requires Docker)
-        run: mvn verify -pl blocpress-core,blocpress-workbench -DskipUTs
+      # Unit- + Integrationstests aller Module ausser e2e (braucht das gebaute
+      # Quickstart-Image). render/studio-ITs sind per Default aus (skipITs=true).
+      # blocpress-req-check laeuft als letztes Modul und prueft die Traceability.
+      - name: Build, test and traceability gate
+        run: mvn -B clean verify -pl blocpress-req-trace,blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-req-check
         env:
           # Testcontainers needs Docker socket
           TESTCONTAINERS_RYUK_DISABLED: "true"
