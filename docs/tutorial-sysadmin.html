@@ -333,6 +333,8 @@ docker compose version  # Docker Compose version v2.x or newer</pre>
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/blocpress?currentSchema=production
       QUARKUS_DATASOURCE_USERNAME: blocpress
       QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
+      # JWT is off by default — set to "true" to require a Bearer token (step 3)
+      BLOCPRESS_AUTH_ENABLED: ${AUTH_ENABLED:-false}
       MP_JWT_VERIFY_PUBLICKEY: ${JWT_PUBLIC_KEY}
       MP_JWT_VERIFY_ISSUER: ${JWT_ISSUER}
     depends_on:
@@ -349,8 +351,6 @@ docker compose version  # Docker Compose version v2.x or newer</pre>
       QUARKUS_DATASOURCE_USERNAME: blocpress
       QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
       RENDER_URL: http://render:8080
-      MP_JWT_VERIFY_PUBLICKEY: ${JWT_PUBLIC_KEY}
-      MP_JWT_VERIFY_ISSUER: ${JWT_ISSUER}
     depends_on:
       db:
         condition: service_healthy
@@ -381,14 +381,27 @@ JWT_ISSUER=https://your-idp.example.com</pre>
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">3</span>
-                <h2>Configure JWT authentication</h2>
+                <h2>Configure JWT authentication (optional)</h2>
             </div>
 
             <p>
-                Blocpress validates JWTs using a public key (RS256).
+                JWT authentication of the Render API is <strong>off by default</strong>, so existing
+                integrations keep working. Turn it on with <code>AUTH_ENABLED=true</code> in your
+                <code>.env</code> (sets <code>BLOCPRESS_AUTH_ENABLED</code>): every endpoint below
+                <code>/api/render/</code> — rendering, jobs, dashboard — then requires a valid Bearer
+                token, otherwise HTTP 401. Blocpress validates the token with a public key (RS256);
+                without a key the service refuses to start.
                 You can either use your existing Identity Provider (Keycloak, Okta,
                 Azure AD, …) or generate a local key pair for testing.
             </p>
+
+            <div class="tip-box">
+                <strong>What stays open:</strong> the internal template import
+                (<code>/api/render/templates/import</code>, called by the Workbench on approval) and
+                <code>/q/health</code>. If the Render API is reachable from outside, block the import
+                path at your reverse proxy. The Workbench does not validate tokens on the server
+                side yet — protect it via your network or reverse proxy.
+            </div>
 
             <h3 class="h6 mt-3">Option A: Existing Identity Provider</h3>
             <p>
@@ -436,8 +449,13 @@ JWT_ISSUER=https://dev.local</pre>
                         <td><code>changeme</code></td>
                     </tr>
                     <tr>
+                        <td>AUTH_ENABLED</td>
+                        <td>Require a JWT Bearer token for the Render API (<code>BLOCPRESS_AUTH_ENABLED</code>)</td>
+                        <td><code>false</code></td>
+                    </tr>
+                    <tr>
                         <td>JWT_PUBLIC_KEY</td>
-                        <td>RSA public key (PEM, newlines escaped as \n)</td>
+                        <td>RSA public key (PEM, newlines escaped as \n) — required when <code>AUTH_ENABLED=true</code></td>
                         <td>—</td>
                     </tr>
                     <tr>
@@ -542,7 +560,7 @@ JWT_ISSUER=https://dev.local</pre>
                     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
                     <span class="title">Name-based rendering</span>
                 </div>
-                <pre class="terminal-body"><span class="t-comment"># With JWT token in Authorization header</span>
+                <pre class="terminal-body"><span class="t-comment"># Authorization header only needed with AUTH_ENABLED=true</span>
 <span class="t-prompt">$</span> <span class="t-method">curl</span> -X POST \
     <span class="t-value">http://localhost:8080/api/render/invoice</span> \
     <span class="t-flag">-H</span> <span class="t-value">"Authorization: Bearer $JWT_TOKEN"</span> \
