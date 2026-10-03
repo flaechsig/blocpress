@@ -6,10 +6,9 @@ Fäden, jeweils mit Verweis auf die Story/das Requirement.
 
 ## Offene Beschreibung (wächst entlang der Änderungen)
 
-- **[E-Rendering]** Benutzerdefinierte Dokumenteigenschaften (`text:user-defined`, Datei →
-  Eigenschaften → Benutzerdefiniert) werden **nicht** gefüllt — nur Benutzerfelder (Strg+F2).
-  Aufgefallen 2026-10-03: `kuendigung.odt` nutzt sie, der REQ-0001-Beleg darauf war deshalb hohl.
-  Sollen sie unterstützt werden (Wert in meta.xml setzen bzw. Feld ersetzen)? → `/anforderung`.
+- ~~Benutzerdefinierte Dokumenteigenschaften (`text:user-defined`)~~ — **entschieden 2026-10-03:
+  werden nicht unterstützt** (überholt). Als Nicht-Ziel in der [VISION](../spec/VISION.md), Hinweis
+  für Gestalter im README.
 - ~~Textbaustein-Expansion~~ — **belegt** (2026-10-03): REQ-0011, `TextBlockTest` prüft Inhalt + PDF.
 
 ## Widersprüche Altbestand ↔ Code (Mensch entscheidet, was gilt)

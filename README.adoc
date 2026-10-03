@@ -130,6 +130,10 @@ During rendering, placeholders are replaced with values from the JSON input and 
 
 In the template, place a field (a **User Field**) whose name matches a JSON path.
 
+NOTE: Use *User Fields* (Insert → Field → More Fields → Variables → User Field, or Ctrl+F2).
+Custom document properties (File → Properties → Custom Properties, shown as fields of type
+"DocInformation") look similar but are *not* filled by blocpress.
+
 Conceptually:
 
 * Field name in the template: `customer.lastName`

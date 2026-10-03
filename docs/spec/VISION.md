@@ -36,3 +36,6 @@ Quer dazu beschreibt **arc42** (`architecture/`), *wie* es gebaut ist, und
 - Kein WYSIWYG-Editor — die Gestaltung passiert in LibreOffice Writer.
 - Keine eigene Auszeichnungssprache — die Vorlage *ist* ein ODT.
 - LibreOffice wird nur zur Laufzeit für PDF/RTF-Export gebraucht, nicht im Kern.
+- Benutzerdefinierte Dokumenteigenschaften (`text:user-defined`, Datei → Eigenschaften →
+  Benutzerdefiniert) werden nicht befüllt — Platzhalter sind ausschließlich Benutzerfelder
+  (Strg+F2). Entschieden 2026-10-03: überholt, kein Bedarf.
