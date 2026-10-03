@@ -13,17 +13,14 @@ Fäden, jeweils mit Verweis auf die Story/das Requirement.
 
 ## Widersprüche Altbestand ↔ Code (Mensch entscheidet, was gilt)
 
+Bei der Überführung des Backlogs (2026-10-02) sichtbar geworden; in den Stories
+als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
+
 - **REQ-0004-rationale** — sagt, die Konvertierung gehöre „an den Rand (render-Modul,
   LibreOfficeProcessor)", damit der Kern ohne LibreOffice bleibt. Tatsächlich liegt
   `LibreOfficeProcessor` in `blocpress-core` (keine Compile-Abhängigkeit, aber ein
   `soffice`-Prozessaufruf). Requirement ist unveränderlich → bei Bedarf `/anforderung`
   (supersede) oder `/arc42` (Klasse nach render verschieben?).
-- **Test-Fixtures** — `blocpress-core/src/test/resources/kuendigung_generated.rtf` ist ein
-  DOCX mit falscher Endung (seit REQ-0004 ungenutzt; render hat eine echte RTF-Kopie).
-
-Bei der Überführung des Backlogs (2026-10-02) sichtbar geworden; in den Stories
-als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
-
 - **CI-Umfang** — [US-0029](../spec/stories/US-0029.md): `ci.yml` testet seit 2026-10-02
   alle Module außer e2e (inkl. Gate); offen: soll die E2E-Suite (braucht gebautes
   Quickstart-Image) in die CI?
@@ -70,8 +67,8 @@ Belege: [Messprotokoll](../guides/measurements/render-2.5.1-2026-10-02.md),
   Compose-Limits (JVM 768m, native 640m) entsprechend. Offen nur noch als Komfort: Worker
   automatisch aus dem CPU-Kontingent ableiten, damit kleinere Limits nicht von Hand
   nachgezogen werden müssen.
-- **`tutorial-sysadmin.html`** — Abschnitt „Configure JWT authentication" setzt noch den
-  eingebauten Dev-Schlüssel voraus; seit ADR-002 ist JWT optional (`BLOCPRESS_AUTH_ENABLED`).
+- ~~**`tutorial-sysadmin.html`**~~ — **erledigt** (2026-10-03): JWT als optional beschrieben
+  (`AUTH_ENABLED`), offene Pfade benannt, wirkungslose JWT-Variablen an der Workbench entfernt.
 
 ## Altbestand überführen (Retirement, kontrolliert)
 
