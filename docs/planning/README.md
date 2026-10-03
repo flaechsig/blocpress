@@ -7,7 +7,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 
 > **Status ist abgeleitet, nicht gepflegt:** eine Story ist `umgesetzt`, wenn alle ihre Requirements `implemented` sind; ein Epic ist `umgesetzt`, wenn alle seine Stories es sind (sonst `in Arbeit` / `geplant`). Der Status bezieht sich auf die hier modellierten Stories. Die gewachsene Doku (`product-backlog.adoc`) wird kontrolliert überführt, siehe [ROADMAP](ROADMAP.md).
 
-## E-Administration — Administration (Benutzer, Rollen, Audit)  ·  `geplant`
+## E-Administration — Rollen und Audit (über den Identity-Provider)  ·  `geplant`
 
 - **US-0020** Benutzer und Rollen verwalten  `ohne Requirements`
 - **US-0021** Rollen bei jedem API-Aufruf prüfen  `ohne Requirements`

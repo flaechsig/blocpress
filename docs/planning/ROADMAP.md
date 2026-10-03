@@ -21,12 +21,11 @@ als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
   `LibreOfficeProcessor` in `blocpress-core` (keine Compile-Abhängigkeit, aber ein
   `soffice`-Prozessaufruf). Requirement ist unveränderlich → bei Bedarf `/anforderung`
   (supersede) oder `/arc42` (Klasse nach render verschieben?).
-- **CI-Umfang** — [US-0029](../spec/stories/US-0029.md): `ci.yml` testet seit 2026-10-02
-  alle Module außer e2e (inkl. Gate); offen: soll die E2E-Suite (braucht gebautes
-  Quickstart-Image) in die CI?
-- **blocpress-proof / blocpress-admin** — der Backlog beschreibt eigene Module; proof ist
-  in der Workbench aufgegangen (E-Freigabe), admin existiert nicht (E-Administration,
-  US-0020..0022). Gilt das Zielbild eigener Module noch? → `/adr`.
+- ~~**CI-Umfang**~~ — **entschieden 2026-10-03** ([US-0029](../spec/stories/US-0029.md)):
+  Push-CI ohne e2e; die E2E-Suite ist Gate im Release-Workflow (vor der Veröffentlichung).
+- ~~**blocpress-proof / blocpress-admin**~~ — **entschieden 2026-10-03**
+  ([ADR-003](../architecture/decisions/ADR-003.adoc)): keine eigenen Module; Freigabe bleibt in
+  der Workbench, Benutzer/Rollen aus dem Identity-Provider. US-0020 abgelöst.
 - **API-Pfade** — Backlog nennt `/render/template/upload` und `/render/{id}`; tatsächlich
   `/api/render/template` (beide Content-Types) und `/api/render/{name}` (US-0004/0005).
 
