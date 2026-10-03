@@ -38,7 +38,7 @@ US-0019 — siehe die jeweilige Story. Dabei gefunden und behoben: WebDAV-`PUT` 
 
 Noch offen:
 - ~~Fuzzy-/Prefix-Suche und Hervorhebung (US-0015)~~ — **belegt** (2026-10-03, `SearchIT`).
-- Webhook und Bereinigung im Job-Pfad (US-0006).
+- ~~Webhook und Bereinigung im Job-Pfad (US-0006)~~ — **belegt** (2026-10-03, `AsyncJobLifecycleTest`).
 - Ob für die Workbench-Stories Requirements (EARS) entstehen sollen, entscheidet der Mensch —
   heute sind sie über Tests als `evidence` belegt, nicht über `@Tag`.
 
