@@ -91,7 +91,8 @@ Guide and load test: [render-sizing.md](https://github.com/flaechsig/blocpress/b
 | Tag | Description |
 |-----|-------------|
 | `latest` | Latest stable release |
-| `2.6.0` | Current stable release (GraalVM native) — optional JWT, async jobs fixed in native image |
+| `2.6.1` | Current stable release (GraalVM native) — placeholders/conditions in headers and footers, conditional sections in PDF fixed |
+| `2.6.0` | Optional JWT, async jobs fixed in native image |
 | `2.5.1` | Fixes number/date formatting in the native image (locale data) |
 
 ---

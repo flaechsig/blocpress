@@ -151,6 +151,56 @@
         "0,50"
       ],
       "forbid": []
+    },
+    {
+      "name": "header-footer",
+      "template": "../blocpress-core/src/test/resources/header_footer.odt",
+      "covers": "Platzhalter, Zahlenformat, bedingter Text und Bereich in Kopf-/Fusszeilen zweier Master-Pages",
+      "data": {
+        "offer": {
+          "reference": "ANG-2026-0815",
+          "supportId": "SUP-77"
+        },
+        "numbertest": 500000,
+        "kunde": {
+          "anrede": "FRAU"
+        }
+      },
+      "expect": [
+        "KOPF-ERSTE ANG-2026-0815",
+        "FUSS-ERSTE 500.000",
+        "KOPF-STD ANG-2026-0815",
+        "FUSS-LINKS 500.000 ANG-2026-0815 SUP-77",
+        "FUSS-RECHTS 500.000 ANG-2026-0815",
+        "FUSS-ANREDE Frau",
+        "FUSS-BEREICH-NUR-POSITIV",
+        "RUMPF-ZAHL 500.000"
+      ],
+      "forbid": [
+        "REF-BEISPIEL",
+        "SUP-BEISPIEL",
+        "-12.346",
+        "500,000"
+      ]
+    },
+    {
+      "name": "section",
+      "template": "../blocpress-core/src/test/resources/section.odt",
+      "covers": "bedingte Bereiche (text:section) im Rumpf — bis 2.6.0 im PDF nie sichtbar",
+      "data": {
+        "kunde": {
+          "anrede": "HERR",
+          "nachname": "Schmidt"
+        }
+      },
+      "expect": [
+        "Dieser Absatz wird für angezeigt, wenn die Anrede auf „HERR“ steht.",
+        "Nachname von Schmidt"
+      ],
+      "forbid": [
+        "„FRAU“ angezeigt werden soll",
+        "Wenn weder Frau oder Herr"
+      ]
     }
   ]
 }

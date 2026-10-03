@@ -20,10 +20,10 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 28 |
+| ✅ verified | 29 |
 | 🟡 in-progress | 3 |
 | ⚪ open | 3 |
-| **Summe** | **34** |
+| **Summe** | **35** |
 
 ## E-Administration — Administration (Benutzer, Rollen, Audit)  ⚪ `open`
 
@@ -474,6 +474,17 @@ fachlich relevant. Mit 2.5.0 wurden sie im Native-Image stillschweigend im
 en-Format ausgegeben (behoben in 2.5.1).
 
 **Requirements:** REQ-0005, REQ-0006, REQ-0007
+
+### US-0035 — Platzhalter in Kopf- und Fußzeilen  ✅ `verified`
+
+Als **Vorlagengestalter** möchte ich Platzhalter und Bedingungen auch in Kopf- und
+Fußzeilen verwenden — etwa eine Angebotsreferenz in der Fußzeile jeder Seite —, und sie
+sollen genauso gefüllt und formatiert werden wie im Dokumentrumpf.
+
+**Warum.** Seitenkopf und -fuß sind der natürliche Ort für seitenübergreifende Angaben
+(Referenz, Kundennummer). Bisher blieb dort der Beispielwert der Vorlage stehen.
+
+**Requirements:** REQ-0010
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  🟡 `in-progress`
 
