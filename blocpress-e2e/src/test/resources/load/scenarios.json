@@ -4,7 +4,7 @@
     {
       "name": "invoice",
       "template": "../docs/samples/quickstart/invoice.odt",
-      "covers": "Tabellen-Schleife, Zahl/Waehrung mit und ohne Sprachangabe, Datum",
+      "covers": "Tabellen-Schleife, Zahl/Waehrung mit und ohne Sprachangabe (das Datum oben ist ein LibreOffice-Feld mit dem Tagesdatum, daher kein Pflichttext)",
       "data": {
         "invoice": {
           "number": "LT-2026-0042",
@@ -51,7 +51,6 @@
       },
       "expect": [
         "LT-2026-0042",
-        "02.10.2026",
         "Render-Lizenz",
         "Schulung",
         "1234,50 €",
