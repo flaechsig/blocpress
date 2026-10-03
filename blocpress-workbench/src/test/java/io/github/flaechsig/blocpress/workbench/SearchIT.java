@@ -103,6 +103,68 @@ class SearchIT {
                 .forEach(type -> assertEquals("TEMPLATE", type));
     }
 
+    // --- US-0015: fehlertolerant, Praefix, Hervorhebung, Filter -------------------------------
+
+    @Test
+    @Order(6)
+    void typoInSearchTermStillFindsTemplate() {
+        // "Lastschriftverfarhen" (vertauschte Buchstaben) statt "Lastschriftverfahren" aus dem Brieftext
+        assertFound(search("Lastschriftverfarhen"), "fehlertolerante Suche");
+    }
+
+    @Test
+    @Order(7)
+    void prefixFindsTemplateWhileTyping() {
+        assertFound(search("Lastschri"), "Praefix im Text");
+        assertFound(search("Kuendig"), "Praefix im Namen");
+    }
+
+    @Test
+    @Order(8)
+    void hitsAreHighlightedWithMarkTags() {
+        Response response = search("Lastschriftverfahren");
+        String highlighted = String.valueOf(hitFor(response).get("highlight"));
+        assertTrue(highlighted.contains("<mark>Lastschriftverfahren</mark>"),
+                "Treffer im Text muss hervorgehoben sein: " + highlighted);
+
+        String nameHighlight = String.valueOf(hitFor(search("Kuendigung")).get("highlight"));
+        assertTrue(nameHighlight.contains("<mark>"), "Treffer im Namen muss hervorgehoben sein: " + nameHighlight);
+    }
+
+    @Test
+    @Order(9)
+    void typeAndStatusFiltersExcludeNonMatchingTemplates() {
+        assertFound(RestAssured.given().queryParam("q", "Lastschriftverfahren").queryParam("status", "DRAFT")
+                .get("/api/workbench/search"), "Statusfilter DRAFT");
+        assertNotFound(RestAssured.given().queryParam("q", "Lastschriftverfahren").queryParam("status", "APPROVED")
+                .get("/api/workbench/search"), "Statusfilter APPROVED");
+        assertNotFound(RestAssured.given().queryParam("q", "Lastschriftverfahren").queryParam("type", "BAUSTEIN")
+                .get("/api/workbench/search"), "Typfilter BAUSTEIN");
+    }
+
+    private static Response search(String q) {
+        Response response = RestAssured.given().queryParam("q", q).get("/api/workbench/search");
+        assertEquals(200, response.statusCode(), response.asString());
+        return response;
+    }
+
+    private static java.util.Map<String, Object> hitFor(Response response) {
+        java.util.List<java.util.Map<String, Object>> hits = response.jsonPath().getList("hits");
+        return hits.stream().filter(h -> uploadedTemplateId.equals(String.valueOf(h.get("id")))).findFirst()
+                .orElseThrow(() -> new AssertionError("Vorlage nicht unter den Treffern: " + response.asString()));
+    }
+
+    private static void assertFound(Response response, String what) {
+        assertNotNull(uploadedTemplateId, "Upload in Order(3) must have succeeded");
+        assertTrue(response.jsonPath().<String>getList("hits.id").contains(uploadedTemplateId),
+                what + ": Vorlage nicht gefunden — " + response.asString());
+    }
+
+    private static void assertNotFound(Response response, String what) {
+        assertTrue(!response.jsonPath().<String>getList("hits.id").contains(uploadedTemplateId),
+                what + ": Vorlage haette ausgefiltert werden muessen — " + response.asString());
+    }
+
     private byte[] loadResource(String name) throws Exception {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(name)) {
             assertNotNull(is, "Test resource not found: " + name);

@@ -676,8 +676,9 @@ in die Detailansicht springen.
 Feld vor?" sonst nicht beantwortbar. Elasticsearch-Indizierung ist bewusst
 *best effort*: ein Indexfehler wird geloggt, rollt aber keine DB-Änderung zurück.
 
-> **Nachweis-Lücke:** `SearchIT` prüft Treffer und Typfilter, nicht aber
-> Fuzzy-, Prefix-Suche und Hervorhebung.
+> **Nachweis (2026-10-03):** `SearchIT` prüft neben Treffern jetzt auch die fehlertolerante Suche
+> (Tippfehler), die Präfixsuche in Text und Name, die Hervorhebung mit `<mark>` sowie Typ- und
+> Statusfilter — jeweils, dass genau die hochgeladene Vorlage gefunden bzw. ausgefiltert wird.
 
 **Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/SearchResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/ElasticsearchIndexService.java, blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTextExtractor.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/SearchIT.java, blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/OdtTextExtractorTest.java · **Herkunft:** docs/product-backlog.adoc:206-219 (UC-19, TI-7, Prefix-Suche)
 
