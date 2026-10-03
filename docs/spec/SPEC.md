@@ -189,9 +189,9 @@ QS-Thema der Organisation.
 > **Abweichung zum Altbestand:** Ablehnung führt nach DRAFT (mit
 > `rejectionReason`); der Enum-Wert REJECTED wird dabei faktisch nicht genutzt.
 > Läuft in der Workbench, nicht in einem Modul blocpress-proof.
-> **Nachweis-Lücke:** Ablehnen ungetestet, Freigabe-Test `@Disabled`.
+> **Nachweis (2026-10-03):** `ApprovalWorkflowIT` (Einreichen, Freigeben, Ablehnen mit Begründung).
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/TemplateStatus.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/TemplateResourceDirectMethodTest.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/WorkbenchIT.java · **Herkunft:** docs/product-backlog.adoc:156-159 (UC-2), :186-189 (Ablehnung), :242-250 (UC-8, TF-2)
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/ApprovalWorkflowIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/TemplateStatus.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/TemplateResourceDirectMethodTest.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/WorkbenchIT.java · **Herkunft:** docs/product-backlog.adoc:156-159 (UC-2), :186-189 (Ablehnung), :242-250 (UC-8, TF-2)
 
 ### US-0017 — Freigabe deployt automatisch nach Produktion  ✅ `verified`
 
@@ -206,9 +206,10 @@ es freigegebene Vorlagen, die nicht produktiv sind, oder umgekehrt.
 > MicroProfile-REST-Client scheiterte an der Serialisierung, 2026-03-06);
 > `RenderImportClient` ist ungenutzt. Der Elasticsearch-Status wird **vor** dem
 > Deploy aktualisiert und bei 503 nicht zurückgerollt.
-> **Nachweis-Lücke:** kein Test für Deploy oder 503-Pfad.
+> **Nachweis (2026-10-03):** `ApprovalWorkflowIT` gegen einen mitschreibenden Render-Mock — genau ein
+> Deploy mit unverändertem Inhalt; render nicht erreichbar → 503, Vorlage bleibt SUBMITTED.
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/TemplateImportResource.java · **Herkunft:** docs/product-backlog.adoc:252-255, :156-157 (UC-2, Stufenübergabe)
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/RecordingRenderServerResource.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/ApprovalWorkflowIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/TemplateImportResource.java · **Herkunft:** docs/product-backlog.adoc:252-255, :156-157 (UC-2, Stufenübergabe)
 
 ### US-0018 — Änderungen per Regressionstest absichern  ✅ `verified`
 
@@ -221,10 +222,11 @@ Klick ignorieren und akzeptieren.
 Ausprägungen verändern; der Vergleich mit einer Baseline macht das sichtbar,
 bevor freigegeben wird.
 
-> **Nachweis-Lücke:** Getestet ist nur `save-expected`; Ausführen, Diff und
-> Ignorieren sind ungetestet (im E2E nur die Rechnungs-Regression).
+> **Nachweis (2026-10-03):** `RegressionRunIT` — ohne Baseline, identisch, geänderter Inhalt, Ignorier-Muster
+> als akzeptierte Abweichung (ohne andere Änderungen zu verdecken), Lauf über alle, Diff-PDF.
+> Benötigt `pdftohtml` (poppler-utils) — in den Images und seit 2026-10-03 in der CI.
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/PdfComparisonService.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/WorkbenchIT.java · **Herkunft:** docs/product-backlog.adoc:176-184 (TF-8, UC-11), :257-270 (UC-14, UC-16, TF-6)
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/RegressionRunIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/PdfComparisonService.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/WorkbenchIT.java · **Herkunft:** docs/product-backlog.adoc:176-184 (TF-8, UC-11), :257-270 (UC-14, UC-16, TF-6)
 
 ### US-0019 — Vorlagen periodisch überprüfen (Compliance-Review)  ✅ `verified`
 
@@ -240,9 +242,11 @@ RETIRED.
 Ablaufdatum bleiben sie unbemerkt produktiv.
 
 > **Abweichung:** Der Scheduler loggt nur eine Warnung, er benachrichtigt nicht.
-> **Nachweis-Lücke:** weder Berechnung, Sperre noch Scheduler sind getestet.
+> **Nachweis (2026-10-03):** `ApprovalWorkflowIT` (validUntil = validFrom + Zyklus, fällige Reviews, RETIRED
+> entfernt aus production), `RenderByNameTest#expiredTemplateIsBlocked` (Sperre 404). Der Scheduler
+> nutzt dieselbe Abfrage wie `GET /due-for-review` und schreibt nur eine Log-Warnung — nicht eigens getestet.
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/Template.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/ComplianceReviewScheduler.java, blocpress-workbench/src/main/resources/application.properties · **Herkunft:** docs/product-backlog.adoc:272-285 (UC-12, TF-4, TF-7)
+**Evidence:** blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderByNameTest.java, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/ApprovalWorkflowIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/Template.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/ComplianceReviewScheduler.java, blocpress-workbench/src/main/resources/application.properties · **Herkunft:** docs/product-backlog.adoc:272-285 (UC-12, TF-4, TF-7)
 
 ## E-Persistenz — Template-Speicherung (workbench / production)  ✅ `verified`
 
@@ -368,11 +372,12 @@ geändert wird.
 > `POST /api/render/{name}` (namensbasiert). Abgelaufene Vorlagen ergeben 404,
 > weil die Abfrage sie ausfiltert.
 >
-> **Nachweis-Lücke:** `RenderByNameIntegrationTest` und `TemplateVersioningIntegrationTest`
-> sind Platzhalter (`assertTrue(true)`); belegt ist der Pfad nur im E2E-Szenario
-> „Render-by-Name".
+> **Nachweis (2026-10-03):** `RenderByNameTest` (render: jüngste aktive Version gewinnt, künftige nicht,
+> abgelaufen/unbekannt → 404) und `ApprovalWorkflowIT#reuploadUnderSameNameCreatesNextVersionAndDeploysIt`
+> (workbench: Version 2 bei erneutem Upload, deployt). Die früheren Platzhalter-Tests
+> (20× `assertTrue(true)`) sind entfernt.
 
-**Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/ProductionTemplate.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/TemplateCache.java, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/StudioE2EIT.java · **Herkunft:** docs/product-backlog.adoc:76-84 (UC-10, UC-10.1)
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/ApprovalWorkflowIT.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderByNameTest.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/ProductionTemplate.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/TemplateCache.java, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/StudioE2EIT.java · **Herkunft:** docs/product-backlog.adoc:76-84 (UC-10, UC-10.1)
 
 ### US-0006 — Asynchron rendern über eine Job-Queue  ✅ `verified`
 
@@ -591,9 +596,10 @@ abdecken, und Vorschläge für fehlende Testfälle direkt als Datensatz überneh
 **Warum.** Eine Vorlage mit Bedingungen und Schleifen hat viele Ausprägungen;
 ungetestete Zweige fallen sonst erst im Produktivdruck auf.
 
-> **Nachweis-Lücke:** Kein Test ruft `/coverage` auf.
+> **Nachweis (2026-10-03):** `CoverageAnalysisIT` — Bedingungszweige wahr/falsch, Wiederholungsfälle
+> 0/1/2+, übernommener Vorschlag schließt die Lücke.
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/CoverageAnalysisService.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java · **Herkunft:** docs/product-backlog.adoc:191-194
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/CoverageAnalysisIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/CoverageAnalysisService.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java · **Herkunft:** docs/product-backlog.adoc:191-194
 
 ### US-0013 — Textbausteine wie Vorlagen verwalten  ✅ `verified`
 
@@ -605,9 +611,9 @@ sehen, welche Version produktiv ist und ob ein Entwurf in Arbeit ist.
 deshalb dieselbe Freigabe-Disziplin.
 
 > **Abweichung zum Altbestand:** Keine eigene Entity E-2 — Bausteine sind
-> `Template` mit `TemplateType.BAUSTEIN`. **Nachweis-Lücke:** kein Test für Bausteine.
+> `Template` mit `TemplateType.BAUSTEIN`. **Nachweis (2026-10-03):** `BausteinWebDavIT` (Typ-Trennung, Workflow inkl. Deploy).
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/TemplateType.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/Template.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js · **Herkunft:** docs/product-backlog.adoc:196-199
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/BausteinWebDavIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/TemplateType.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/Template.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js · **Herkunft:** docs/product-backlog.adoc:196-199
 
 ### US-0014 — Vorlagen direkt in LibreOffice öffnen und speichern  ✅ `verified`
 
@@ -619,9 +625,12 @@ schreibbar, freigegebene Versionen nur lesbar unter `/released/`.
 fehleranfällig; freigegebene Stände dürfen nicht versehentlich überschrieben
 werden (PUT auf `/released/` → 403).
 
-> **Nachweis-Lücke:** nur im E2E-Szenario „WebDAV" berührt, kein Modultest.
+> **Nachweis (2026-10-03):** `BausteinWebDavIT` — Entwurf lesen/schreiben, PROPFIND, freigegebener Stand
+> lesbar und schreibgeschützt (403). **Fehler behoben:** Ein WebDAV-`PUT` validierte nicht — in
+> LibreOffice bearbeitete Entwürfe behielten eine veraltete Feldliste, per WebDAV angelegte ließen
+> sich nie einreichen. Jetzt validiert und indiziert wie ein Upload.
 
-**Evidence:** blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/WebDavResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/PROPFIND.java · **Herkunft:** docs/product-backlog.adoc:201-204
+**Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/BausteinWebDavIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/WebDavResource.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/PROPFIND.java · **Herkunft:** docs/product-backlog.adoc:201-204
 
 ### US-0015 — Vorlagen und Bausteine durchsuchen  ✅ `verified`
 

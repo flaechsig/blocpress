@@ -3,6 +3,9 @@ package io.github.flaechsig.blocpress.workbench;
 import io.github.flaechsig.blocpress.workbench.entity.Template;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
+import io.github.flaechsig.blocpress.workbench.service.ElasticsearchIndexService;
+import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -30,6 +33,13 @@ import java.util.List;
  */
 @Path("/api/webdav")
 public class WebDavResource {
+
+    @Inject
+    TemplateValidator validator;
+
+    @Inject
+    ElasticsearchIndexService elasticsearchIndexService;
+
 
     private static final String ODT_CONTENT_TYPE = "application/vnd.oasis.opendocument.text";
 
@@ -93,7 +103,10 @@ public class WebDavResource {
             template.validFrom = java.time.LocalDateTime.now();
             template.createdAt = java.time.LocalDateTime.now();
             template.content = content;
+            // wie beim Upload: validieren (Felder/Schema, Einreichbarkeit) und indizieren
+            template.validationResult = validator.validate(content);
             template.persist();
+            elasticsearchIndexService.index(template);
             return Response.created(
                 jakarta.ws.rs.core.UriBuilder.fromPath("/api/webdav/{c}/{n}.odt")
                     .build(collection, name)
@@ -106,7 +119,10 @@ public class WebDavResource {
             );
         }
         template.content = content;
+        // in LibreOffice bearbeitet: Feldliste/Schema neu ermitteln, sonst bleiben sie veraltet
+        template.validationResult = validator.validate(content);
         template.persist();
+        elasticsearchIndexService.index(template);
         return Response.noContent().build();
     }
 
