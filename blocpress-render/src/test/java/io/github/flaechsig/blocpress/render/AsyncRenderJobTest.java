@@ -76,6 +76,57 @@ class AsyncRenderJobTest {
         assertTrue(new String(result.body(), 0, 5).startsWith("%PDF-"), "Ergebnis ist kein PDF");
     }
 
+    /**
+     * Mehrere wartende Jobs werden nicht mehr im 2-s-Takt einzeln, sondern parallel und ohne
+     * Wartezeit dazwischen abgearbeitet. Bis 2.6.1 brauchten 8 Jobs mindestens 7 Takte (14 s).
+     */
+    @Test
+    void queuedJobsAreDrainedWithoutWaitingForThePollInterval() throws Exception {
+        String name = importTemplate();
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            var submit = post("/api/render/jobs", "{\"templateName\":\"" + name + "\",\"outputType\":\"pdf\",\"data\":{}}");
+            assertEquals(202, submit.statusCode(), submit.body());
+            ids.add(MAPPER.readTree(submit.body()).path("id").asText());
+        }
+        long start = System.nanoTime();
+        for (String id : ids) {
+            awaitDone(id);
+        }
+        double seconds = (System.nanoTime() - start) / 1e9;
+        assertTrue(seconds < 12, "8 Jobs brauchten " + seconds + " s — Warteschlange wird nicht leergearbeitet");
+    }
+
+    private String importTemplate() throws Exception {
+        String name = "async-test-" + UUID.randomUUID();
+        byte[] odt;
+        try (InputStream is = getClass().getResourceAsStream("/kuendigung.odt")) {
+            odt = is.readAllBytes();
+        }
+        var importBody = MAPPER.createObjectNode()
+                .put("id", UUID.randomUUID().toString())
+                .put("name", name)
+                .put("version", 1)
+                .put("contentBase64", Base64.getEncoder().encodeToString(odt))
+                .put("validFrom", LocalDateTime.now().minusDays(1).withNano(0).toString());
+        assertEquals(200, post("/api/render/templates/import", importBody.toString()).statusCode());
+        return name;
+    }
+
+    private void awaitDone(String id) throws Exception {
+        for (int i = 0; i < 120; i++) {
+            var response = http.send(HttpRequest.newBuilder(base.resolve("/api/render/jobs/" + id)).GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            String status = MAPPER.readTree(response.body()).path("status").asText();
+            if (status.equals("DONE")) {
+                return;
+            }
+            assertTrue(!status.equals("FAILED"), "Job FAILED: " + response.body());
+            Thread.sleep(100);
+        }
+        throw new AssertionError("Job " + id + " nicht fertig");
+    }
+
     private HttpResponse<String> post(String path, String json) throws Exception {
         return http.send(HttpRequest.newBuilder(base.resolve(path))
                 .header("Content-Type", "application/json")

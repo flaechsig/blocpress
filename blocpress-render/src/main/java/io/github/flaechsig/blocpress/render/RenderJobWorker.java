@@ -3,7 +3,10 @@ package io.github.flaechsig.blocpress.render;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -17,9 +20,13 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Polling-Worker der PENDING Render-Jobs aus der Datenbank holt und verarbeitet.
+ * Polling-Worker der PENDING Render-Jobs aus der Datenbank holt und verarbeitet — bis zu
+ * {@code BLOCPRESS_LO_WORKERS} parallel je Instanz, bis die Warteschlange leer ist.
  * Nutzt SKIP LOCKED für nebenläufig-sicheres Claiming — mehrere Instanzen möglich.
  */
 @ApplicationScoped
@@ -46,47 +53,117 @@ public class RenderJobWorker {
     @Inject
     RenderLocaleConfig localeConfig;
 
-    @Scheduled(every = "${blocpress.async.poll-interval:2s}")
-    @Transactional
-    public void processNextJob() {
-        RenderJob job = RenderJob.claimNextPending();
-        if (job == null) {
-            return;
+    /** Parallele Job-Verarbeitung je Instanz — gleich der LibreOffice-Worker-Zahl (der Engpass). */
+    @ConfigProperty(name = "blocpress.libreoffice.workers", defaultValue = "2")
+    int workers;
+
+    /** PROCESSING-Jobs, die laenger haengen (Instanz abgestuerzt), gehen zurueck auf PENDING. */
+    @ConfigProperty(name = "blocpress.async.stale-after", defaultValue = "PT10M")
+    Duration staleAfter;
+
+    private final AtomicInteger activeLoops = new AtomicInteger();
+    private ExecutorService executor;
+
+    @PostConstruct
+    void start() {
+        executor = Executors.newFixedThreadPool(Math.max(1, workers));
+    }
+
+    @PreDestroy
+    void stop() {
+        executor.shutdownNow();
+    }
+
+    /**
+     * Verteiler: startet bis zu {@code workers} Verarbeitungsschleifen. Jede Schleife holt Jobs,
+     * bis die Warteschlange leer ist — ein fertiger Job zieht sofort den naechsten nach. Das
+     * Poll-Intervall bestimmt damit nur noch, wie schnell ein neuer Job nach einer Leerlaufphase
+     * startet, nicht mehr den Durchsatz (bis 2.6.1: genau ein Job je Takt, max. ~0,5 Jobs/s).
+     */
+    @Scheduled(every = "${blocpress.async.poll-interval:2s}",
+            concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    void dispatch() {
+        int max = Math.max(1, workers);
+        while (activeLoops.get() < max) {
+            activeLoops.incrementAndGet();
+            executor.submit(this::drainQueue);
         }
-        LOG.info("Processing render job {} (template={}, format={})", job.id, job.templateName, job.outputType);
+    }
+
+    /** Holt und verarbeitet Jobs, bis keiner mehr wartet. */
+    void drainQueue() {
         try {
-            OutputFormat format = switch (job.outputType.toLowerCase()) {
+            RenderJob job;
+            while ((job = QuarkusTransaction.requiringNew().call(RenderJob::claimNextPending)) != null) {
+                process(job.id, job.templateName, job.outputType, job.data, job.webhookUrl);
+            }
+        } catch (Exception e) {
+            LOG.error("Job-Verarbeitung abgebrochen: {}", e.getMessage(), e);
+        } finally {
+            activeLoops.decrementAndGet();
+        }
+    }
+
+    /** Rendert ausserhalb einer Transaktion; nur das Speichern des Ergebnisses ist transaktional. */
+    private void process(UUID id, String templateName, String outputType, String data, String webhookUrl) {
+        LOG.info("Processing render job {} (template={}, format={})", id, templateName, outputType);
+        try {
+            OutputFormat format = switch (outputType.toLowerCase()) {
                 case "pdf" -> OutputFormat.PDF;
                 case "rtf" -> OutputFormat.RTF;
                 default -> OutputFormat.ODT;
             };
 
-            byte[] templateContent = templateCache.getTemplateContentByName(job.templateName);
-            Path tempFile = Files.createTempFile("async-job-" + job.id, ".odt");
-            Files.write(tempFile, templateContent);
+            // DB-Zugriff braucht eine Transaktion (der Worker-Thread hat keinen Request-Kontext)
+            byte[] templateContent = QuarkusTransaction.requiringNew()
+                    .call(() -> templateCache.getTemplateContentByName(templateName));
+            Path tempFile = Files.createTempFile("async-job-" + id, ".odt");
+            byte[] result;
+            try {
+                Files.write(tempFile, templateContent);
+                var json = MAPPER.readTree(data);
+                byte[] merged = RenderEngine.mergeTemplate(tempFile.toUri().toURL(), json, localeConfig.defaultLocale());
+                result = libreOfficePool.convert(merged, format);
+            } finally {
+                Files.deleteIfExists(tempFile);
+            }
 
-            var json = MAPPER.readTree(job.data);
-            var odt = tempFile.toUri().toURL();
-            byte[] merged = RenderEngine.mergeTemplate(odt, json, localeConfig.defaultLocale());
-            byte[] result = libreOfficePool.convert(merged, format);
-
-            Files.deleteIfExists(tempFile);
-
-            job.result = result;
-            job.status = RenderJobStatus.DONE;
-            job.updatedAt = LocalDateTime.now();
-            job.persist();
-
-            LOG.info("Render job {} completed ({} bytes)", job.id, result.length);
-            webhookSender.sendAsync(job.webhookUrl, job.id, RenderJobStatus.DONE);
+            finish(id, RenderJobStatus.DONE, result, null);
+            LOG.info("Render job {} completed ({} bytes)", id, result.length);
+            webhookSender.sendAsync(webhookUrl, id, RenderJobStatus.DONE);
 
         } catch (Exception e) {
-            LOG.error("Render job {} failed: {}", job.id, e.getMessage(), e);
-            job.status = RenderJobStatus.FAILED;
-            job.errorMessage = e.getMessage();
+            LOG.error("Render job {} failed: {}", id, e.getMessage(), e);
+            finish(id, RenderJobStatus.FAILED, null, e.getMessage());
+            webhookSender.sendAsync(webhookUrl, id, RenderJobStatus.FAILED);
+        }
+    }
+
+    private void finish(UUID id, RenderJobStatus status, byte[] result, String errorMessage) {
+        QuarkusTransaction.requiringNew().run(() -> {
+            RenderJob job = RenderJob.findById(id);
+            if (job == null) {
+                return; // inzwischen aufgeraeumt
+            }
+            job.result = result;
+            job.status = status;
+            job.errorMessage = errorMessage;
             job.updatedAt = LocalDateTime.now();
-            job.persist();
-            webhookSender.sendAsync(job.webhookUrl, job.id, RenderJobStatus.FAILED);
+        });
+    }
+
+    /**
+     * Holen und Rendern laufen in getrennten Transaktionen: stirbt eine Instanz mitten im
+     * Rendern, bliebe der Job sonst fuer immer PROCESSING. Solche Jobs werden wieder PENDING.
+     */
+    @Scheduled(every = "1m")
+    @Transactional
+    void requeueStaleJobs() {
+        int requeued = RenderJob.update("status = ?1, updatedAt = ?2 WHERE status = ?3 AND updatedAt < ?4",
+                RenderJobStatus.PENDING, LocalDateTime.now(), RenderJobStatus.PROCESSING,
+                LocalDateTime.now().minus(staleAfter));
+        if (requeued > 0) {
+            LOG.warn("{} haengende Render-Jobs (PROCESSING > {}) wieder auf PENDING gesetzt", requeued, staleAfter);
         }
     }
 

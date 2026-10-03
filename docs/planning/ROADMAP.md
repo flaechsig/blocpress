@@ -62,8 +62,9 @@ Belege: [Messprotokoll](../guides/measurements/render-2.5.1-2026-10-02.md),
 - ~~**Fehler: Job-Pfad im Native-Image**~~ — **behoben** (2026-10-02, `@RegisterForReflection`
   an `JobStatus`/`JobRequest`, `AsyncRenderJobTest`, nativ per `RenderLoadIT -Dload.async=true`
   geprüft); enthalten in 2.6.0.
-- **Job-Durchsatz** — `RenderJobWorker` holt je Takt (2 s) genau einen Job → ≤ 0,5 Jobs/s je
-  Instanz. Vorschlag: je Takt Jobs holen, bis die Warteschlange leer oder alle Worker belegt sind.
+- ~~**Job-Durchsatz**~~ — **umgesetzt** (2026-10-03): der Worker arbeitet die Warteschlange mit
+  `BLOCPRESS_LO_WORKERS` parallelen Schleifen ab; 0,51 → 3,57 Jobs/s (nativ, 2 CPU / 2 Worker).
+  Hängende PROCESSING-Jobs werden nach `BLOCPRESS_ASYNC_STALE_AFTER` (10 min) wieder PENDING.
 - **Worker-Default (entschieden 2026-10-02):** Standardgröße ist **2 CPU / 2 Worker** — passend
   zum Default `BLOCPRESS_LO_WORKERS=2`; Guide, Docker-Hub-README, Beispiel-Manifest und
   Compose-Limits (JVM 768m, native 640m) entsprechend. Offen nur noch als Komfort: Worker
