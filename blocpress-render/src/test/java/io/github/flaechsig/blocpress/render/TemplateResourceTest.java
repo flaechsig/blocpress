@@ -82,7 +82,7 @@ class TemplateResourceTest {
     }
 
     @Test
-    @Tag("REQ-0004")
+    @Tag("REQ-0012")
     void mergeTemplatePdf() throws Exception {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
@@ -111,7 +111,7 @@ class TemplateResourceTest {
     }
 
     @Test
-    @Tag("REQ-0004")
+    @Tag("REQ-0012")
     void mergeTemplateRtf() throws Exception {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");

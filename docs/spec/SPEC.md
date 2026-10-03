@@ -21,9 +21,9 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 | Status | Stories |
 |---|---|
 | ✅ verified | 32 |
-| ⚪ open | 2 |
+| ⚪ open | 3 |
 | ⛔ superseded | 1 |
-| **Summe** | **35** |
+| **Summe** | **36** |
 
 ## E-Administration — Rollen und Audit (über den Identity-Provider)  ⚪ `open`
 
@@ -159,12 +159,12 @@ Hand wäre ein Bruch im automatisierten Ablauf.
 **Stand.** Der Altbestand führt TI-3 als DONE; der Code bestätigt das:
 `LibreOfficeProcessor` (in `blocpress-core`, nicht wie im Epic beschrieben in
 render) ruft `soffice --convert-to` mit isoliertem Profil je Aufruf, render kapselt
-das in `LibreOfficePool`. Seit 2026-10-02 belegt durch REQ-0004 (implemented).
+das in `LibreOfficePool`. Seit 2026-10-02 belegt, heute durch REQ-0012 (löst REQ-0004 ab, ADR-004).
 Dazu wurde `TransformTest` reaktiviert — er war zuvor komplett abgeschaltet
 (`@Test` auskommentiert), und seine RTF-Referenzdatei in core ist in Wahrheit ein
 DOCX, der RTF-Vergleich wäre nie grün geworden.
 
-**Requirements:** REQ-0004 · **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LibreOfficeProcessor.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/LibreOfficePool.java, blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TransformTest.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/TemplateResourceTest.java · **Herkunft:** docs/product-backlog.adoc:41-44 (TI-3)
+**Requirements:** REQ-0012 · **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LibreOfficeProcessor.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/LibreOfficePool.java, blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TransformTest.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/TemplateResourceTest.java · **Herkunft:** docs/product-backlog.adoc:41-44 (TI-3)
 
 ## E-Freigabe — Prüfung und Freigabe  ✅ `verified`
 
@@ -503,6 +503,27 @@ sollen genauso gefüllt und formatiert werden wie im Dokumentrumpf.
 (Referenz, Kundennummer). Bisher blieb dort der Beispielwert der Vorlage stehen.
 
 **Requirements:** REQ-0010
+
+### US-0036 — Word-Vorlagen (DOCX) als Quelle  ⚪ `open`
+
+Als **Vorlagengestalter** möchte ich Vorlagen auch in Microsoft Word (DOCX) erstellen und mit
+denselben JSON-Daten füllen lassen wie ODT-Vorlagen, damit ich nicht auf LibreOffice Writer
+festgelegt bin.
+
+**Warum.** Viele Fachbereiche arbeiten mit Word; eine Umstellung auf LibreOffice ist für sie
+eine Hürde. Festgehalten 2026-10-03, um den Weg offen zu halten — **noch nicht geplant**.
+
+**Was dafür nötig wäre (Stand 2026-10-03):**
+- eine zweite Umsetzung von `TemplateDocument` (`DocxTemplateDocument`) in `blocpress-core`,
+  z.B. auf Basis von docx4j oder Apache POI;
+- ein Feldkonzept für Word — Word kennt keine LibreOffice-Benutzerfelder, sondern
+  Seriendruckfelder (`MERGEFIELD`) bzw. Inhaltssteuerelemente; Bedingungen und Wiederholungen
+  müssten darauf abgebildet werden;
+- die Konvertierung in `blocpress-core` (bleibt dort, [ADR-004](../../architecture/decisions/ADR-004.adoc))
+  muss das Eingabeformat annehmen — heute fest ODT.
+
+Vor der Umsetzung: Requirements per `/anforderung`, Architektur-Impact per `/arc42`.
+
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  🟡 `in-progress`
 

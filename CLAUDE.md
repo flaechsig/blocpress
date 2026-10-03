@@ -50,7 +50,7 @@ mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.
 - Docker (for integration tests, render builds, and render's `@QuarkusTest`s — they start PostgreSQL via Quarkus DevServices)
 - LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
   render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
-  req-check gate fails for REQ-0004 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
+  req-check gate fails for REQ-0012 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
 
 ## Architecture
 

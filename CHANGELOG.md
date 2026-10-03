@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Release-Workflow mit E2E-Gate:** Vor der Veröffentlichung (Maven Central, Docker Hub) wird das native Quickstart-Image gebaut und die E2E-Suite dagegen ausgeführt; schlägt sie fehl, wird nichts veröffentlicht.
+- **Architektur (ADR-004):** Die PDF/RTF-Konvertierung (`LibreOfficeProcessor`) bleibt in `blocpress-core` — keine Änderung der öffentlichen API. Word-Vorlagen (DOCX) als weiteres Quellformat sind als offene Story festgehalten (US-0036).
 - **Architektur (ADR-003):** Keine eigenen Module `blocpress-proof`/`blocpress-admin`; Freigabe bleibt in der Workbench, Benutzer und Rollen kommen aus einem externen Identity-Provider.
 - **Job-Pfad (`/api/render/jobs`) arbeitet die Warteschlange parallel ab.** Bisher holte der Worker alle 2 s genau einen Job (≤ 0,5 Jobs/s je Instanz, unabhängig von CPU und Workern). Jetzt laufen bis zu `BLOCPRESS_LO_WORKERS` Verarbeitungsschleifen, bis die Warteschlange leer ist — gemessen nativ bei 2 CPU / 2 Worker: 0,51 → 3,57 Jobs/s. Rendern läuft außerhalb der Datenbank-Transaktion; Jobs, die länger als `BLOCPRESS_ASYNC_STALE_AFTER` (Default 10 min) auf PROCESSING stehen (z.B. nach einem Absturz), werden wieder PENDING.
 

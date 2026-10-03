@@ -13,13 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Konvertierung eines gemergten ODT nach PDF/RTF ueber headless LibreOffice (REQ-0004).
+ * Konvertierung eines gemergten ODT nach PDF/RTF ueber headless LibreOffice (REQ-0012).
  *
  * <p>Benoetigt {@code soffice} auf dem PATH; ohne LibreOffice werden die Tests
  * uebersprungen (Unit-Tests bleiben ohne LibreOffice lauffaehig). Das req-check-Gate
  * wertet einen uebersprungenen Test bewusst nicht als Nachweis.</p>
  */
-@Tag("REQ-0004")
+@Tag("REQ-0012")
 @EnabledIf("sofficeAvailable")
 public class TransformTest {
 

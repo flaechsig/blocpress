@@ -76,15 +76,16 @@ _Quelle: [`REQ-0003.md`](REQ-0003.md)_
 
 ---
 
-## REQ-0004  ·  `implemented`
+## REQ-0004  ·  `superseded`
 
 > WHERE an output type of PDF or RTF is requested, the render engine shall convert the merged ODT document to that format using a headless LibreOffice process.
 
 | | |
 |---|---|
 | **Obligation** | SOLLTE |
-| **Status** | implemented |
+| **Status** | superseded |
 | **Confidence** | verified |
+| **Superseded by** | REQ-0012 |
 
 **Rationale:** Empfänger erwarten meist PDF. Die Konvertierung gehört an den Rand (render-Modul, LibreOfficeProcessor), damit der Kern ohne LibreOffice-Abhängigkeit testbar bleibt. Als proposed markiert, solange die genaue Schnittstelle/Fehlerbehandlung noch nicht committed ist.
 
@@ -258,6 +259,31 @@ _Quelle: [`REQ-0010.md`](REQ-0010.md)_
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TextBlockTest.java`
 
 _Quelle: [`REQ-0011.md`](REQ-0011.md)_
+
+---
+
+## REQ-0012  ·  `implemented`
+
+> WHERE PDF or RTF output is requested, the render engine shall convert the merged document to that format with a headless LibreOffice process provided by the core library.
+
+| | |
+|---|---|
+| **Obligation** | SOLLTE |
+| **Status** | implemented |
+| **Confidence** | verified |
+| **Supersedes** | REQ-0004 |
+
+**Rationale:** Empfänger erwarten meist PDF. Die Konvertierung liegt bewusst in blocpress-core (LibreOfficeProcessor), nicht im Render-Service: Nutzer der Bibliothek (Maven Central) erhalten so aus einer Vorlage ein fertiges Dokument, ohne den Dienst zu betreiben, und weitere Quellformate (z.B. Word, US-0036) können dieselbe Konvertierung nutzen. Eine Compile-Abhängigkeit auf LibreOffice entsteht nicht — soffice wird nur zur Laufzeit als Prozess gestartet; der Render-Service drosselt die Parallelität (LibreOfficePool). Löst REQ-0004 ab, dessen Begründung die Konvertierung fälschlich im Render-Modul verortete (ADR-004).
+
+**Evidence:**
+
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LibreOfficeProcessor.java`
+- `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderResource.java`
+- `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/LibreOfficePool.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TransformTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/TemplateResourceTest.java`
+
+_Quelle: [`REQ-0012.md`](REQ-0012.md)_
 
 ---
 
