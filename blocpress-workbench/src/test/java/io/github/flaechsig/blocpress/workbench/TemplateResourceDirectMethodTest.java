@@ -17,7 +17,6 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 import org.mockito.Mockito;
 
 import java.time.Instant;
@@ -313,24 +312,6 @@ class TemplateResourceDirectMethodTest {
         assertEquals(TemplateStatus.SUBMITTED, updated.status);
     }
 
-    @Test
-    @Disabled("REST Client mocking in unit tests is complex. This is tested in WorkbenchIT integration tests.")
-    @Transactional
-    void updateStatus_ValidTransitionSubmittedToApproved_SetsValidFrom() {
-        // When a template transitions to APPROVED, TemplateResource calls renderImportClient.importTemplate()
-        // This test is disabled because mocking Quarkus REST Clients in unit tests requires complex setup.
-        // The functionality is properly tested in WorkbenchIT (integration tests) where we can
-        // use WireMock to mock the HTTP response or use TestContainers for a real render service.
-        Template template = createTemplate("Submitted", 1, TemplateStatus.SUBMITTED);
-        var request = new TemplateResource.StatusUpdateRequest(TemplateStatus.APPROVED, null, null);
-
-        var response = resource.updateStatus(template.id, request);
-
-        assertEquals(200, response.getStatus());
-        Template updated = Template.findById(template.id);
-        assertEquals(TemplateStatus.APPROVED, updated.status);
-        assertNotNull(updated.validFrom);
-    }
 
     @Test
     @Transactional

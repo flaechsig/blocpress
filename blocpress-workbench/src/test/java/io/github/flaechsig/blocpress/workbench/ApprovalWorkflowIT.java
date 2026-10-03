@@ -138,6 +138,39 @@ class ApprovalWorkflowIT {
         assertEquals(name, deployed.path("name").asText());
     }
 
+    @Test
+    void byNameDeliversLatestActiveApprovedVersion() throws Exception {
+        byte[] odt = Files.readAllBytes(TEMPLATE);
+        String name = "byname-" + UUID.randomUUID();
+        String v1 = MAPPER.readTree(upload(name, odt).asString()).path("id").asText();
+        assertEquals(404, RestAssured.get(BASE + "by-name/" + name + "/content").statusCode(), "nur Entwurf → 404");
+
+        assertEquals(200, RestAssured.post(BASE + v1 + "/submit").statusCode());
+        assertEquals(200, status(v1, "{\"newStatus\":\"APPROVED\"}").statusCode());
+        String v2 = MAPPER.readTree(upload(name, odt).asString()).path("id").asText();
+        assertEquals("1", RestAssured.get(BASE + "by-name/" + name + "/content").header("X-Template-Version"),
+                "Entwurf v2 darf v1 nicht verdraengen");
+
+        assertEquals(200, RestAssured.post(BASE + v2 + "/submit").statusCode());
+        assertEquals(200, status(v2, "{\"newStatus\":\"APPROVED\"}").statusCode());
+        assertEquals("2", RestAssured.get(BASE + "by-name/" + name + "/content").header("X-Template-Version"));
+
+        assertEquals(404, RestAssured.get(BASE + "by-name/gibt-es-nicht-" + UUID.randomUUID() + "/content").statusCode());
+    }
+
+    @Test
+    void byNameDoesNotDeliverExpiredVersion() throws Exception {
+        // freigegeben vor 2 Jahren mit Review-Zyklus 1 Jahr → seit einem Jahr abgelaufen (render sperrt mit 404)
+        String name = "abgelaufen-" + UUID.randomUUID();
+        String id = MAPPER.readTree(upload(name, Files.readAllBytes(TEMPLATE)).asString()).path("id").asText();
+        assertEquals(200, RestAssured.post(BASE + id + "/submit").statusCode());
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\",\"validFrom\":\"" + LocalDate.now().minusYears(2)
+                + "\",\"reviewCycleYears\":1}").statusCode());
+
+        assertEquals(404, RestAssured.get(BASE + "by-name/" + name + "/content").statusCode(),
+                "abgelaufene Version darf nicht als aktiv ausgeliefert werden (wie in render)");
+    }
+
     private static Response upload(String name, byte[] odt) {
         Response upload = RestAssured.given()
                 .multiPart("name", name)

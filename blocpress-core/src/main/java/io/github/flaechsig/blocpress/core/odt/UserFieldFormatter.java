@@ -176,17 +176,14 @@ public final class UserFieldFormatter {
         DateTimeFormatter outFmt = buildDateFormatter(styleDoms, styleName, defaultLocale);
 
         try {
-            if (parsed.query(TemporalQueries.localDate()) != null) {
-                LocalDate ld = LocalDate.from(parsed);
-                return outFmt.format(ld);
-            } else if (parsed.query(TemporalQueries.localDate()) == null && parsed.query(TemporalQueries.localTime()) != null) {
-                return raw;
-            } else if (parsed.query(TemporalQueries.offset()) != null) {
-                LocalDate ld = OffsetDateTime.from(parsed).toLocalDate();
-                return outFmt.format(ld);
-            } else {
-                return raw;
+            LocalDate date = parsed.query(TemporalQueries.localDate());
+            if (date == null) {
+                return raw; // reine Uhrzeit — kein Datum zum Formatieren
             }
+            // Immer mit Uhrzeit formatieren (fehlt sie: 00:00): ein Format mit Stunden/Minuten kann ein
+            // reines LocalDate nicht formatieren — bis 2.6.1 kam dann still der Rohwert zurueck.
+            LocalTime time = parsed.query(TemporalQueries.localTime());
+            return outFmt.format(date.atTime(time != null ? time : LocalTime.MIDNIGHT));
         } catch (Exception e) {
             return raw;
         }

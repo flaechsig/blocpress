@@ -87,6 +87,16 @@ class RenderedPdfTest {
         assertFalse(pdf.contains(forbidden), pdf);
     }
 
+    @Test
+    @Tag("REQ-0006")
+    void dateAndDateTimeFormatsInPdf() throws Exception {
+        String pdf = render("dateformats.odt", "{\"datumtest\":\"2026-10-03T14:30:00\"}");
+        for (String expected : new String[]{"DE 03.10.2026", "ISO 2026-10-03", "KURZ 3.10.26", "ZEIT 03.10.2026 14:30",
+                "OHNE 03/10/2026"}) {
+            assertTrue(pdf.contains(expected), "fehlt im PDF: '" + expected + "' — " + pdf);
+        }
+    }
+
     /** Rendert eine Vorlage aus den core-Testressourcen zu PDF und liefert den Text (Whitespace normalisiert). */
     static String render(String template, String json) throws Exception {
         return render(CORE_RESOURCES.resolve(template), json);

@@ -410,12 +410,13 @@ Infrastrukturkomponente (Kafka/RabbitMQ). Ergebnisse werden zweistufig bereinigt
 >
 > **Nachweis (2026-10-02):** `AsyncRenderJobTest` deckt Einreichen → Status → Ergebnis ab;
 > `RenderLoadIT -Dload.async=true` prüft den Pfad im Native-Image (dort war er in 2.5.0/2.5.1
-> wegen fehlender Reflection-Registrierung defekt). Weiterhin ohne Test: Webhook, Bereinigung.
+> wegen fehlender Reflection-Registrierung defekt). `AsyncJobLifecycleTest` (2026-10-03): Webhook bei
+> Erfolg und Fehler, zweistufige Bereinigung, Neu-Einreihen hängender Jobs.
 > **Durchsatz (2026-10-03):** bis 2.6.1 ≤ 0,5 Jobs/s je Instanz (ein Job je 2-s-Takt); jetzt
 > arbeitet der Worker die Warteschlange parallel ab (3,57 Jobs/s nativ bei 2 CPU / 2 Worker),
 > belegt durch `AsyncRenderJobTest#queuedJobsAreDrainedWithoutWaitingForThePollInterval`.
 
-**Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/AsyncRenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJob.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJobWorker.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderDashboardResource.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/AsyncRenderJobTest.java · **Herkunft:** docs/product-backlog.adoc:86-94 (UC-23, TI-8)
+**Evidence:** blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/AsyncRenderResource.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJob.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderJobWorker.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderDashboardResource.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/AsyncRenderJobTest.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/AsyncJobLifecycleTest.java · **Herkunft:** docs/product-backlog.adoc:86-94 (UC-23, TI-8)
 
 ### US-0007 — Render-API optional per JWT absichern  ✅ `verified`
 

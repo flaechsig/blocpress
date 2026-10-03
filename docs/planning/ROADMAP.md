@@ -36,7 +36,14 @@ Die aus dem Backlog überführten Stories tragen **keine** Requirements — sie 
 `@Disabled` oder gar keiner): US-0005, US-0012, US-0013, US-0014, US-0016, US-0017, US-0018,
 US-0019 — siehe die jeweilige Story. Dabei gefunden und behoben: WebDAV-`PUT` validierte nicht.
 
+Weitere Aufräumrunde 2026-10-03: Datumsformatierung erstmals getestet (Uhrzeit-Fehler behoben),
+6 still übersprungene und 8 Platzhalter-Tests ersetzt bzw. entfernt, `TemplateValidatorQuarkusIT`
+wieder aktiv, render misst `@QuarkusTest`-Abdeckung (`quarkus-jacoco`: 35 % scheinbar → 70 % real),
+Workbench sperrt abgelaufene Vorlagen wie render. Hinweis: die DB-Eindeutigkeit von Vorlagen liegt auf
+(Name, `valid_from`, Version), nicht auf (Name, Version).
+
 Noch offen:
+- render: Dashboard (46 %) und Fehlerpfade in `RenderResource`/`TemplateCache` dünn getestet.
 - ~~Fuzzy-/Prefix-Suche und Hervorhebung (US-0015)~~ — **belegt** (2026-10-03, `SearchIT`).
 - ~~Webhook und Bereinigung im Job-Pfad (US-0006)~~ — **belegt** (2026-10-03, `AsyncJobLifecycleTest`).
 - Ob für die Workbench-Stories Requirements (EARS) entstehen sollen, entscheidet der Mensch —

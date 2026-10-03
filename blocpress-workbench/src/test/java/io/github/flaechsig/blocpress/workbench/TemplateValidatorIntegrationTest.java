@@ -29,19 +29,19 @@ class TemplateValidatorIntegrationTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        JsonSchemaGenerator schemaGenerator = new JsonSchemaGenerator();
+        schemaGenerator.objectMapper = objectMapper;
         validator = new TemplateValidator();
         validator.objectMapper = objectMapper;
+        validator.schemaGenerator = schemaGenerator;
     }
 
     @Test
     void testValidateWithRealOdtFile() throws Exception {
         // Load a real ODT file from blocpress-core test resources
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            // Skip if file doesn't exist (might be running from different directory)
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);
@@ -75,17 +75,15 @@ class TemplateValidatorIntegrationTest {
 
     @Test
     void testValidationResultStructure() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);
 
         // Verify result structure
-        assertTrue(result.isValid() || !result.isValid(), "Should have valid/invalid status");
+        assertTrue(result.isValid(), "sample-04.odt ist eine gueltige Vorlage: " + result.errors());
         assertNotNull(result.errors(), "Errors should not be null");
         assertNotNull(result.warnings(), "Warnings should not be null");
         assertNotNull(result.schema(), "Schema should not be null");
@@ -94,11 +92,9 @@ class TemplateValidatorIntegrationTest {
 
     @Test
     void testValidatorExtractsUserFields() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);
@@ -106,38 +102,65 @@ class TemplateValidatorIntegrationTest {
         // Check if schema was generated (should contain properties for user fields)
         assertNotNull(result.schema());
         assertNotNull(result.schema().get("properties"));
-        // Sample files have user fields, so schema should have properties or no errors
-        assertTrue(result.schema().get("properties").size() > 0 || result.errors().isEmpty(),
-            "Should extract user fields in schema or have no errors");
+        // sample-04.odt hat Benutzerfelder: sie muessen im Schema stehen, und es darf keine Fehler geben
+        assertTrue(result.errors().isEmpty(), "Validierungsfehler: " + result.errors());
+        assertTrue(result.schema().get("properties").size() > 0, "keine Felder erkannt: " + result.schema());
     }
 
     @Test
-    void testValidatorDetectsInvalidFieldNames() {
-        // This would require creating a custom ODT with invalid field names
-        // For now, just test that the validation method handles the process
-        byte[] invalidOdt = "not-an-odt".getBytes();
-        ValidationResult result = validator.validate(invalidOdt);
+    void testValidatorDetectsInvalidFieldNames() throws Exception {
+        // Kopie von header_footer.odt, in der das Feld "offer.reference" in "offer reference" umbenannt ist
+        byte[] odt = renameField(Files.readAllBytes(Paths.get("../blocpress-core/src/test/resources/header_footer.odt")),
+                "offer.reference", "offer reference");
+        ValidationResult result = validator.validate(odt);
 
-        assertNotNull(result);
-        assertFalse(result.isValid());
+        assertTrue(result.warnings().stream().anyMatch(w -> "INVALID_FIELD_NAME".equals(w.code())
+                        && w.message().contains("offer reference")),
+                "ungueltiger Feldname nicht gemeldet: " + result.warnings());
+    }
+
+    /** Benennt ein Feld in content.xml und styles.xml einer ODT-Kopie um. */
+    private static byte[] renameField(byte[] odt, String from, String to) throws Exception {
+        var out = new java.io.ByteArrayOutputStream();
+        try (var in = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(odt));
+             var zip = new java.util.zip.ZipOutputStream(out)) {
+            for (var e = in.getNextEntry(); e != null; e = in.getNextEntry()) {
+                byte[] data = in.readAllBytes();
+                if (e.getName().equals("content.xml") || e.getName().equals("styles.xml")) {
+                    data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
+                            .replace("text:name=\"" + from + "\"", "text:name=\"" + to + "\"")
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                }
+                var copy = new java.util.zip.ZipEntry(e.getName());
+                if (e.getName().equals("mimetype")) {
+                    copy.setMethod(java.util.zip.ZipEntry.STORED);
+                    copy.setSize(data.length);
+                    var crc = new java.util.zip.CRC32();
+                    crc.update(data);
+                    copy.setCrc(crc.getValue());
+                }
+                zip.putNextEntry(copy);
+                zip.write(data);
+                zip.closeEntry();
+            }
+        }
+        return out.toByteArray();
     }
 
     @Test
     void testValidationResultContainsExpectedFields() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);
 
-        // All result fields should be initialized
-        assertNotNull(result.isValid());
-        assertNotNull(result.errors());
+        // gueltige Vorlage: gueltig, keine Fehler, Schema mit Feldern
+        assertTrue(result.isValid(), result.errors().toString());
+        assertTrue(result.errors().isEmpty(), result.errors().toString());
         assertNotNull(result.warnings());
-        assertNotNull(result.schema());
+        assertTrue(result.schema().path("properties").size() > 0, result.schema().toString());
     }
 
     @Test
@@ -169,24 +192,17 @@ class TemplateValidatorIntegrationTest {
 
     @Test
     void testValidatorWithNullContent() {
-        // Verify that validator doesn't crash with null (though this is unlikely in real usage)
-        try {
-            // The validator should handle null gracefully or throw a meaningful error
-            ValidationResult result = validator.validate(null);
-            assertNotNull(result);
-        } catch (NullPointerException e) {
-            // Expected if validator doesn't check for null
-            assertNotNull(e);
-        }
+        // null darf nicht mit einer Ausnahme enden, sondern als ungueltige Vorlage gemeldet werden
+        ValidationResult result = validator.validate(null);
+        assertFalse(result.isValid());
+        assertFalse(result.errors().isEmpty(), "Fehlermeldung fehlt");
     }
 
     @Test
     void testValidationResultIsConsistent() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
 
@@ -202,11 +218,9 @@ class TemplateValidatorIntegrationTest {
 
     @Test
     void testValidatorExtractsDefaultValuesFromUserFields() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
 
-        if (!Files.exists(odtPath)) {
-            return;
-        }
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
 
         byte[] odtContent = Files.readAllBytes(odtPath);
         ValidationResult result = validator.validate(odtContent);

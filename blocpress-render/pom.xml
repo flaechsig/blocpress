@@ -150,6 +150,12 @@
             <version>0.8.11</version>
             <scope>test</scope>
         </dependency>
+        <!-- Abdeckung der @QuarkusTests (der normale JaCoCo-Agent erfasst den Quarkus-Classloader nicht) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jacoco</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Requirements-Traceability: registriert den JUnit-Listener, der @Tag("REQ-NNNN")
              nach target/req-coverage.json schreibt (ausgewertet vom blocpress-req-check-Gate). -->
         <dependency>
