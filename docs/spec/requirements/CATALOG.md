@@ -141,6 +141,7 @@ _Quelle: [`REQ-0005.md`](REQ-0005.md)_
 - `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java`
 - `blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/RenderLocaleConfig.java`
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/DefaultLocaleTest.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/DateFormatTest.java`
 - `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderLocaleConfigTest.java`
 
 _Quelle: [`REQ-0006.md`](REQ-0006.md)_

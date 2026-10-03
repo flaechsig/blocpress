@@ -82,15 +82,10 @@ class TemplateValidatorMockTest {
 
     @Test
     void testValidateWithNullHandling() {
-        // Test null resilience
-        try {
-            ValidationResult result = validator.validate(null);
-            // If it doesn't throw, verify structure
-            assertNotNull(result);
-        } catch (NullPointerException e) {
-            // This is also acceptable - null input should fail
-            assertNotNull(e.getMessage());
-        }
+        // null darf nicht mit einer Ausnahme enden, sondern als ungueltige Vorlage gemeldet werden
+        ValidationResult result = validator.validate(null);
+        assertFalse(result.isValid());
+        assertFalse(result.errors().isEmpty(), "Fehlermeldung fehlt");
     }
 
     @Test

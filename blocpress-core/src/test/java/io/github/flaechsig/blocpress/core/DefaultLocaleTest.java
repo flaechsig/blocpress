@@ -74,6 +74,19 @@ public class DefaultLocaleTest {
     }
 
     @Test
+    @Tag("REQ-0006")
+    public void numbersSentAsGermanTextAreParsed() throws Exception {
+        // Zahl im JSON als Text in deutscher Schreibweise (z.B. aus Formularen): wird gelesen und neu formatiert
+        var node = mapper.readTree("{\"numbertest\": \"500.000,50\"}");
+        var lines = extractOdtContent(RenderEngine.mergeTemplate(template(), node, Locale.GERMANY)).lines().toList();
+        assertEquals("500.000,50", lines.get(3), "gruppiert, 2 Nachkommastellen");
+
+        node = mapper.readTree("{\"numbertest\": \"83,5\"}");
+        lines = extractOdtContent(RenderEngine.mergeTemplate(template(), node, Locale.GERMANY)).lines().toList();
+        assertEquals("83,50", lines.get(1));
+    }
+
+    @Test
     public void legacyApiKeepsGermanDefault() throws Exception {
         var node = mapper.readTree("{\"numbertest\": 500000}");
         var lines = extractOdtContent(RenderEngine.mergeTemplate(template(), node)).lines().toList();

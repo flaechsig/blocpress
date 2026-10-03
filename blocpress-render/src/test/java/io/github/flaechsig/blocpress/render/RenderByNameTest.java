@@ -52,6 +52,18 @@ class RenderByNameTest {
     }
 
     @Test
+    void newlyImportedVersionIsUsedImmediately() throws Exception {
+        // Vorlagen-Cache: nach dem Import einer neueren Version darf nicht mehr die alte geliefert werden
+        String name = "cache-" + UUID.randomUUID();
+        importTemplate(name, 1, "IfCondition.odt", LocalDateTime.now().minusDays(2), null);
+        assertTrue(pdfText(render(name).body()).contains("Liebe Frau Müller"), "v1 erwartet");
+
+        importTemplate(name, 2, "section.odt", LocalDateTime.now().minusDays(1), null);
+        String text = pdfText(render(name).body());
+        assertTrue(text.contains("Absatz der unter der Bedingung"), "nach Import muss v2 gelten (Cache): " + text);
+    }
+
+    @Test
     void expiredTemplateIsBlocked() throws Exception {
         String name = "expired-" + UUID.randomUUID();
         importTemplate(name, 1, "IfCondition.odt", LocalDateTime.now().minusYears(1), LocalDateTime.now().minusDays(1));

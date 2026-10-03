@@ -109,7 +109,9 @@ public class Template extends PanacheEntityBase {
      */
     public static Template findLatestActiveByName(String name, LocalDateTime asOfDate) {
         return find(
-            "name = ?1 AND status = 'APPROVED' AND (validFrom IS NULL OR validFrom <= ?2) ORDER BY version DESC",
+            // aktiv = freigegeben, gueltig ab erreicht, noch nicht abgelaufen (wie ProductionTemplate in render)
+            "name = ?1 AND status = 'APPROVED' AND (validFrom IS NULL OR validFrom <= ?2)"
+                + " AND (validUntil IS NULL OR validUntil > ?2) ORDER BY version DESC",
             name,
             asOfDate
         ).firstResult();

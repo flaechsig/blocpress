@@ -10,7 +10,6 @@ import io.github.flaechsig.blocpress.workbench.entity.Template;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -23,11 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Quarkus integration tests for TemplateValidator.
  * Tests the validator with actual Quarkus CDI injection.
  *
- * Note: This is an integration test (suffix IT) and is skipped by default
- * during unit test runs due to JaCoCo + Quarkus bytecode conflicts.
- * Disabled due to ExceptionInInitializerError with JaCoCo bytecode instrumentation.
+ * Prueft den Validator mit echter CDI-Verdrahtung (inkl. JsonSchemaGenerator) — die Unit-Tests
+ * verdrahten von Hand. War wegen eines JaCoCo-/Quarkus-Konflikts abgeschaltet; seit quarkus-jacoco
+ * laeuft er wieder.
  */
-@Disabled("Disabled due to JaCoCo + Quarkus bytecode conflicts causing ExceptionInInitializerError")
 @QuarkusTest
 class TemplateValidatorQuarkusIT {
 
@@ -96,31 +94,23 @@ class TemplateValidatorQuarkusIT {
 
     @Test
     void testValidatorWithRealOdtIfAvailable() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-04.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-04.odt");
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
+        ValidationResult result = validator.validate(Files.readAllBytes(odtPath));
 
-        if (Files.exists(odtPath)) {
-            byte[] odtContent = Files.readAllBytes(odtPath);
-            ValidationResult result = validator.validate(odtContent);
-
-            assertNotNull(result);
-            // Real ODT should parse (may have errors or be valid)
-            assertNotNull(result.schema());
-            assertNotNull(result.errors());
-            assertNotNull(result.warnings());
-        }
+        assertTrue(result.isValid(), "gueltige Vorlage: " + result.errors());
+        assertTrue(result.schema().path("properties").size() > 0, "keine Felder erkannt: " + result.schema());
     }
 
     @Test
     void testValidatorWithAnotherRealOdt() throws Exception {
-        Path odtPath = Paths.get("blocpress-core/src/test/resources/sample-05.odt");
+        Path odtPath = Paths.get("../blocpress-core/src/test/resources/sample-05.odt");
+        assertTrue(Files.exists(odtPath), "Testvorlage fehlt: " + odtPath.toAbsolutePath());
+        ValidationResult result = validator.validate(Files.readAllBytes(odtPath));
 
-        if (Files.exists(odtPath)) {
-            byte[] odtContent = Files.readAllBytes(odtPath);
-            ValidationResult result = validator.validate(odtContent);
-
-            assertNotNull(result);
-            assertNotNull(result.schema());
-        }
+        assertTrue(result.isValid(), "gueltige Vorlage: " + result.errors());
+        // sample-05.odt: Kunden als Wiederholungsgruppe (Abschnitt + Tabelle)
+        assertTrue(result.repetitionGroups().contains("customer"), "Wiederholungsgruppe fehlt: " + result.repetitionGroups());
     }
 
     @Test
