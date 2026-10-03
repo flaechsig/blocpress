@@ -90,6 +90,22 @@ jobs:
           -DskipTests
 
       # ------------------------------------------------------------------
+      # E2E-Gate: Quickstart-Image (nativ) lokal bauen und die E2E-Suite
+      # dagegen laufen lassen — VOR Maven Central und Docker Hub. Schlaegt
+      # sie fehl, wird nichts veroeffentlicht.
+      # ------------------------------------------------------------------
+      - name: Quickstart-Image lokal bauen (für E2E)
+        run: docker build -f docker/studio/Dockerfile.native -t blocpress-studio-quickstart:e2e .
+
+      - name: E2E-Suite gegen das Quickstart-Image
+        run: >
+          mvn -B verify -pl blocpress-e2e
+          -De2e.skip=false
+          -Dstudio.image=blocpress-studio-quickstart:e2e
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      # ------------------------------------------------------------------
       # Maven Central — nur blocpress-core
       # ------------------------------------------------------------------
       - name: GPG-Key importieren

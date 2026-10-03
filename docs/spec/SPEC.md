@@ -20,22 +20,25 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 30 |
-| 🟡 in-progress | 2 |
+| ✅ verified | 32 |
 | ⚪ open | 3 |
-| **Summe** | **35** |
+| ⛔ superseded | 1 |
+| **Summe** | **36** |
 
-## E-Administration — Administration (Benutzer, Rollen, Audit)  ⚪ `open`
+## E-Administration — Rollen und Audit (über den Identity-Provider)  ⚪ `open`
 
-Benutzerverwaltung mit Rollenzuweisung, Rollenprüfung bei jedem API-Aufruf und
-lückenloses Audit-Log der Workflow-Änderungen. Der Altbestand sieht dafür ein
-Modul `blocpress-admin` vor.
+Rollenprüfung bei jedem API-Aufruf und lückenloses Audit-Log der
+Workflow-Änderungen. Benutzer und Rollen verwaltet **nicht** blocpress, sondern
+ein externer Identity-Provider; die Rollen stehen als Claim im JWT. Umsetzung in
+den bestehenden Modulen — kein eigenes Modul `blocpress-admin`
+([ADR-003](../../architecture/decisions/ADR-003.adoc)).
 
-**Warum.** Ohne eigene Benutzer- und Rollenverwaltung hängt die Freigabe an der
-externen JWT-Ausstellung; ein Audit-Log macht Freigaben nachträglich
-nachvollziehbar. Noch nicht begonnen.
+**Warum.** Freigaben und Produktionsdeploys sollen nur berechtigte Rollen
+auslösen dürfen, und ein Audit-Log macht Freigaben nachträglich nachvollziehbar.
+Betreiber haben einen Identity-Provider; eine zweite Benutzerverwaltung in
+blocpress brächte keinen Mehrwert. Noch nicht begonnen.
 
-### US-0020 — Benutzer und Rollen verwalten  ⚪ `open`
+### US-0020 — Benutzer und Rollen verwalten  ⛔ `superseded`
 
 Als **Administrator** möchte ich Benutzer anlegen, ändern und löschen und ihnen
 Rollen (Gestalter, Reviewer, …) zuweisen.
@@ -44,16 +47,22 @@ Rollen (Gestalter, Reviewer, …) zuweisen.
 `blocpress-admin` noch eine Benutzer-Entity; Identitäten kommen ausschließlich
 aus dem (extern ausgestellten) JWT.
 
-**Herkunft:** docs/product-backlog.adoc:301-309 (UC-22, Entity E-9)
+> **Abgelöst durch [ADR-003](../../architecture/decisions/ADR-003.adoc) (2026-10-03):** blocpress verwaltet keine Benutzer.
+> Benutzer und Rollen kommen aus einem externen Identity-Provider (Rollen als Claim im JWT).
+
+**Abgelöst durch:** ADR-003 · **Herkunft:** docs/product-backlog.adoc:301-309 (UC-22, Entity E-9)
 
 ### US-0021 — Rollen bei jedem API-Aufruf prüfen  ⚪ `open`
 
 Als **Betreiber** möchte ich, dass jeder API-Aufruf gegen die Rolle des Aufrufers
-geprüft wird (RBAC).
+geprüft wird (RBAC) — mit den Rollen, die mein Identity-Provider im Token führt
+(`groups`-Claim), z.B. Gestalter, Reviewer.
 
 **Warum.** Freigaben und Produktionsdeploys dürfen nur berechtigte Rollen
-auslösen. Heute existiert kein `@RolesAllowed`; render-Endpunkte sind
-`@PermitAll` (siehe US-0007), die Workbench prüft serverseitig gar nicht.
+auslösen. Heute prüft render optional nur die Gültigkeit des Tokens (ADR-002),
+keine Rollen; die Workbench prüft serverseitig gar kein Token — das ist die
+Voraussetzung für RBAC dort. Umsetzung in den bestehenden Modulen, kein eigenes
+Admin-Modul ([ADR-003](../../architecture/decisions/ADR-003.adoc)).
 
 **Herkunft:** docs/product-backlog.adoc:311-314
 
@@ -150,12 +159,12 @@ Hand wäre ein Bruch im automatisierten Ablauf.
 **Stand.** Der Altbestand führt TI-3 als DONE; der Code bestätigt das:
 `LibreOfficeProcessor` (in `blocpress-core`, nicht wie im Epic beschrieben in
 render) ruft `soffice --convert-to` mit isoliertem Profil je Aufruf, render kapselt
-das in `LibreOfficePool`. Seit 2026-10-02 belegt durch REQ-0004 (implemented).
+das in `LibreOfficePool`. Seit 2026-10-02 belegt, heute durch REQ-0012 (löst REQ-0004 ab, ADR-004).
 Dazu wurde `TransformTest` reaktiviert — er war zuvor komplett abgeschaltet
 (`@Test` auskommentiert), und seine RTF-Referenzdatei in core ist in Wahrheit ein
 DOCX, der RTF-Vergleich wäre nie grün geworden.
 
-**Requirements:** REQ-0004 · **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LibreOfficeProcessor.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/LibreOfficePool.java, blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TransformTest.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/TemplateResourceTest.java · **Herkunft:** docs/product-backlog.adoc:41-44 (TI-3)
+**Requirements:** REQ-0012 · **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/LibreOfficeProcessor.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/LibreOfficePool.java, blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TransformTest.java, blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/TemplateResourceTest.java · **Herkunft:** docs/product-backlog.adoc:41-44 (TI-3)
 
 ## E-Freigabe — Prüfung und Freigabe  ✅ `verified`
 
@@ -171,9 +180,8 @@ erzwungen (Entscheidung 2026-03-01) — eine schlanke Umsetzung mit Option auf
 späteres Verschärfen.
 
 > **Abweichung zum Altbestand:** Der Altbestand verortet dieses Thema im Modul
-> `blocpress-proof`. Das Modul existiert nicht; die Freigabe läuft in
-> `blocpress-workbench` (dort als „Interim" bezeichnet). Ob ein eigenes Modul
-> noch Ziel ist, ist offen (siehe ROADMAP).
+> `blocpress-proof`. Entschieden 2026-10-03: kein eigenes Modul, die Freigabe
+> bleibt in `blocpress-workbench` ([ADR-003](../../architecture/decisions/ADR-003.adoc)).
 
 ### US-0016 — Vorlage einreichen, freigeben oder ablehnen  ✅ `verified`
 
@@ -224,7 +232,8 @@ bevor freigegeben wird.
 
 > **Nachweis (2026-10-03):** `RegressionRunIT` — ohne Baseline, identisch, geänderter Inhalt, Ignorier-Muster
 > als akzeptierte Abweichung (ohne andere Änderungen zu verdecken), Lauf über alle, Diff-PDF.
-> Benötigt `pdftohtml` (poppler-utils) — in den Images und seit 2026-10-03 in der CI.
+> Benötigt `pdftohtml`/`pdftoppm` (poppler-utils) und für das Diff-PDF ImageMagick (`convert`,
+> `montage`) — in den Images und seit 2026-10-03 in der CI.
 
 **Evidence:** blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/RegressionRunIT.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/service/PdfComparisonService.java, blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/TemplateResource.java, blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js, blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/WorkbenchIT.java · **Herkunft:** docs/product-backlog.adoc:176-184 (TF-8, UC-11), :257-270 (UC-14, UC-16, TF-6)
 
@@ -288,7 +297,7 @@ Quickstart-Image.
 E2E-Suite sichert das Zusammenspiel der Module ab, das Unit-Tests allein nicht
 sehen.
 
-### US-0029 — Jeder Push wird gebaut und getestet  🟡 `in-progress`
+### US-0029 — Jeder Push wird gebaut und getestet  ✅ `verified`
 
 Als **Entwickler** möchte ich, dass jeder Push auf `main`/`workbench-*` und jeder
 Pull Request gebaut und mit Unit- und Integrationstests (Testcontainers) geprüft
@@ -296,11 +305,12 @@ wird.
 
 **Warum.** Regressionen sollen vor dem Merge auffallen, nicht beim Release.
 
-> **Stand 2026-10-02:** `ci.yml` baut und testet jetzt alle Module außer e2e
-> (inkl. LibreOffice und req-check-Gate). Offen ist nur noch die E2E-Suite gegen das
-> Quickstart-Image (braucht das gebaute Image). Daher weiter `in-progress`.
+> **Stand 2026-10-03:** `ci.yml` baut und testet bei jedem Push alle Module außer e2e
+> (inkl. LibreOffice, poppler-utils, ImageMagick und req-check-Gate). Die E2E-Suite läuft
+> **vor jedem Release** gegen das frisch gebaute native Quickstart-Image, vor Maven Central
+> und Docker Hub (entschieden 2026-10-03: Push-CI bleibt schnell).
 
-**Evidence:** .github/workflows/ci.yml · **Herkunft:** docs/product-backlog.adoc:381-384
+**Evidence:** .github/workflows/ci.yml, .github/workflows/release.yml · **Herkunft:** docs/product-backlog.adoc:381-384
 
 ### US-0030 — Release mit einem Befehl  ✅ `verified`
 
@@ -324,7 +334,9 @@ Als **Entwickler** möchte ich eine E2E-Suite gegen das Quickstart-Image
 Rechnungs-Regression) und eine Code-Abdeckung, die auch Code in laufenden
 Containern und `@QuarkusTest`-Code korrekt erfasst.
 
-**Warum.** Unit-Tests sehen das Zusammenspiel der Module nicht. Die Abdeckung
+**Warum.** Unit-Tests sehen das Zusammenspiel der Module nicht. Seit 2026-10-03 läuft die
+Suite als Gate im Release-Workflow gegen das native Quickstart-Image (16/16 grün; die
+JaCoCo-Abdeckung aus den Containern entfällt bei nativen Images). Die Abdeckung
 wird per JaCoCo-TCP-Dump aus den Container-JVMs (Ports 6300/6301) bzw. über
 `quarkus-jacoco` gemessen, weil der Quarkus-Classloader die normale
 JaCoCo-Instrumentierung umgeht.
@@ -492,6 +504,27 @@ sollen genauso gefüllt und formatiert werden wie im Dokumentrumpf.
 
 **Requirements:** REQ-0010
 
+### US-0036 — Word-Vorlagen (DOCX) als Quelle  ⚪ `open`
+
+Als **Vorlagengestalter** möchte ich Vorlagen auch in Microsoft Word (DOCX) erstellen und mit
+denselben JSON-Daten füllen lassen wie ODT-Vorlagen, damit ich nicht auf LibreOffice Writer
+festgelegt bin.
+
+**Warum.** Viele Fachbereiche arbeiten mit Word; eine Umstellung auf LibreOffice ist für sie
+eine Hürde. Festgehalten 2026-10-03, um den Weg offen zu halten — **noch nicht geplant**.
+
+**Was dafür nötig wäre (Stand 2026-10-03):**
+- eine zweite Umsetzung von `TemplateDocument` (`DocxTemplateDocument`) in `blocpress-core`,
+  z.B. auf Basis von docx4j oder Apache POI;
+- ein Feldkonzept für Word — Word kennt keine LibreOffice-Benutzerfelder, sondern
+  Seriendruckfelder (`MERGEFIELD`) bzw. Inhaltssteuerelemente; Bedingungen und Wiederholungen
+  müssten darauf abgebildet werden;
+- die Konvertierung in `blocpress-core` (bleibt dort, [ADR-004](../../architecture/decisions/ADR-004.adoc))
+  muss das Eingabeformat annehmen — heute fest ODT.
+
+Vor der Umsetzung: Requirements per `/anforderung`, Architektur-Impact per `/arc42`.
+
+
 ## E-Studio — Portal und Micro-Frontends (Studio)  🟡 `in-progress`
 
 `blocpress-studio` ist der zentrale Einstiegspunkt im Browser: eine Portal-Shell,
@@ -515,14 +548,14 @@ Build.
 
 **Evidence:** blocpress-studio/src/main/resources/META-INF/resources/index.html, blocpress-studio/src/main/resources/META-INF/resources/components/bp-app.js, blocpress-studio/src/main/resources/META-INF/resources/components/bp-nav.js, blocpress-studio/src/main/resources/META-INF/resources/components/bp-token-input.js, blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/StudioE2EIT.java · **Herkunft:** docs/product-backlog.adoc:335-353, :365-368
 
-### US-0024 — Moduloberflächen als Web Components  🟡 `in-progress`
+### US-0024 — Moduloberflächen als Web Components  ✅ `verified`
 
-Als **Nutzer** möchte ich die Oberflächen von Workbench und Administration als
-Web Components (`<bp-workbench>`, `<bp-admin>`) im Studio nutzen.
+Als **Nutzer** möchte ich die Oberflächen der Module als Web Components
+(`<bp-workbench>`) im Studio nutzen.
 
 **Warum.** Jedes Modul liefert seine UI selbst aus und bleibt unabhängig
-deploybar. `<bp-workbench>` existiert; `<bp-admin>` fehlt, weil das Modul
-blocpress-admin noch nicht existiert (E-Administration).
+deploybar. `<bp-workbench>` existiert. Das im Altbestand geplante `<bp-admin>`
+entfällt — es gibt kein Admin-Modul ([ADR-003](../../architecture/decisions/ADR-003.adoc)).
 
 **Evidence:** blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js, blocpress-studio/src/main/java/io/github/flaechsig/blocpress/studio/WorkbenchProxyResource.java · **Herkunft:** docs/product-backlog.adoc:345-348
 

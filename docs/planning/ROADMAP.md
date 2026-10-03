@@ -11,22 +11,21 @@ Fäden, jeweils mit Verweis auf die Story/das Requirement.
   für Gestalter im README.
 - ~~Textbaustein-Expansion~~ — **belegt** (2026-10-03): REQ-0011, `TextBlockTest` prüft Inhalt + PDF.
 
+- **[E-Rendering]** Word-Vorlagen (DOCX) als Quelle — [US-0036](../spec/stories/US-0036.md)
+  (`open`, noch nicht geplant; Weg über zweite `TemplateDocument`-Umsetzung, ADR-004).
+
 ## Widersprüche Altbestand ↔ Code (Mensch entscheidet, was gilt)
 
 Bei der Überführung des Backlogs (2026-10-02) sichtbar geworden; in den Stories
 als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
 
-- **REQ-0004-rationale** — sagt, die Konvertierung gehöre „an den Rand (render-Modul,
-  LibreOfficeProcessor)", damit der Kern ohne LibreOffice bleibt. Tatsächlich liegt
-  `LibreOfficeProcessor` in `blocpress-core` (keine Compile-Abhängigkeit, aber ein
-  `soffice`-Prozessaufruf). Requirement ist unveränderlich → bei Bedarf `/anforderung`
-  (supersede) oder `/arc42` (Klasse nach render verschieben?).
-- **CI-Umfang** — [US-0029](../spec/stories/US-0029.md): `ci.yml` testet seit 2026-10-02
-  alle Module außer e2e (inkl. Gate); offen: soll die E2E-Suite (braucht gebautes
-  Quickstart-Image) in die CI?
-- **blocpress-proof / blocpress-admin** — der Backlog beschreibt eigene Module; proof ist
-  in der Workbench aufgegangen (E-Freigabe), admin existiert nicht (E-Administration,
-  US-0020..0022). Gilt das Zielbild eigener Module noch? → `/adr`.
+- ~~**REQ-0004-rationale**~~ — **entschieden 2026-10-03** ([ADR-004](../architecture/decisions/ADR-004.adoc)):
+  Konvertierung bleibt in `blocpress-core`; REQ-0004 durch REQ-0012 abgelöst.
+- ~~**CI-Umfang**~~ — **entschieden 2026-10-03** ([US-0029](../spec/stories/US-0029.md)):
+  Push-CI ohne e2e; die E2E-Suite ist Gate im Release-Workflow (vor der Veröffentlichung).
+- ~~**blocpress-proof / blocpress-admin**~~ — **entschieden 2026-10-03**
+  ([ADR-003](../architecture/decisions/ADR-003.adoc)): keine eigenen Module; Freigabe bleibt in
+  der Workbench, Benutzer/Rollen aus dem Identity-Provider. US-0020 abgelöst.
 - **API-Pfade** — Backlog nennt `/render/template/upload` und `/render/{id}`; tatsächlich
   `/api/render/template` (beide Content-Types) und `/api/render/{name}` (US-0004/0005).
 

@@ -7,7 +7,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 
 > **Status ist abgeleitet, nicht gepflegt:** eine Story ist `umgesetzt`, wenn alle ihre Requirements `implemented` sind; ein Epic ist `umgesetzt`, wenn alle seine Stories es sind (sonst `in Arbeit` / `geplant`). Der Status bezieht sich auf die hier modellierten Stories. Die gewachsene Doku (`product-backlog.adoc`) wird kontrolliert überführt, siehe [ROADMAP](ROADMAP.md).
 
-## E-Administration — Administration (Benutzer, Rollen, Audit)  ·  `geplant`
+## E-Administration — Rollen und Audit (über den Identity-Provider)  ·  `geplant`
 
 - **US-0020** Benutzer und Rollen verwalten  `ohne Requirements`
 - **US-0021** Rollen bei jedem API-Aufruf prüfen  `ohne Requirements`
@@ -22,7 +22,7 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 
 ## E-Formate — Formatkonvertierung (ODT → PDF/RTF)  ·  `umgesetzt`
 
-- **US-0003** Dokument als PDF/RTF ausgeben  `umgesetzt` → [REQ-0004](../spec/requirements/REQ-0004.md)
+- **US-0003** Dokument als PDF/RTF ausgeben  `umgesetzt` → [REQ-0012](../spec/requirements/REQ-0012.md)
 
 ## E-Freigabe — Prüfung und Freigabe  ·  `geplant`
 
@@ -48,13 +48,14 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 - **US-0006** Asynchron rendern über eine Job-Queue  `ohne Requirements`
 - **US-0007** Render-API optional per JWT absichern  `umgesetzt` → [REQ-0008](../spec/requirements/REQ-0008.md), [REQ-0009](../spec/requirements/REQ-0009.md)
 
-## E-Rendering — Render-Pipeline (Vorlage + Daten → Dokument)  ·  `umgesetzt`
+## E-Rendering — Render-Pipeline (Vorlage + Daten → Dokument)  ·  `in Arbeit`
 
 - **US-0001** Platzhalter automatisch aus JSON füllen  `umgesetzt` → [REQ-0001](../spec/requirements/REQ-0001.md)
 - **US-0002** Bedingungen und Listen in einer Vorlage  `umgesetzt` → [REQ-0002](../spec/requirements/REQ-0002.md), [REQ-0003](../spec/requirements/REQ-0003.md)
 - **US-0032** Gemeinsame Textbausteine einbinden  `umgesetzt` → [REQ-0011](../spec/requirements/REQ-0011.md)
 - **US-0033** Zahlen und Daten im Sprachformat der Vorlage  `umgesetzt` → [REQ-0005](../spec/requirements/REQ-0005.md), [REQ-0006](../spec/requirements/REQ-0006.md), [REQ-0007](../spec/requirements/REQ-0007.md)
 - **US-0035** Platzhalter in Kopf- und Fußzeilen  `umgesetzt` → [REQ-0010](../spec/requirements/REQ-0010.md)
+- **US-0036** Word-Vorlagen (DOCX) als Quelle  `ohne Requirements`
 
 ## E-Studio — Portal und Micro-Frontends (Studio)  ·  `geplant`
 
@@ -79,7 +80,6 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 | [REQ-0001](../spec/requirements/REQ-0001.md) | US-0001 |
 | [REQ-0002](../spec/requirements/REQ-0002.md) | US-0002 |
 | [REQ-0003](../spec/requirements/REQ-0003.md) | US-0002 |
-| [REQ-0004](../spec/requirements/REQ-0004.md) | US-0003 |
 | [REQ-0005](../spec/requirements/REQ-0005.md) | US-0033 |
 | [REQ-0006](../spec/requirements/REQ-0006.md) | US-0033 |
 | [REQ-0007](../spec/requirements/REQ-0007.md) | US-0033 |
@@ -87,8 +87,9 @@ Bricht die [Vision](../spec/VISION.md) über Epics → Stories → [Requirements
 | [REQ-0009](../spec/requirements/REQ-0009.md) | US-0007 |
 | [REQ-0010](../spec/requirements/REQ-0010.md) | US-0035 |
 | [REQ-0011](../spec/requirements/REQ-0011.md) | US-0032 |
+| [REQ-0012](../spec/requirements/REQ-0012.md) | US-0003 |
 
 ## Requirements ohne Story
 
-Keine — jedes Requirement ist mindestens einer Story zugeordnet.
+- [REQ-0004](../spec/requirements/REQ-0004.md)
 

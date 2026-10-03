@@ -17,8 +17,8 @@ Erzählerischer Einstieg: **[README](README.md)**. Diese Seite ist der generiert
 | planned | 0 |
 | proposed | 0 |
 | rejected | 0 |
-| superseded | 0 |
-| **Gesamt** | **11** |
+| superseded | 1 |
+| **Gesamt** | **12** |
 
 ### arc42-Kapitel
 

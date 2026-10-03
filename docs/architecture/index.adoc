@@ -52,6 +52,8 @@ Jede schwer umkehrbare Entscheidung liegt als eigene Datei unter
 |ADR |Kurzbeschreibung |Status
 |link:decisions/ADR-001.adoc[ADR-001] |Adaption der tarifnova-Dokumentations- und Skill-Methodik |accepted
 |link:decisions/ADR-002.adoc[ADR-002] |Optionale JWT-Absicherung der Render-API |accepted
+|link:decisions/ADR-003.adoc[ADR-003] |Keine eigenen Module für Prüfung und Administration |accepted
+|link:decisions/ADR-004.adoc[ADR-004] |PDF/RTF-Konvertierung bleibt in blocpress-core |accepted
 |===
 
 == 10. Qualitätsanforderungen

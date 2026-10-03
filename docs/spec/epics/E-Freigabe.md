@@ -19,6 +19,5 @@ erzwungen (Entscheidung 2026-03-01) — eine schlanke Umsetzung mit Option auf
 späteres Verschärfen.
 
 > **Abweichung zum Altbestand:** Der Altbestand verortet dieses Thema im Modul
-> `blocpress-proof`. Das Modul existiert nicht; die Freigabe läuft in
-> `blocpress-workbench` (dort als „Interim" bezeichnet). Ob ein eigenes Modul
-> noch Ziel ist, ist offen (siehe ROADMAP).
+> `blocpress-proof`. Entschieden 2026-10-03: kein eigenes Modul, die Freigabe
+> bleibt in `blocpress-workbench` ([ADR-003](../../architecture/decisions/ADR-003.adoc)).
