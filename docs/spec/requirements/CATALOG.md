@@ -20,7 +20,8 @@ Menschenlesbare Fassung von [`docs/spec/requirements/`](.). Quelle jeder Anforde
 **Evidence:**
 
 - `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java`
-- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/ShowVariableTest.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/FieldReplacementTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderedPdfTest.java`
 
 _Quelle: [`REQ-0001.md`](REQ-0001.md)_
 
@@ -46,6 +47,7 @@ _Quelle: [`REQ-0001.md`](REQ-0001.md)_
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/IfConditionTest.java`
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/SectionVisibilityTest.java`
 - `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/SectionPdfTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderedPdfTest.java`
 
 _Quelle: [`REQ-0002.md`](REQ-0002.md)_
 
@@ -68,6 +70,7 @@ _Quelle: [`REQ-0002.md`](REQ-0002.md)_
 - `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java`
 - `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateDocument.java`
 - `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/LoopTest.java`
+- `blocpress-render/src/test/java/io/github/flaechsig/blocpress/render/RenderedPdfTest.java`
 
 _Quelle: [`REQ-0003.md`](REQ-0003.md)_
 
@@ -232,6 +235,29 @@ _Quelle: [`REQ-0009.md`](REQ-0009.md)_
 - `blocpress-workbench/src/test/java/io/github/flaechsig/blocpress/workbench/HeaderFooterFieldDetectionTest.java`
 
 _Quelle: [`REQ-0010.md`](REQ-0010.md)_
+
+---
+
+## REQ-0011  ·  `implemented`
+
+> WHEN a template contains a section linked to an external ODT document (text:section-source), the render engine shall inline that document's content before conditions, loops and fields are resolved, and shall fill the text block's fields from the JSON paths mapped in the section name.
+
+| | |
+|---|---|
+| **Obligation** | MUSS |
+| **Status** | implemented |
+| **Confidence** | verified |
+| **Source** | OpenDocument (ODF) 1.3 — text:section-source |
+
+**Rationale:** Gemeinsame Inhalte (AGB, Sondervereinbarungen) sollen als eigene ODT-Datei gepflegt und in viele Vorlagen eingebunden werden — eine Änderung betrifft dann eine Datei statt jeder Vorlage. Der Baustein kennt seine eigenen Feldnamen (z.B. firstname); welche Daten der einbindenden Vorlage sie füllen, legt der Bereichsname fest, z.B. "SpecialAgreement(firstname=customer.0.firstName, lastname=customer.0.lastName)". So bleibt der Baustein unabhängig von der Datenstruktur der jeweiligen Vorlage.
+
+**Evidence:**
+
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java`
+- `blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateSectionElement.java`
+- `blocpress-core/src/test/java/io/github/flaechsig/blocpress/core/TextBlockTest.java`
+
+_Quelle: [`REQ-0011.md`](REQ-0011.md)_
 
 ---
 

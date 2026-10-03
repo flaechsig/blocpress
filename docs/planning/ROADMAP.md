@@ -6,10 +6,11 @@ Fäden, jeweils mit Verweis auf die Story/das Requirement.
 
 ## Offene Beschreibung (wächst entlang der Änderungen)
 
-- **[E-Rendering]** Textbaustein-Expansion — [US-0032](../spec/stories/US-0032.md).
-  **Blockiert durch fehlenden Nachweis:** `TextBlockTest` prüft nur `assertNotNull`.
-  Erst einen assertierenden Test bauen (`/umsetzung`), dann als Requirement binden.
-  Bis dahin **kein** getaggtes Requirement (kein hohler Tag).
+- **[E-Rendering]** Benutzerdefinierte Dokumenteigenschaften (`text:user-defined`, Datei →
+  Eigenschaften → Benutzerdefiniert) werden **nicht** gefüllt — nur Benutzerfelder (Strg+F2).
+  Aufgefallen 2026-10-03: `kuendigung.odt` nutzt sie, der REQ-0001-Beleg darauf war deshalb hohl.
+  Sollen sie unterstützt werden (Wert in meta.xml setzen bzw. Feld ersetzen)? → `/anforderung`.
+- ~~Textbaustein-Expansion~~ — **belegt** (2026-10-03): REQ-0011, `TextBlockTest` prüft Inhalt + PDF.
 
 ## Widersprüche Altbestand ↔ Code (Mensch entscheidet, was gilt)
 
