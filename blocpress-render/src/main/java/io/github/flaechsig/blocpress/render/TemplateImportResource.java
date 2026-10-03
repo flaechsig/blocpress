@@ -16,6 +16,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -49,6 +51,15 @@ public class TemplateImportResource {
     @Transactional
     @CacheInvalidateAll(cacheName = "templates")
     public Response importTemplate(ImportRequest request) {
+        // Ungueltige Anfragen sind ein Fehler des Aufrufers (400), nicht des Servers (500)
+        String invalid = validate(request);
+        if (invalid != null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"" + invalid + "\"}")
+                    .build();
+        }
+        byte[] content = Base64.getDecoder().decode(request.contentBase64());
+
         // Delete existing template with same ID if present (upsert)
         ProductionTemplate.delete("id", request.id());
 
@@ -57,7 +68,7 @@ public class TemplateImportResource {
         template.id = request.id();
         template.name = request.name();
         template.version = request.version();
-        template.content = Base64.getDecoder().decode(request.contentBase64());
+        template.content = content;
         template.validFrom = request.validFrom();
         template.validUntil = request.validUntil();
         template.persist();
@@ -80,6 +91,28 @@ public class TemplateImportResource {
         ProductionTemplate.delete("name", name);
         templateCache.invalidate(name);
         return Response.noContent().build();
+    }
+
+    /** @return Fehlerbeschreibung oder {@code null}, wenn die Anfrage vollstaendig und gueltig ist. */
+    static String validate(ImportRequest request) {
+        if (request == null) {
+            return "request body is missing";
+        }
+        List<String> missing = new ArrayList<>();
+        if (request.id() == null) missing.add("id");
+        if (request.name() == null || request.name().isBlank()) missing.add("name");
+        if (request.version() == null) missing.add("version");
+        if (request.contentBase64() == null || request.contentBase64().isBlank()) missing.add("contentBase64");
+        if (request.validFrom() == null) missing.add("validFrom");
+        if (!missing.isEmpty()) {
+            return "missing required fields: " + String.join(", ", missing);
+        }
+        try {
+            Base64.getDecoder().decode(request.contentBase64());
+        } catch (IllegalArgumentException e) {
+            return "contentBase64 is not valid Base64";
+        }
+        return null;
     }
 
     /**

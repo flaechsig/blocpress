@@ -43,8 +43,8 @@ Die 28 aus dem Backlog überführten Stories tragen **keine** Requirements — s
 - Regressionslauf/Diff/Ignorieren (US-0018), Compliance-Review/Scheduler (US-0019)
 - Coverage-Analyse (US-0012), Bausteine (US-0013), WebDAV (US-0014),
   Fuzzy-/Prefix-Suche (US-0015)
-- Import-Endpunkt (`POST /api/render/templates/import`) antwortet auf eine leere/ungültige
-  Anfrage mit 500 statt 400 (aufgefallen bei ADR-002, 2026-10-02).
+- ~~Import-Endpunkt: 500 statt 400 bei ungültiger Anfrage~~ — **behoben** (2026-10-03,
+  `TemplateImportValidationTest`).
 
 ## Bereits umgesetzt (via Nachweis-Bindung an bestehende Core-Tests)
 
