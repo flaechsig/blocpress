@@ -20,8 +20,8 @@ Die vollständige Beschreibung in einem Dokument: [Vision](VISION.md) → Epics 
 
 | Status | Stories |
 |---|---|
-| ✅ verified | 29 |
-| 🟡 in-progress | 3 |
+| ✅ verified | 30 |
+| 🟡 in-progress | 2 |
 | ⚪ open | 3 |
 | **Summe** | **35** |
 
@@ -449,7 +449,7 @@ Schleifen bräuchte man je Fall eine eigene Vorlage.
 
 **Requirements:** REQ-0002, REQ-0003 · **Herkunft:** docs/product-backlog.adoc:36-39 (TF-5, Bedingungen + Schleifen)
 
-### US-0032 — Gemeinsame Textbausteine einbinden  🟡 `in-progress`
+### US-0032 — Gemeinsame Textbausteine einbinden  ✅ `verified`
 
 Als **Vorlagengestalter** möchte ich gemeinsame Inhalte (z.B. AGB) als eigene
 ODT-Datei pflegen und per verknüpftem Bereich (`text:section-source`) in
@@ -458,11 +458,10 @@ beliebig viele Vorlagen einbinden.
 **Warum.** Eine Änderung an den AGB soll *eine* Datei betreffen, nicht jede
 Vorlage.
 
-> **Nachweis-Lücke:** Die Expansion ist implementiert (erster Pipeline-Schritt),
-> aber `TextBlockTest` prüft nur `assertNotNull`. Erst ein assertierender Test,
-> dann ein Requirement — siehe ROADMAP.
+> **Nachweis (2026-10-03):** [REQ-0011](../requirements/REQ-0011.md) — `TextBlockTest` prüft
+> jetzt Inhalt und PDF (bis dahin nur `assertNotNull`).
 
-**Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateSectionElement.java, blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java · **Herkunft:** docs/product-backlog.adoc:36-39 (TF-5, Text-Blöcke)
+**Requirements:** REQ-0011 · **Evidence:** blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/odt/OdtTemplateSectionElement.java, blocpress-core/src/main/java/io/github/flaechsig/blocpress/core/RenderEngine.java · **Herkunft:** docs/product-backlog.adoc:36-39 (TF-5, Text-Blöcke)
 
 ### US-0033 — Zahlen und Daten im Sprachformat der Vorlage  ✅ `verified`
 

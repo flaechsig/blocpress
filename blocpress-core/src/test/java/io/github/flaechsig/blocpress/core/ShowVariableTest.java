@@ -2,7 +2,6 @@ package io.github.flaechsig.blocpress.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -19,8 +18,12 @@ public class ShowVariableTest {
             .toAbsolutePath()
             .toUri();
 
+    /**
+     * Regressionstest: Ausgabe bleibt stabil. KEIN Nachweis fuer REQ-0001 — kuendigung.odt nutzt
+     * text:user-defined (benutzerdefinierte Dokumenteigenschaften), die blocpress nicht ersetzt; die
+     * Erwartung kuendigung_generated.odt enthaelt dieselben Beispielwerte. Nachweis: FieldReplacementTest.
+     */
     @Test
-    @Tag("REQ-0001")
     public void renderTemplate() throws Exception {
         String json = new String(loadDocumentAsBytes("/kuendigung.json"));
         JsonNode node = mapper.readTree(json);

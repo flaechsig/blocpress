@@ -1,0 +1,113 @@
+package io.github.flaechsig.blocpress.render;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Nachweise auf Ebene des fertigen PDFs (REQ-0001/0002/0003).
+ *
+ * <p>Die core-Tests pruefen content.xml. Dass ein Inhalt dort steht, heisst nicht, dass er im
+ * PDF ankommt — so fehlten bis 2.6.0 alle bedingten Bereiche im PDF, obwohl die core-Tests gruen
+ * waren. Diese Tests rendern ueber den echten Pfad (merge + LibreOffice) und lesen das PDF.</p>
+ */
+class RenderedPdfTest {
+
+    private static final Path CORE_RESOURCES = Path.of("../blocpress-core/src/test/resources");
+
+    /** Rechnungsvorlage mit Benutzerfeldern (text:user-field-get), Daten wie im Lasttest. */
+    static final String INVOICE_DATA = """
+            {"invoice": {"number": "LT-2026-0042", "date": "2026-10-02", "currency": "€", "paymentTermsDays": 30}, "customer": {"firstname": "Erika", "lastname": "Mustermann", "street": "Hauptstr. 5", "postcode": "50667", "city": "Köln"}, "positions": [{"name": "Render-Lizenz", "description": "Jahreslizenz", "quantity": 12, "unitPrice": 1234.5, "total": 14814.0}, {"name": "Wartung", "description": "Supportvertrag", "quantity": 3, "unitPrice": 999.99, "total": 2999.97}, {"name": "Schulung", "description": "Workshop", "quantity": 1, "unitPrice": 450.0, "total": 450.0}], "summary": {"netTotal": 18263.97, "taxRate": 19, "taxAmount": 3470.15, "grossTotal": 21734.12}}
+            """;
+
+    @Test
+    @Tag("REQ-0001")
+    void fieldsAreReplacedInPdf() throws Exception {
+        String pdf = render(Path.of("../docs/samples/quickstart/invoice.odt"), INVOICE_DATA);
+
+        for (String value : new String[]{"Erika Mustermann", "Hauptstr. 5", "50667 Köln", "LT-2026-0042",
+                "Payment Terms: 30 Days", "Render-Lizenz", "1234,50 €", "Total Amount Due: 21734,12 €"}) {
+            assertTrue(pdf.contains(value), "fehlt im PDF: '" + value + "' — " + pdf);
+        }
+        // Beispielwerte aus den Deklarationen der Vorlage duerfen nicht mehr erscheinen
+        for (String example : new String[]{"Firstname", "Lastname", "Example Street 1", "Sample Citiy",
+                "BP-Number", "Service Name"}) {
+            assertFalse(pdf.contains(example), "Beispielwert der Vorlage im PDF: '" + example + "' — " + pdf);
+        }
+    }
+
+    @Test
+    @Tag("REQ-0003")
+    void loopRowsAppearOncePerElementInOrder() throws Exception {
+        String pdf = render("loop_table.odt", """
+                {"kunde": "Max Mustermann", "produkte": [
+                  {"name": "Apfel",  "menge": 1, "preis": 1.00},
+                  {"name": "Birne",  "menge": 2, "preis": 1.50},
+                  {"name": "Banane", "menge": 3, "preis": 0.50},
+                  {"name": "Kiwi",   "menge": 4, "preis": 2.25}
+                ]}
+                """);
+
+        int apfel = pdf.indexOf("Apfel");
+        int birne = pdf.indexOf("Birne");
+        int banane = pdf.indexOf("Banane");
+        int kiwi = pdf.indexOf("Kiwi");
+        assertTrue(apfel >= 0 && apfel < birne && birne < banane && banane < kiwi,
+                "Zeilen fehlen oder falsche Reihenfolge: " + pdf);
+        for (String name : new String[]{"Apfel", "Birne", "Banane", "Kiwi"}) {
+            assertEquals(pdf.indexOf(name), pdf.lastIndexOf(name), "Zeile mehrfach: " + name + " — " + pdf);
+        }
+        for (String price : new String[]{"1,00", "1,50", "0,50", "2,25"}) {
+            assertTrue(pdf.contains(price), "Preis fehlt: " + price + " — " + pdf);
+        }
+    }
+
+    @ParameterizedTest
+    @Tag("REQ-0002")
+    @CsvSource({
+            "FRAU, Liebe Frau Müller,  Lieber Herr",
+            "HERR, Lieber Herr Müller, Liebe Frau"
+    })
+    void conditionalTextShowsMatchingBranchInPdf(String anrede, String expected, String forbidden) throws Exception {
+        String pdf = render("IfCondition.odt",
+                "{\"kunde\":{\"anrede\":\"" + anrede + "\",\"nachname\":\"Müller\"}}");
+        assertEquals(expected, pdf);
+        assertFalse(pdf.contains(forbidden), pdf);
+    }
+
+    /** Rendert eine Vorlage aus den core-Testressourcen zu PDF und liefert den Text (Whitespace normalisiert). */
+    static String render(String template, String json) throws Exception {
+        return render(CORE_RESOURCES.resolve(template), json);
+    }
+
+    static String render(Path template, String json) throws Exception {
+        RenderResource resource = new RenderResource();
+        set(resource, "libreOfficePool", new LibreOfficePool());
+        set(resource, "localeConfig", RenderLocaleConfig.of("de-DE"));
+        File pdf;
+        try (InputStream in = Files.newInputStream(template)) {
+            pdf = resource.renderDocumentMultipart("application/pdf", in, json);
+        }
+        try (PDDocument doc = PDDocument.load(pdf)) {
+            return new PDFTextStripper().getText(doc).replace(' ', ' ').replaceAll("\\s+", " ").trim();
+        }
+    }
+
+    private static void set(Object target, String field, Object value) throws Exception {
+        var f = target.getClass().getDeclaredField(field);
+        f.setAccessible(true);
+        f.set(target, value);
+    }
+}
