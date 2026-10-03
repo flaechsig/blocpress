@@ -32,18 +32,16 @@ als „Widerspruch/Abweichung" markiert, **nicht** still aufgelöst:
 
 ## Nachweis-Lücken (Stories `verified`, aber kein Test bindet sie)
 
-Die 28 aus dem Backlog überführten Stories tragen **keine** Requirements — sie sind
-über `evidence` (Code-Pfade) belegt. Requirements entstehen erst per `/anforderung`
-+ `/umsetzung` mit echtem `@Tag`-Test. Besonders dünn getestet (Platzhalter
-`assertTrue(true)`, `@Disabled` oder gar kein Test):
+Die aus dem Backlog überführten Stories tragen **keine** Requirements — sie sind über
+`evidence` belegt. **Seit 2026-10-03 mit echten Tests** (vorher Platzhalter `assertTrue(true)`,
+`@Disabled` oder gar keiner): US-0005, US-0012, US-0013, US-0014, US-0016, US-0017, US-0018,
+US-0019 — siehe die jeweilige Story. Dabei gefunden und behoben: WebDAV-`PUT` validierte nicht.
 
-- Render per Name/Versionierung (US-0005), Job-Queue/Webhook/Dashboard (US-0006)
-- Ablehnen/Freigeben (US-0016), Auto-Deploy + 503-Pfad (US-0017)
-- Regressionslauf/Diff/Ignorieren (US-0018), Compliance-Review/Scheduler (US-0019)
-- Coverage-Analyse (US-0012), Bausteine (US-0013), WebDAV (US-0014),
-  Fuzzy-/Prefix-Suche (US-0015)
-- ~~Import-Endpunkt: 500 statt 400 bei ungültiger Anfrage~~ — **behoben** (2026-10-03,
-  `TemplateImportValidationTest`).
+Noch offen:
+- Fuzzy-/Prefix-Suche und Hervorhebung (US-0015) — `SearchIT` prüft nur Treffer und Typfilter.
+- Webhook und Bereinigung im Job-Pfad (US-0006).
+- Ob für die Workbench-Stories Requirements (EARS) entstehen sollen, entscheidet der Mensch —
+  heute sind sie über Tests als `evidence` belegt, nicht über `@Tag`.
 
 ## Bereits umgesetzt (via Nachweis-Bindung an bestehende Core-Tests)
 

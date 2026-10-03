@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **WebDAV-Speichern validiert die Vorlage.** Ein `PUT` über WebDAV (Bearbeiten in LibreOffice) ersetzte den Inhalt, ohne die Vorlage neu zu validieren und zu indizieren: Feldliste, Schema und Coverage blieben veraltet, und ein per WebDAV neu angelegtes Dokument ließ sich nie zur Freigabe einreichen. Jetzt wie beim Upload.
 - **Import-Endpunkt (`POST /api/render/templates/import`)** antwortete auf leere oder ungültige Anfragen mit HTTP 500; jetzt 400 mit Meldung, welche Pflichtfelder fehlen (`id`, `name`, `version`, `contentBase64`, `validFrom`) bzw. dass `contentBase64` kein gültiges Base64 ist.
 - **Betreiber-Tutorial (`tutorial-sysadmin.html`):** JWT wurde als Pflicht dargestellt; wer dem Compose-Beispiel folgte, war seit 2.6.0 ungeschützt, weil JWT ohne `BLOCPRESS_AUTH_ENABLED=true` aus bleibt. Jetzt als optional beschrieben (`AUTH_ENABLED` im `.env`), offene Pfade benannt, wirkungslose JWT-Variablen an der Workbench entfernt.
 

@@ -28,7 +28,7 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui
+          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui poppler-utils
 
       # Unit- + Integrationstests aller Module ausser e2e (braucht das gebaute
       # Quickstart-Image). render/studio-ITs sind per Default aus (skipITs=true).

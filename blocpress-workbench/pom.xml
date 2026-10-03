@@ -87,6 +87,13 @@
             <artifactId>quarkus-container-image-docker</artifactId>
         </dependency>
 
+        <!-- Tests: Erzeugen von Test-PDFs (Regressionslauf) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>2.0.27</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Requirements-Traceability: registriert den JUnit-Listener, der @Tag("REQ-NNNN")
              nach target/req-coverage.json schreibt (ausgewertet vom blocpress-req-check-Gate). -->
         <dependency>

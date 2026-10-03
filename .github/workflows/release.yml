@@ -69,7 +69,7 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui
+          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui poppler-utils
 
       - name: Build, Tests und Traceability-Gate
         run: mvn -B clean verify -pl blocpress-req-trace,blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-req-check
