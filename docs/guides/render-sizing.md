@@ -179,5 +179,8 @@ jedem PDF stehen.
 
 - **Job-Pfad (`/api/render/jobs`) im Native-Image 2.5.0/2.5.1 defekt:** Das Einreichen liefert
   HTTP 500 ohne Job-ID (der Job wird trotzdem verarbeitet). Behoben in **2.6.0**.
-- **Job-Durchsatz:** Der Job-Worker holt alle 2 s (`BLOCPRESS_ASYNC_POLL_INTERVAL`) genau
-  **einen** Job — höchstens ~0,5 Jobs/s je Instanz, unabhängig von CPU und Workern.
+- **Job-Durchsatz (bis 2.6.1):** Der Job-Worker holte alle 2 s genau **einen** Job — höchstens
+  ~0,5 Jobs/s je Instanz. Ab 2.7.0 arbeitet er die Warteschlange mit `BLOCPRESS_LO_WORKERS`
+  parallelen Schleifen ab: gemessen 3,6 Jobs/s bei 2 CPU / 2 Worker (wie der synchrone Pfad),
+  28 gleichzeitig eingereichte Jobs nach 7,6 s statt ~38 s fertig. Das Poll-Intervall
+  (`BLOCPRESS_ASYNC_POLL_INTERVAL`) bestimmt nur noch die Startverzögerung nach Leerlauf.

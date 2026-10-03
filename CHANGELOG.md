@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Job-Pfad (`/api/render/jobs`) arbeitet die Warteschlange parallel ab.** Bisher holte der Worker alle 2 s genau einen Job (≤ 0,5 Jobs/s je Instanz, unabhängig von CPU und Workern). Jetzt laufen bis zu `BLOCPRESS_LO_WORKERS` Verarbeitungsschleifen, bis die Warteschlange leer ist — gemessen nativ bei 2 CPU / 2 Worker: 0,51 → 3,57 Jobs/s. Rendern läuft außerhalb der Datenbank-Transaktion; Jobs, die länger als `BLOCPRESS_ASYNC_STALE_AFTER` (Default 10 min) auf PROCESSING stehen (z.B. nach einem Absturz), werden wieder PENDING.
+
+---
+
 ## [2.6.1] - 2026-10-03
 
 ### Fixed
