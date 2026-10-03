@@ -37,7 +37,7 @@ Die aus dem Backlog überführten Stories tragen **keine** Requirements — sie 
 US-0019 — siehe die jeweilige Story. Dabei gefunden und behoben: WebDAV-`PUT` validierte nicht.
 
 Noch offen:
-- Fuzzy-/Prefix-Suche und Hervorhebung (US-0015) — `SearchIT` prüft nur Treffer und Typfilter.
+- ~~Fuzzy-/Prefix-Suche und Hervorhebung (US-0015)~~ — **belegt** (2026-10-03, `SearchIT`).
 - Webhook und Bereinigung im Job-Pfad (US-0006).
 - Ob für die Workbench-Stories Requirements (EARS) entstehen sollen, entscheidet der Mensch —
   heute sind sie über Tests als `evidence` belegt, nicht über `@Tag`.
