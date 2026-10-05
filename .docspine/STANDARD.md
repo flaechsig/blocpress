@@ -1,8 +1,8 @@
-<!-- docspine 0.14 · source: standard/en/STANDARD.md · do not edit in projects -->
+<!-- docspine 0.15 · source: standard/en/STANDARD.md · do not edit in projects -->
 
 # docspine Standard
 
-Version 0.14 (draft)
+Version 0.15 (draft)
 
 This document defines the rules for projects that follow docspine, a way of developing
 in which the documentation is the spine: from vision through requirements and decisions
@@ -573,6 +573,10 @@ Diagrams are always kept as text source in the repository, never only as images.
 - **Mermaid** for all diagrams in the documentation, including entry pages: flows,
   sequences, class and domain models, state machines. GitHub, IDE previews and Markdown
   readers such as Obsidian render it.
+- **Narrow diagrams:** a Markdown reader shows a Mermaid diagram at its natural width and
+  cannot scale it. Prefer top to bottom (`flowchart TD`), few participants in a sequence,
+  short labels on arrows; paths, parameters and details go into the text or a table
+  below the diagram.
 - **No ASCII art with box-drawing characters or arrows:** many fonts draw them wider
   than one character, and the lines slip out of place.
 - **DOT or PlantUML with a committed SVG** under `docs/diagrams/` for large overviews

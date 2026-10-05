@@ -4,9 +4,9 @@ title: Maven with JUnit 5
 detect: pom.xml
 keywords: [Java, Maven, JUnit]
 test_command: mvn verify
-test_reports: [target/surefire-reports]   # optional, the checker finds reports itself
+test_reports: [target/surefire-reports, target/failsafe-reports]   # optional, the checker finds reports itself
 requires: [JDK, Maven 3.8 or later, Python 3.9 or later]
-tested_with: [Maven 3.8.7, Surefire 3.2.5 and 3.5.4, exec-maven-plugin 3.5.0, JUnit 5.11 and 5.13, multi-module reactor]
+tested_with: [Maven 3.8.7, Surefire 3.2.5 and 3.5.4, Failsafe 3.5.4, exec-maven-plugin 3.5.0, JUnit 5.11 and 5.13, multi-module reactor]
 ---
 
 # Integration: Maven with JUnit 5
@@ -63,8 +63,27 @@ method name instead of the display name.
 display name of the method. Put `{displayName}` into the name pattern, for example
 `@ParameterizedTest(name = "{displayName} [{index}] {argumentsWithNames}")`.
 
-**Finding the reports.** The check finds the reports under `target/surefire-reports`
-itself. Only to limit the search, name them in `.docspine/PROFILE.md`:
+**Integration tests (Failsafe):** Failsafe writes its own reports
+(`target/failsafe-reports`) and has its own configuration. Without the same reporter
+setting, requirements proven by integration tests count as not proven. If the project
+uses Failsafe, configure it the same way, best once for all modules in the parent
+`pom.xml` under `<pluginManagement>`:
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-failsafe-plugin</artifactId>
+  <configuration>
+    <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+      <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
+      <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+    </statelessTestsetReporter>
+  </configuration>
+</plugin>
+```
+
+**Finding the reports.** The check finds the reports under `target/surefire-reports` and
+`target/failsafe-reports` itself. Only to limit the search, name them in `.docspine/PROFILE.md`:
 
 ```yaml
 test_reports: [target/surefire-reports]
@@ -184,7 +203,7 @@ Code goes under `src/main/java/`, tests under `src/test/java/`.
         <configuration>
           <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
             <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
-      <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+            <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
           </statelessTestsetReporter>
         </configuration>
       </plugin>
