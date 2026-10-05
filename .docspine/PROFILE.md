@@ -13,5 +13,5 @@ sources:
 
 ## Abweichungen vom Standard
 
-Keine. Unter `docs/legacy/` liegt Altbestand, der nach Abschnitt 10 des Standards
-abgebaut wird. `docs/guides/` ist projekteigen; der Docker-Hub-Text liegt in `docker/README.md`.
+Keine. Der Altbestand ist am 2026-10-05 vollständig übernommen und entfernt; Verweise
+lauten „… legacy (git history)“. `docs/guides/` ist projekteigen; der Docker-Hub-Text liegt in `docker/README.md`.

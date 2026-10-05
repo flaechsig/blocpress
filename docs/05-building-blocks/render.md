@@ -67,7 +67,7 @@ die Standard-Locale `BLOCPRESS_DEFAULT_LOCALE` (Standard `de-DE`) ungültig ist
 _(confidence: verified — RenderResource.java, AsyncRenderResource.java,
 RenderDashboardResource.java, TemplateImportResource.java, RenderAuthConfig.java,
 RenderLocaleConfig.java, blocpress-render/src/main/resources/application.properties;
-derived_from: docs/legacy/specification/arc42.adoc:661-728)_
+derived_from: arc42.adoc:661-728 legacy (git history))_
 
 ### Worker
 

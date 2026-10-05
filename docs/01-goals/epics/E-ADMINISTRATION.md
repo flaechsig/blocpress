@@ -1,7 +1,7 @@
 ---
 id: E-ADMINISTRATION
 title: Rollen und Audit (über den Identity-Provider)
-derived_from: docs/legacy/product-backlog.adoc:291-321 (Epic 5)
+derived_from: product-backlog.adoc:291-321 legacy (git history) (Epic 5)
 ---
 
 ## E-ADMINISTRATION — Rollen und Audit
@@ -23,4 +23,5 @@ blocpress brächte keinen Mehrwert. Noch nicht begonnen.
 - [US-0020](../stories/US-0020.md) — Benutzer und Rollen verwalten
 - [US-0021](../stories/US-0021.md) — Rollen bei jedem API-Aufruf prüfen
 - [US-0022](../stories/US-0022.md) — Workflow-Änderungen im Audit-Log festhalten
+- [US-0044](../stories/US-0044.md) — Absicherung durchgängig
 <!-- /generated -->

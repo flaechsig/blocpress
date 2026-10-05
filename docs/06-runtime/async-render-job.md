@@ -47,7 +47,7 @@ sequenceDiagram
 _(confidence: verified — blocpress-render/…/AsyncRenderResource.java, RenderJobWorker.java
 (`dispatch`, `drainQueue`, `process`, `finish`), RenderJob.java (`claimNextPending`),
 WebhookSender.java, application.properties; derived_from:
-docs/legacy/specification/arc42.adoc:1009-1081)_
+arc42.adoc:1009-1081 legacy (git history))_
 
 **Hintergrundläufe.**
 
@@ -60,7 +60,7 @@ docs/legacy/specification/arc42.adoc:1009-1081)_
   7 Tage). Das betrifft auch die Protokolleinträge synchroner Aufrufe.
 
 _(confidence: verified — RenderJobWorker.java (`requeueStaleJobs`, `cleanupJobs`),
-application.properties; derived_from: docs/legacy/specification/arc42.adoc:2388-2422)_
+application.properties; derived_from: arc42.adoc:2388-2422 legacy (git history))_
 
 Nach dem Löschen der Ergebnis-Bytes bleibt der Status `DONE` und `resultUrl` gesetzt;
 `getJobResult` gibt dann eine Antwort ohne Inhalt zurück statt eines Fehlers.

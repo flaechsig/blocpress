@@ -105,7 +105,7 @@ Volume; Vorlagen, Aufträge und Suchindex gehen mit dem Container verloren.
 _(confidence: verified — docker/studio/Dockerfile, Dockerfile.native, entrypoint.sh,
 supervisord.conf, supervisord.native.conf, init-studio.sql; Swagger UI über
 `quarkus.swagger-ui.always-include=true` in blocpress-render/src/main/resources/application.properties;
-derived_from: docs/legacy/specification/arc42.adoc:1353-1432)_
+derived_from: arc42.adoc:1353-1432 legacy (git history))_
 
 Weitere Variablen der Dienste, etwa `BLOCPRESS_DEFAULT_LOCALE`, kommen über `docker run -e`
 in den Prozessen an, weil supervisord seine Umgebung weitergibt. Was in der
@@ -173,7 +173,7 @@ flowchart TD
 
 _(confidence: verified — docker-compose.yml, docker-compose.native.yml,
 docker/01-init.sql, docker/02-init-production.sh; derived_from:
-docs/legacy/specification/arc42.adoc:1434-1584)_
+arc42.adoc:1434-1584 legacy (git history))_
 
 Anders als im Quickstart ist die Workbench hier direkt auf Port 8081 erreichbar, auch für
 WebDAV. Die Variablen `API_WORKBENCH_URL` und `API_RENDER_URL` am Studio liest kein Code.
@@ -215,7 +215,7 @@ Manifeste dafür.
 
 _(confidence: verified — einziges Manifest im Repository ist
 docs/guides/examples/blocpress-render-k8s.yaml; derived_from:
-docs/legacy/specification/arc42.adoc:1586-1732)_
+arc42.adoc:1586-1732 legacy (git history))_
 
 ## Build- und Release-Pipeline
 
@@ -237,7 +237,7 @@ ihren POMs) und laufen in CI nicht; das Modul `blocpress-e2e` läuft nur im Rele
 Branches nach dem Schema `docs/…` oder `feat/…` werden erst über einen Pull Request gebaut.
 
 _(confidence: verified — .github/workflows/ci.yml, blocpress-render/pom.xml,
-blocpress-studio/pom.xml; derived_from: docs/legacy/specification/arc42.adoc:1738-1743)_
+blocpress-studio/pom.xml; derived_from: arc42.adoc:1738-1743 legacy (git history))_
 
 ### Release (`release.yml`)
 
@@ -290,7 +290,7 @@ blocpress-core; render, workbench und studio sind lauffähige Anwendungen und we
 Images veröffentlicht.
 
 _(confidence: verified — .github/workflows/release.yml, pom.xml (Profile `trigger-release`,
-`release`, `native`), CHANGELOG.md; derived_from: docs/legacy/specification/arc42.adoc:1745-1807)_
+`release`, `native`), CHANGELOG.md; derived_from: arc42.adoc:1745-1807 legacy (git history))_
 
 `docker/README.md` beschreibt das render-Image (`docker run … flaechsig/blocpress-render`),
 wird aber als Beschreibung von `flaechsig/blocpress-studio-quickstart` veröffentlicht. Die

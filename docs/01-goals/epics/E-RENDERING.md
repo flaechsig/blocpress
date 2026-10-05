@@ -1,7 +1,7 @@
 ---
 id: E-RENDERING
 title: Render-Pipeline (Vorlage + Daten → Dokument)
-derived_from: docs/legacy/product-backlog.adoc:36-39 (TF-5)
+derived_from: product-backlog.adoc:36-39 legacy (git history) (TF-5)
 ---
 
 ## E-RENDERING — Render-Pipeline

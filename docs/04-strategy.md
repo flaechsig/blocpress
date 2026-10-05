@@ -22,7 +22,7 @@ _(confidence: verified — blocpress-core/…/RenderEngine.java, LibreOfficeProc
 blocpress-render/…/LibreOfficePool.java, RenderJobWorker.java,
 blocpress-studio/src/main/resources/application.properties (`workbench.url`),
 Dockerfile und Dockerfile.native je Dienst, docker/studio/Dockerfile; derived_from:
-docs/legacy/specification/arc42.adoc:331-468)_
+arc42.adoc:331-468 legacy (git history))_
 
 Gegenüber dem Altbestand entfallen: Self-Contained Systems mit fünf Modulen und eigenen
 Schemata `proof` und `admin` ([ADR-0003](09-decisions/ADR-0003.md)), RBAC, API-Rate-Limiting,
@@ -40,7 +40,7 @@ Kubernetes-Autoscaling als Teil der Strategie. Keines davon ist gebaut.
 | Fehler früh sehen | Prüfung jeder Vorlage beim Hochladen ([US-0009](01-goals/stories/US-0009.md), [REQ-0026](01-goals/requirements/REQ-0026.md)). |
 
 _(confidence: unverified — Rangfolge und Ziele aus dem Altbestand zusammengefasst, nicht mit
-einer Person abgestimmt; derived_from: docs/legacy/specification/arc42.adoc:50-80,
-docs/legacy/specification/arc42.adoc:426-459)_
+einer Person abgestimmt; derived_from: arc42.adoc:50-80 legacy (git history),
+arc42.adoc:426-459 legacy (git history))_
 
 - UNKNOWN — offene Frage: Gelten die Zielwerte des Altbestands noch (Dokument bis 20 Seiten in unter 5 s, Suche über 1.000 Vorlagen in unter 2 s)? Gemessen ist bisher nur der Durchsatz von render (docs/guides/render-sizing.md), nicht die Suche.

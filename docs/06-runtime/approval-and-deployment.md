@@ -49,7 +49,7 @@ _(confidence: verified — blocpress-workbench/…/TemplateResource.java (`submi
 `reject`, `updateStatus`, `isValidTransition`),
 blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js
 (`_changeStatus`, Aufruf von `…/submit`); derived_from:
-docs/legacy/specification/arc42.adoc:1162-1172, docs/legacy/specification/arc42.adoc:1272-1310)_
+arc42.adoc:1162-1172 legacy (git history), arc42.adoc:1272-1310 legacy (git history))_
 
 ## Freigeben und Deploy
 
@@ -73,7 +73,7 @@ Die Workbench ruft ihn mit einem eigenen `HttpClient` auf; die Schnittstelle
 
 _(confidence: verified — TemplateResource.java (`updateStatus`), TemplateImportResource.java,
 RenderImportClient.java, blocpress-render/src/main/resources/application.properties
-(`permission.internal`); derived_from: docs/legacy/specification/arc42.adoc:1222-1260)_
+(`permission.internal`); derived_from: arc42.adoc:1222-1260 legacy (git history))_
 
 Scheitert der Deploy, ist der Status im Suchindex schon auf `APPROVED` gesetzt; die
 Datenbank-Transaktion wird zurückgerollt, der Index nicht. Suche und Workbench zeigen dann
@@ -99,7 +99,7 @@ derselben Folge.
 
 _(confidence: verified — TemplateResource.java (`updateStatus`, `removeFromProduction`),
 TemplateImportResource.java (`removeTemplate`); derived_from:
-docs/legacy/specification/arc42.adoc:1261-1269)_
+arc42.adoc:1261-1269 legacy (git history))_
 
 Ein Wechsel von `APPROVED` zurück nach `SUBMITTED` ruft render nicht auf; die Vorlage bleibt
 in `production` gültig.

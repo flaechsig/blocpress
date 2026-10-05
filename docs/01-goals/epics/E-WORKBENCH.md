@@ -1,7 +1,7 @@
 ---
 id: E-WORKBENCH
 title: Template-Entwicklung (Workbench)
-derived_from: docs/legacy/product-backlog.adoc:130-226 (Epic 3)
+derived_from: product-backlog.adoc:130-226 legacy (git history) (Epic 3)
 ---
 
 ## E-WORKBENCH — Arbeitsumgebung für Vorlagengestalter
@@ -15,6 +15,8 @@ LibreOffice per WebDAV bearbeiten.
 Gestalter seine Vorlage *selbst* prüfen kann — ohne Entwickler, der Testdaten
 baut oder Fehler im ODT sucht.
 
+- UNKNOWN — offene Frage: Die Stories dieses Epics und von E-PERSISTENZ sind über Tests belegt, haben aber keine Requirements. Sollen sie wie E-FREIGABE Requirements bekommen? Dafür bekämen die Tests einen Anzeigenamen mit der Requirement-ID.
+
 ## Stories
 
 <!-- generated:stories -->
@@ -25,4 +27,6 @@ baut oder Fehler im ODT sucht.
 - [US-0013](../stories/US-0013.md) — Textbausteine wie Vorlagen verwalten
 - [US-0014](../stories/US-0014.md) — Vorlagen direkt in LibreOffice öffnen und speichern
 - [US-0015](../stories/US-0015.md) — Vorlagen und Bausteine durchsuchen
+- [US-0043](../stories/US-0043.md) — Suchindex vollständig nachführen
+- [US-0048](../stories/US-0048.md) — Workbench-Abläufe konsistent machen
 <!-- /generated -->
