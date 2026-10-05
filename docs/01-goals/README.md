@@ -8,7 +8,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 6 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
 | Requirements | umgesetzt 11 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | angenommen 12 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 12 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -123,7 +123,6 @@ Status: ✅ verifiziert
 
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Lädt render zur Laufzeit Textbausteine über die WebDAV-Adresse der Workbench nach, wenn eine freigegebene Vorlage auf sie verweist? Der Altbestand sagt ja; im Code löst blocpress-core ohne gesetzte System-Property blocpress.mode den Verweis (xlink:href) aus der Vorlage selbst auf, die Abhängigkeit render → workbench entstünde also nur über den Inhalt der Vorlage.
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Wie kommt ein Benutzer in einer produktiven Installation an sein Token? Das Studio kennt nur das Eingabefeld, keinen Anmeldeablauf gegen den Identity-Provider.
-- [05-building-blocks/render.md](../05-building-blocks/render.md): UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der OpenAPI-Generator aus `openapi.yml` erzeugt? `RenderResource` ist von Hand geschrieben und implementiert sie nicht.
 - [08-concepts/domaenenmodell.md](../08-concepts/domaenenmodell.md): UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev), und die SQL-Skripte unter docker/ für docker-compose.yml enthalten weder valid_until, review_cycle_years, ignored_patterns noch die Tabelle render_job; vollständig ist nur docker/studio/init-studio.sql.
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0006.md](../09-decisions/ADR-0006.md): UNKNOWN — offene Frage: Gilt die Grenze von 5.000 Dokumenten noch, und wurde sie je gemessen?
@@ -133,7 +132,7 @@ Status: ✅ verifiziert
 
 ## Offene Entscheidungen
 
-_keine_
+- [ADR-0013](../09-decisions/ADR-0013.md) — REST-API von render API-first aus openapi.yml
 
 ## Widersprüche
 
