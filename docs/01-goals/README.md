@@ -6,7 +6,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 7 · 🟡 in Arbeit 2 · ✅ verifiziert 30 · ⛔ abgelöst 1 |
+| Stories | ⚪ offen 16 · 🟡 in Arbeit 2 · ✅ verifiziert 30 · ⛔ abgelöst 1 |
 | Requirements | vorgeschlagen 2 · umgesetzt 23 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 12 |
 
@@ -19,6 +19,7 @@ Status: ⚪ offen
 | [US-0020](stories/US-0020.md) | Benutzer und Rollen verwalten | ⛔ abgelöst |
 | [US-0021](stories/US-0021.md) | Rollen bei jedem API-Aufruf prüfen | ⚪ offen |
 | [US-0022](stories/US-0022.md) | Workflow-Änderungen im Audit-Log festhalten | ⚪ offen |
+| [US-0044](stories/US-0044.md) | Absicherung durchgängig | ⚪ offen |
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 
@@ -32,6 +33,7 @@ Status: 🟡 in Arbeit
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
 | [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ⚪ offen |
 | [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⚪ offen |
+| [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ⚪ offen |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
 
@@ -52,6 +54,7 @@ Status: 🟡 in Arbeit
 | [US-0018](stories/US-0018.md) | Änderungen per Regressionstest absichern | ✅ verifiziert |
 | [US-0019](stories/US-0019.md) | Vorlagen periodisch überprüfen (Compliance-Review) | ✅ verifiziert |
 | [US-0040](stories/US-0040.md) | Fällige Reviews aktiv melden | ⚪ offen |
+| [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ⚪ offen |
 
 ## [E-PERSISTENZ](epics/E-PERSISTENZ.md) — Template-Speicherung (workbench / production)
 
@@ -63,13 +66,15 @@ Status: ✅ verifiziert
 
 ## [E-RELEASE](epics/E-RELEASE.md) — Build-, Test- und Release-Automatisierung
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
 | [US-0029](stories/US-0029.md) | Jeder Push wird gebaut und getestet | ✅ verifiziert |
 | [US-0030](stories/US-0030.md) | Release mit einem Befehl | ✅ verifiziert |
 | [US-0031](stories/US-0031.md) | Zusammenspiel der Module Ende-zu-Ende prüfen | ✅ verifiziert |
+| [US-0047](stories/US-0047.md) | Release-Reihenfolge und Veröffentlichung absichern | ⚪ offen |
+| [US-0049](stories/US-0049.md) | Ungenutzten Code und Dateien entfernen | ⚪ offen |
 
 ## [E-RENDER-SERVICE](epics/E-RENDER-SERVICE.md) — Render-Service (REST-API, Auth, Jobs)
 
@@ -82,6 +87,8 @@ Status: 🟡 in Arbeit
 | [US-0006](stories/US-0006.md) | Asynchron rendern über eine Job-Queue | ✅ verifiziert |
 | [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ✅ verifiziert |
 | [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
+| [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ⚪ offen |
+| [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 
@@ -119,9 +126,12 @@ Status: 🟡 in Arbeit
 | [US-0013](stories/US-0013.md) | Textbausteine wie Vorlagen verwalten | ✅ verifiziert |
 | [US-0014](stories/US-0014.md) | Vorlagen direkt in LibreOffice öffnen und speichern | ✅ verifiziert |
 | [US-0015](stories/US-0015.md) | Vorlagen und Bausteine durchsuchen | ✅ verifiziert |
+| [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ⚪ offen |
+| [US-0048](stories/US-0048.md) | Workbench-Abläufe konsistent machen | ⚪ offen |
 
 ## Offene Fragen
 
+- [01-goals/epics/E-WORKBENCH.md](epics/E-WORKBENCH.md): UNKNOWN — offene Frage: Die Stories dieses Epics und von E-PERSISTENZ sind über Tests belegt, haben aber keine Requirements. Sollen sie wie E-FREIGABE Requirements bekommen? Dafür bekämen die Tests einen Anzeigenamen mit der Requirement-ID.
 - [01-goals/stories/US-0040.md](stories/US-0040.md): UNKNOWN — offene Frage: Über welchen Weg soll gemeldet werden (E-Mail, Webhook, Anzeige in der Workbench), und an wen?
 - [02-constraints.md](../02-constraints.md): UNKNOWN — offene Frage: Der Altbestand nennt auch OTT (Dokumentvorlage) als Eingabeformat; der Code prüft beim Hochladen kein Format ausdrücklich. Soll OTT unterstützt werden, und ist es getestet?
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Lädt render zur Laufzeit Textbausteine über die WebDAV-Adresse der Workbench nach, wenn eine freigegebene Vorlage auf sie verweist? Der Altbestand sagt ja; im Code löst blocpress-core ohne gesetzte System-Property blocpress.mode den Verweis (xlink:href) aus der Vorlage selbst auf, die Abhängigkeit render → workbench entstünde also nur über den Inhalt der Vorlage.
@@ -133,8 +143,12 @@ Status: 🟡 in Arbeit
 - [06-runtime/approval-and-deployment.md](../06-runtime/approval-and-deployment.md): UNKNOWN — offene Frage: Soll der Wechsel APPROVED → SUBMITTED die Vorlage aus production nehmen?
 - [06-runtime/async-render-job.md](../06-runtime/async-render-job.md): UNKNOWN — offene Frage: Welchen HTTP-Status liefert der Ergebnisabruf, nachdem die Ergebnis-Bytes gelöscht wurden (200 mit leerem Inhalt oder 204), und sollte er stattdessen 410 melden?
 - [06-runtime/compliance-review.md](../06-runtime/compliance-review.md): UNKNOWN — offene Frage: Soll eine abgelaufene Vorlage in der Workbench automatisch ihren Status ändern (etwa nach RETIRED), oder bleibt sie bewusst APPROVED?
+- [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
+- [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Soll das Löschen auf DRAFT und REJECTED beschränkt sein, wie es die Oberfläche anbietet?
 - [06-runtime/regression-test.md](../06-runtime/regression-test.md): UNKNOWN — offene Frage: Soll eine Freigabe voraussetzen, dass alle Regressionstests bestanden sind, und sollen die Ergebnisse gespeichert werden?
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
+- [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Soll ein Syntaxfehler in einer Bedingung nur eine Meldung erzeugen, und zwar einen Fehler, der die Bedingung nennt?
+- [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?
 - [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Soll Elasticsearch im Quickstart von außen erreichbar sein? Port 9200 ist freigegeben und im Startbefehl des Dockerfiles gemappt, `network.host: 127.0.0.1` lässt aber nur Verbindungen aus dem Container selbst zu.
 - [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Kann LibreOffice im Quickstart per WebDAV mit der Workbench arbeiten? Port 8082 ist nicht freigegeben, und der Studio-Proxy leitet nur GET, POST, PUT und DELETE weiter, kein PROPFIND.
 - [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Erscheint die neue Version auf der Website nach einem Release? Der Release ändert `site/index.html` und pusht mit dem Standard-Token des Workflows; Pushes mit diesem Token starten nach GitHub-Regeln keine weiteren Workflows, `pages.yml` liefe dann erst beim nächsten Push unter `site/` oder manuell.

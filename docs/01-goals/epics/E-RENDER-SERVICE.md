@@ -1,7 +1,7 @@
 ---
 id: E-RENDER-SERVICE
 title: Render-Service (REST-API, Auth, Jobs)
-derived_from: docs/legacy/product-backlog.adoc:25-97 (Epic 1, ohne TF-5/TI-3)
+derived_from: product-backlog.adoc:25-97 legacy (git history) (Epic 1, ohne TF-5/TI-3)
 ---
 
 ## E-RENDER-SERVICE — der Render-Service als Produkt-API
@@ -23,4 +23,6 @@ Lastverhalten (Großdokumente, Batch-Läufe) in ein gemeinsames Thema.
 - [US-0006](../stories/US-0006.md) — Asynchron rendern über eine Job-Queue
 - [US-0007](../stories/US-0007.md) — Render-API optional per JWT absichern
 - [US-0038](../stories/US-0038.md) — Fehlerpfade und Dashboard von render testen
+- [US-0041](../stories/US-0041.md) — Abgelaufene und ausgemusterte Vorlagen sofort sperren
+- [US-0045](../stories/US-0045.md) — Asynchrone Aufträge und Dashboard robust machen
 <!-- /generated -->

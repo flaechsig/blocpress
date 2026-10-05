@@ -1,7 +1,7 @@
 ---
 id: E-PERSISTENZ
 title: Template-Speicherung (workbench / production)
-derived_from: docs/legacy/product-backlog.adoc:100-125 (Epic 2)
+derived_from: product-backlog.adoc:100-125 legacy (git history) (Epic 2)
 ---
 
 ## E-PERSISTENZ — Template-Speicherung und Stufentrennung

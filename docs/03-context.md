@@ -24,9 +24,9 @@ _(confidence: verified — Rollen aus dem Altbestand zusammengeführt und gegen
 blocpress-workbench/…/TemplateResource.java (Einreichen, Ablehnen, Statuswechsel,
 Regression, `due-for-review`) und blocpress-render/…/RenderResource.java,
 AsyncRenderResource.java, RenderDashboardResource.java geprüft; derived_from:
-docs/legacy/specification/arc42.adoc:82-113, docs/legacy/specification/arc42.adoc:187-251,
-docs/legacy/specification/Solution_Design_Concept.adoc:73-87,
-docs/legacy/specification/System_Design_Concept.adoc:38-49)_
+arc42.adoc:82-113 legacy (git history), arc42.adoc:187-251 legacy (git history),
+Solution_Design_Concept.adoc:73-87 legacy (git history),
+System_Design_Concept.adoc:38-49 legacy (git history))_
 
 Im Altbestand waren Testmanager und Compliance-Reviewer eigene Rollen; sie sind hier im
 Prüfer aufgegangen, wie es schon das System Design Concept vorsah. Der Administrator mit
@@ -88,10 +88,10 @@ _(confidence: verified — Pfade aus RenderResource.java, AsyncRenderResource.ja
 TemplateImportResource.java, WebhookSender.java, WebDavResource.java, WorkbenchApiProxy.java,
 bp-token-input.js, LibreOfficeProcessor.java; Datenbanken, Elasticsearch und Ports aus den
 application.properties von workbench und render und aus docker-compose.yml;
-derived_from: docs/legacy/specification/arc42.adoc:253-326,
-docs/legacy/specification/System_Design_Concept.adoc:97-105,
-docs/legacy/specification/Element_Design_Concept.adoc:771-845,
-docs/legacy/specification/Element_Design_Concept.adoc:908-970)_
+derived_from: arc42.adoc:253-326 legacy (git history),
+System_Design_Concept.adoc:97-105 legacy (git history),
+Element_Design_Concept.adoc:771-845 legacy (git history),
+Element_Design_Concept.adoc:908-970 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Der öffentliche Pfad ist nicht
 `/api/documents/generate`, sondern die oben genannten Pfade unter `/api/render`. Die

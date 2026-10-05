@@ -17,8 +17,8 @@ render. Ihre Oberfläche ist die Web Component `bp-workbench`, die das
 [Studio](studio.md) lädt.
 
 _(confidence: verified — blocpress-workbench/src/main/java/…/workbench, application.properties,
-blocpress-workbench/Dockerfile; derived_from: docs/legacy/specification/arc42.adoc:545-550,
-docs/legacy/specification/arc42.adoc:576-621)_
+blocpress-workbench/Dockerfile; derived_from: arc42.adoc:545-550 legacy (git history),
+arc42.adoc:576-621 legacy (git history))_
 
 ## Aufbau
 
@@ -115,7 +115,7 @@ Feldes im Schema folgt aus `office:value-type` (`float`, `percentage`, `currency
 _(confidence: verified — service/TemplateValidator.java, entity/ValidationResult.java,
 JexlConditionEvaluator.java (`strict(false)`), TemplateResource.java (`submitForApproval`,
 `createNewDraft`);
-derived_from: docs/legacy/specification/Element_Design_Concept.adoc:548-592)_
+derived_from: Element_Design_Concept.adoc:548-592 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Der Validator liegt in der Workbench, nicht in
 blocpress-core. Ein Feld in einer Bedingung, das es nicht gibt, ist kein Fehler; der
@@ -153,7 +153,7 @@ indiziert.
 _(confidence: verified — service/ElasticsearchIndexService.java, OdtTextExtractor.java,
 TemplateResource.java (`upload`, `updateStatus`, `delete`, `updateContent`, `duplicate`,
 `createNewDraft`, `submitForApproval`, `reject`), WebDavResource.java (`putDraft`);
-derived_from: docs/legacy/specification/System_Design_Concept.adoc:229-239)_
+derived_from: System_Design_Concept.adoc:229-239 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Nicht Elasticsearch extrahiert den Text, sondern die
 Workbench vor dem Senden. Eine Beziehung zwischen Baustein und Vorlage wird nicht indiziert.

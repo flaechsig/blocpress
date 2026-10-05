@@ -66,8 +66,8 @@ classDiagram
 _(confidence: verified — blocpress-workbench/src/main/java/io/github/flaechsig/blocpress/workbench/entity/Template.java,
 TestDataSet.java, blocpress-render/src/main/java/io/github/flaechsig/blocpress/render/ProductionTemplate.java,
 RenderJob.java, application.properties von workbench und render; derived_from:
-docs/legacy/specification/arc42.adoc:1813-1924, docs/legacy/specification/arc42.adoc:1972-2045,
-docs/legacy/specification/Element_Design_Concept.adoc:878-906)_
+arc42.adoc:1813-1924 legacy (git history), arc42.adoc:1972-2045 legacy (git history),
+Element_Design_Concept.adoc:878-906 legacy (git history))_
 
 ## Template und Baustein (workbench)
 
@@ -109,8 +109,8 @@ Einträge mit diesem Namen aus `production` löschen
 
 _(confidence: verified — Template.java, TemplateStatus.java, TemplateType.java,
 TemplateResource.java (`isValidTransition`, `reject`, `updateStatus`), TemplateImportResource.java;
-derived_from: docs/legacy/specification/Element_Design_Concept.adoc:975-1003,
-docs/legacy/specification/Solution_Design_Concept.adoc:123-143)_
+derived_from: Element_Design_Concept.adoc:975-1003 legacy (git history),
+Solution_Design_Concept.adoc:123-143 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Die Status heißen nicht „Entwurf, In Prüfung,
 Freigegeben, Archiviert“, sondern wie oben; `RETIRED` fehlt in Element Design Concept E-1.
@@ -135,7 +135,7 @@ Ein Testdatensatz gehört zu genau einer Vorlage und wird mit ihr gelöscht.
 
 _(confidence: verified — TestDataSet.java, Template.java (`cascade = ALL, orphanRemoval`),
 docker/studio/init-studio.sql (`UNIQUE(template_id, name)`); derived_from:
-docs/legacy/specification/Element_Design_Concept.adoc:1184-1215)_
+Element_Design_Concept.adoc:1184-1215 legacy (git history))_
 
 ## ProductionTemplate (production)
 
@@ -147,7 +147,7 @@ in einem Cache (höchstens 100 Einträge); ein Import leert ihn.
 
 _(confidence: verified — ProductionTemplate.java, TemplateImportResource.java, TemplateCache.java,
 blocpress-render/src/main/resources/application.properties; derived_from:
-docs/legacy/specification/Element_Design_Concept.adoc:847-876)_
+Element_Design_Concept.adoc:847-876 legacy (git history))_
 
 ## RenderJob (production)
 
@@ -161,8 +161,8 @@ festgehalten. Ein stündlicher Lauf löscht zuerst die Ergebnis-Bytes
 
 _(confidence: verified — RenderJob.java, RenderJobStatus.java, RenderJobWorker.java
 (`claimNextPending`, `requeueStaleJobs`, `cleanupJobs`, `recordSync`), application.properties;
-derived_from: docs/legacy/specification/arc42.adoc:1883-1895,
-docs/legacy/specification/arc42.adoc:1990-1992, docs/legacy/specification/arc42.adoc:2388-2422)_
+derived_from: arc42.adoc:1883-1895 legacy (git history),
+arc42.adoc:1990-1992 legacy (git history), arc42.adoc:2388-2422 legacy (git history))_
 
 Aus dem Altbestand entfallen: die Schemata `proof` und `admin` mit Freigabeprozess,
 ComplianceReview, TestCase, Testpool, Benutzer und AuditLog ([ADR-0003](../09-decisions/ADR-0003.md));

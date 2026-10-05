@@ -34,7 +34,9 @@ sequenceDiagram
    eine Warnung mit Anzahl und Namen ins Log. Mehr tut er nicht.
 3. **Abruf:** `GET /api/workbench/templates/due-for-review` liefert dieselbe Auswahl
    ([REQ-0021](../01-goals/requirements/REQ-0021.md)). Die Oberfläche lädt sie, markiert den
-   Filter „Produktiv“ und zeigt an den Vorlagen „Läuft ab“ oder „Abgelaufen“.
+   Filter „Produktiv“. Die Kennzeichnung „Läuft ab“ oder „Abgelaufen“ an den Vorlagen ist
+   zwar programmiert, wird aber nie angezeigt (siehe [Dashboard](dashboard.md),
+   [US-0048](../01-goals/stories/US-0048.md)).
 4. **Erneut freigeben:** Ein direkter Wechsel `APPROVED → APPROVED` ist nicht erlaubt. Der
    Prüfer setzt die Vorlage zurück nach `SUBMITTED` und gibt sie mit neuem Gültigkeitsbeginn
    und Zyklus frei; der Import ersetzt den Eintrag mit derselben `id` in `production`.
@@ -52,7 +54,7 @@ TemplateResource.java (`updateStatus`, `getDueForReview`, `isValidTransition`,
 `createNewDraft`), blocpress-workbench/src/main/resources/application.properties
 (`blocpress.compliance.review-lead-days`), bp-workbench.js (`_loadDueForReview`,
 `_renderFilterButtons`), blocpress-render/…/ProductionTemplate.java
-(`findLatestActiveByName`); derived_from: docs/legacy/specification/arc42.adoc:1312-1344)_
+(`findLatestActiveByName`); derived_from: arc42.adoc:1312-1344 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Der Prüfer liest die fällige Liste über die Workbench,
 nicht direkt aus dem Repository. „Neu freigeben“ ist kein eigener Schritt, sondern der Weg

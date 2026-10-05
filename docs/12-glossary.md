@@ -52,7 +52,7 @@ _(confidence: verified — Begriffe gegen die Kapitel 3, 5 und 8, die Stories un
 geprüft (Template.java, TemplateType.java, TestDataSet.java, RenderJob.java,
 blocpress-studio/…/components/bp-app.js, blocpress-workbench/src/main/resources/application.properties
 `blocpress.compliance.review-lead-days`); derived_from:
-docs/legacy/specification/arc42.adoc:2744-2846)_
+arc42.adoc:2744-2846 legacy (git history))_
 
 Aus dem Altbestand nicht übernommen: blocpress-admin, blocpress-proof, Self-Contained System,
 Stufenübergabe über drei Stufen, Testpool, Workflow-Engine, Freigabeprozess als eigene

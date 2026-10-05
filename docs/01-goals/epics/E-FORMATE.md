@@ -1,7 +1,7 @@
 ---
 id: E-FORMATE
 title: Formatkonvertierung (ODT → PDF/RTF)
-derived_from: docs/legacy/product-backlog.adoc:41-44 (TI-3)
+derived_from: product-backlog.adoc:41-44 legacy (git history) (TI-3)
 ---
 
 ## E-FORMATE — Formatkonvertierung

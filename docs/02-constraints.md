@@ -32,10 +32,10 @@ blocpress-studio/pom.xml; Elasticsearch: docker-compose.yml, docker/studio/Docke
 blocpress-workbench/…/ElasticsearchTestResource.java, blocpress-workbench/pom.xml; Docker:
 blocpress-render/Dockerfile, blocpress-workbench/Dockerfile, blocpress-studio/Dockerfile,
 docker/studio/Dockerfile; poppler-utils und ImageMagick: blocpress-workbench/Dockerfile,
-PdfComparisonService.java; derived_from: docs/legacy/specification/arc42.adoc:117-146,
-docs/legacy/specification/Element_Design_Concept.adoc:1277-1283,
-docs/legacy/specification/Element_Design_Concept.adoc:1293-1299,
-docs/legacy/specification/Element_Design_Concept.adoc:1337-1342)_
+PdfComparisonService.java; derived_from: arc42.adoc:117-146 legacy (git history),
+Element_Design_Concept.adoc:1277-1283 legacy (git history),
+Element_Design_Concept.adoc:1293-1299 legacy (git history),
+Element_Design_Concept.adoc:1337-1342 legacy (git history))_
 
 PostgreSQL 18 ist seit 2026-10-05 entschieden; der Altbestand nannte die Grenze schon, die
 Images folgen ihr noch nicht:
@@ -60,6 +60,6 @@ Der Altbestand verlangte Elasticsearch „7.x oder höher“. Eingesetzt und get
 
 _(confidence: verified — blocpress-core/…/OutputFormat.java, WebDavResource.java
 (`application/vnd.oasis.opendocument.text`); derived_from:
-docs/legacy/specification/arc42.adoc:117-146)_
+arc42.adoc:117-146 legacy (git history))_
 
 - UNKNOWN — offene Frage: Der Altbestand nennt auch OTT (Dokumentvorlage) als Eingabeformat; der Code prüft beim Hochladen kein Format ausdrücklich. Soll OTT unterstützt werden, und ist es getestet?

@@ -18,7 +18,7 @@ Statische Dateien liefert es ohne Browser-Cache aus
 kommt aus `WORKBENCH_URL` (Standard `http://localhost:8082`).
 
 _(confidence: verified — blocpress-studio/src/main/java/…/studio, application.properties,
-blocpress-studio/pom.xml; derived_from: docs/legacy/specification/arc42.adoc:542-544)_
+blocpress-studio/pom.xml; derived_from: arc42.adoc:542-544 legacy (git history))_
 
 ## Aufbau
 

@@ -49,7 +49,7 @@ _(confidence: verified — blocpress-render/…/RenderResource.java (`renderDocu
 `mergeAndTransform`), TemplateCache.java, ProductionTemplate.java (`findLatestActiveByName`),
 LibreOfficePool.java, RenderJobWorker.java (`recordSync`),
 blocpress-render/src/main/resources/application.properties; derived_from:
-docs/legacy/specification/arc42.adoc:938-1007)_
+arc42.adoc:938-1007 legacy (git history))_
 
 **Folgen des Caches.** Der Cache kennt das Ablaufdatum nicht: Eine Version, deren
 `validUntil` verstreicht oder deren Nachfolger durch Zeitablauf gültig wird, kann noch bis zu

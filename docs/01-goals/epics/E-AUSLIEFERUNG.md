@@ -1,7 +1,7 @@
 ---
 id: E-AUSLIEFERUNG
 title: Auslieferung (Docker, Quickstart, Native)
-derived_from: docs/legacy/product-backlog.adoc:66-74, :355-358, :416-419
+derived_from: product-backlog.adoc:66-74, :355-358, :416-419 legacy (git history)
 ---
 
 ## E-AUSLIEFERUNG — wie blocpress beim Betreiber ankommt
@@ -22,4 +22,5 @@ vom ersten `docker run` zum ersten gerenderten Dokument muss in Minuten gehen.
 - [US-0034](../stories/US-0034.md) — render für die eigene Last richtig bemessen
 - [US-0037](../stories/US-0037.md) — Worker-Zahl aus dem CPU-Kontingent ableiten
 - [US-0039](../stories/US-0039.md) — blocpress mit docker-compose vollständig starten
+- [US-0046](../stories/US-0046.md) — Quickstart-Image betriebstauglich machen
 <!-- /generated -->

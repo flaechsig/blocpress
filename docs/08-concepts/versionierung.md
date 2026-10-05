@@ -18,8 +18,8 @@ niemand sie ausdrücklich löscht.
 _(confidence: verified — blocpress-workbench/…/entity/Template.java (`@UniqueConstraint`,
 Vorbelegung von `validFrom`), TemplateResource.java (`upload`, `duplicate`, `updateStatus`),
 docker/studio/init-studio.sql; derived_from:
-docs/legacy/specification/Element_Design_Concept.adoc:847-876,
-docs/legacy/specification/Element_Design_Concept.adoc:975-998)_
+Element_Design_Concept.adoc:847-876 legacy (git history),
+Element_Design_Concept.adoc:975-998 legacy (git history))_
 
 ## Welche Version render nimmt
 

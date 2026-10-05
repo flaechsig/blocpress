@@ -19,7 +19,7 @@ _(confidence: verified — blocpress-core/…/LibreOfficeProcessor.java (`soffic
 `PATH`, `waitFor()` ohne Timeout), blocpress-render/…/LibreOfficePool.java
 (`Semaphore.acquire()` ohne Timeout), WebhookSender.java, blocpress-workbench (keine
 Token-Prüfung, keine `@RolesAllowed`), blocpress-render/Dockerfile, blocpress-workbench/Dockerfile,
-docs/guides/render-sizing.md; derived_from: docs/legacy/specification/arc42.adoc:2633-2684)_
+docs/guides/render-sizing.md; derived_from: arc42.adoc:2633-2684 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: R-1 sprach von Speicherlecks einer lange laufenden
 LibreOffice-Instanz und von deren Neustart nach X Generierungen. Eine solche Instanz gibt es
@@ -44,7 +44,7 @@ gebaut ist nur die Liste mit 60 Tagen Vorlauf. Entfallen ist R-7 des Altbestands
 _(confidence: verified — docker/01-init.sql, docker/02-init-production.sh,
 docker/studio/init-studio.sql, blocpress-workbench/…/service/TemplateValidator.java,
 blocpress-render/…/RenderResource.java und AsyncRenderResource.java (kein Batch-Endpunkt);
-derived_from: docs/legacy/specification/arc42.adoc:2686-2740)_
+derived_from: arc42.adoc:2686-2740 legacy (git history))_
 
 Aus dem Altbestand erledigt: TD-1 (Cache für Vorlagen, heute `TemplateCache` in render),
 TD-5 (PDF-Unterschiede markiert, [US-0018](01-goals/stories/US-0018.md)), TD-6 (Vorschau in

@@ -43,7 +43,7 @@ sequenceDiagram
 _(confidence: verified — blocpress-workbench/…/TemplateResource.java (`createTestDataSet`,
 `createFromSuggestion`, `previewTemplate`, `saveExpectedPdf`, `saveRenderedAsExpected`),
 TestDataSetService.java (`saveExpectedPdf`), bp-workbench.js (`_finalizePdfSave`,
-`_saveCurrentDiffAsExpected`, Testdaten-Formular aus `validationResult.schema`); derived_from: docs/legacy/specification/arc42.adoc:843-910)_
+`_saveCurrentDiffAsExpected`, Testdaten-Formular aus `validationResult.schema`); derived_from: arc42.adoc:843-910 legacy (git history))_
 
 ## Regressionslauf
 
@@ -73,7 +73,7 @@ Textextraktion, fällt der Vergleich auf Byte-Gleichheit zurück.
 _(confidence: verified — TemplateResource.java (`runAllRegressions`, `runRegression`,
 `mergedIgnoredPatterns`, `renderPdf`), PdfComparisonService.java (`areVisuallyIdentical`,
 `diffPages`, `parseAreaIgnores`, `compilePatterns`); derived_from:
-docs/legacy/specification/arc42.adoc:911-935)_
+arc42.adoc:911-935 legacy (git history))_
 
 ## Abweichungen ansehen und ignorieren
 
@@ -88,7 +88,7 @@ docs/legacy/specification/arc42.adoc:911-935)_
 
 _(confidence: verified — TemplateResource.java (`regressionDiffPages`, `ignoreBlock`,
 `regressionDiff`), PdfComparisonService.java (`generateDiffPages`, `generateDiffPdf`),
-bp-workbench.js (`_applyIgnore`); derived_from: docs/legacy/specification/arc42.adoc:911-935)_
+bp-workbench.js (`_applyIgnore`); derived_from: arc42.adoc:911-935 legacy (git history))_
 
 `save-expected` prüft, dass die Vorlage existiert, aber nicht, dass der Testdatensatz zu ihr
 gehört; die übrigen Testdaten-Endpunkte prüfen das.
@@ -104,6 +104,6 @@ und die Freigabe hängt nicht von ihrem Ergebnis ab.
 
 _(confidence: verified — TemplateResource.java (`updateStatus` ohne Prüfung von
 Regressionsergebnissen), TestDataSet.java; derived_from:
-docs/legacy/specification/arc42.adoc:1083-1129)_
+arc42.adoc:1083-1129 legacy (git history))_
 
 - UNKNOWN — offene Frage: Soll eine Freigabe voraussetzen, dass alle Regressionstests bestanden sind, und sollen die Ergebnisse gespeichert werden?

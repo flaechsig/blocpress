@@ -1,7 +1,7 @@
 ---
 id: E-FREIGABE
 title: Prüfung und Freigabe
-derived_from: docs/legacy/product-backlog.adoc:229-288 (Epic 4) und :156-157, :176-187 (Epic 3, Workflow/Regression)
+derived_from: product-backlog.adoc:229-288 legacy (git history) (Epic 4) und :156-157, :176-187 (Epic 3, Workflow/Regression)
 ---
 
 ## E-FREIGABE — Prüfung, Freigabe und Compliance-Review
@@ -29,4 +29,5 @@ späteres Verschärfen.
 - [US-0018](../stories/US-0018.md) — Änderungen per Regressionstest absichern
 - [US-0019](../stories/US-0019.md) — Vorlagen periodisch überprüfen (Compliance-Review)
 - [US-0040](../stories/US-0040.md) — Fällige Reviews aktiv melden
+- [US-0042](../stories/US-0042.md) — Ausmustern und Zurückziehen zuverlässig machen
 <!-- /generated -->

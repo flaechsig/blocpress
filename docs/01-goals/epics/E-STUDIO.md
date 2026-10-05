@@ -1,7 +1,7 @@
 ---
 id: E-STUDIO
 title: Portal und Micro-Frontends (Studio)
-derived_from: docs/legacy/product-backlog.adoc:324-370 (Epic 6, ohne Quickstart-Image)
+derived_from: product-backlog.adoc:324-370 legacy (git history) (Epic 6, ohne Quickstart-Image)
 ---
 
 ## E-STUDIO — Portal-Shell und Micro-Frontends

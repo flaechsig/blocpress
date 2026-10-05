@@ -1,7 +1,7 @@
 ---
 id: E-RELEASE
 title: Build-, Test- und Release-Automatisierung
-derived_from: docs/legacy/product-backlog.adoc:373-421 (Epic 7, ohne Native-Build) und :221-222
+derived_from: product-backlog.adoc:373-421 legacy (git history) (Epic 7, ohne Native-Build) und :221-222
 ---
 
 ## E-RELEASE — Build-, Test- und Release-Automatisierung
@@ -20,4 +20,6 @@ sehen.
 - [US-0029](../stories/US-0029.md) — Jeder Push wird gebaut und getestet
 - [US-0030](../stories/US-0030.md) — Release mit einem Befehl
 - [US-0031](../stories/US-0031.md) — Zusammenspiel der Module Ende-zu-Ende prüfen
+- [US-0047](../stories/US-0047.md) — Release-Reihenfolge und Veröffentlichung absichern
+- [US-0049](../stories/US-0049.md) — Ungenutzten Code und Dateien entfernen
 <!-- /generated -->
