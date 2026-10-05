@@ -28,4 +28,5 @@ späteres Verschärfen.
 - [US-0017](../stories/US-0017.md) — Freigabe deployt automatisch nach Produktion
 - [US-0018](../stories/US-0018.md) — Änderungen per Regressionstest absichern
 - [US-0019](../stories/US-0019.md) — Vorlagen periodisch überprüfen (Compliance-Review)
+- [US-0040](../stories/US-0040.md) — Fällige Reviews aktiv melden
 <!-- /generated -->

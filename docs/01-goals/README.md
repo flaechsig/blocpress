@@ -6,8 +6,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 6 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
-| Requirements | umgesetzt 11 · abgelöst 1 |
+| Stories | ⚪ offen 7 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
+| Requirements | umgesetzt 23 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 12 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -43,7 +43,7 @@ Status: ✅ verifiziert
 
 ## [E-FREIGABE](epics/E-FREIGABE.md) — Prüfung und Freigabe
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -51,6 +51,7 @@ Status: ✅ verifiziert
 | [US-0017](stories/US-0017.md) | Freigabe deployt automatisch nach Produktion | ✅ verifiziert |
 | [US-0018](stories/US-0018.md) | Änderungen per Regressionstest absichern | ✅ verifiziert |
 | [US-0019](stories/US-0019.md) | Vorlagen periodisch überprüfen (Compliance-Review) | ✅ verifiziert |
+| [US-0040](stories/US-0040.md) | Fällige Reviews aktiv melden | ⚪ offen |
 
 ## [E-PERSISTENZ](epics/E-PERSISTENZ.md) — Template-Speicherung (workbench / production)
 
@@ -121,6 +122,7 @@ Status: ✅ verifiziert
 
 ## Offene Fragen
 
+- [01-goals/stories/US-0040.md](stories/US-0040.md): UNKNOWN — offene Frage: Über welchen Weg soll gemeldet werden (E-Mail, Webhook, Anzeige in der Workbench), und an wen?
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Lädt render zur Laufzeit Textbausteine über die WebDAV-Adresse der Workbench nach, wenn eine freigegebene Vorlage auf sie verweist? Der Altbestand sagt ja; im Code löst blocpress-core ohne gesetzte System-Property blocpress.mode den Verweis (xlink:href) aus der Vorlage selbst auf, die Abhängigkeit render → workbench entstünde also nur über den Inhalt der Vorlage.
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Wie kommt ein Benutzer in einer produktiven Installation an sein Token? Das Studio kennt nur das Eingabefeld, keinen Anmeldeablauf gegen den Identity-Provider.
 - [08-concepts/domaenenmodell.md](../08-concepts/domaenenmodell.md): UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev), und die SQL-Skripte unter docker/ für docker-compose.yml enthalten weder valid_until, review_cycle_years, ignored_patterns noch die Tabelle render_job; vollständig ist nur docker/studio/init-studio.sql.

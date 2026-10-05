@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -39,6 +40,7 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0014, REQ-0020: approvalDeploysTemplateToProduction")
     void approvalDeploysTemplateToProduction() throws Exception {
         byte[] odt = Files.readAllBytes(TEMPLATE);
         String id = uploadAndSubmit(odt);
@@ -64,6 +66,7 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0015: approvalFailsWith503AndTemplateStaysSubmittedWhenRenderIsDown")
     void approvalFailsWith503AndTemplateStaysSubmittedWhenRenderIsDown() throws Exception {
         String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
         RecordingRenderServerResource.status = 500;
@@ -76,6 +79,17 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0024: submitSetsStatusSubmittedWithoutDeploy")
+    void submitSetsStatusSubmittedWithoutDeploy() throws Exception {
+        String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+
+        assertEquals("SUBMITTED", details(id).path("status").asText());
+        assertTrue(RecordingRenderServerResource.calls("POST", "/render/templates/import").isEmpty(),
+                "Einreichen darf nichts deployen");
+    }
+
+    @Test
+    @DisplayName("REQ-0013: rejectionReturnsToDraftWithReason")
     void rejectionReturnsToDraftWithReason() throws Exception {
         String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
 
@@ -91,6 +105,7 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0023: retiringRemovesTemplateFromProduction")
     void retiringRemovesTemplateFromProduction() throws Exception {
         String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
         assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
@@ -104,6 +119,7 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0021: templatesExpiringWithinLeadDaysAreDueForReview")
     void templatesExpiringWithinLeadDaysAreDueForReview() throws Exception {
         // validUntil = validFrom + 1 Jahr = heute + 10 Tage -> faellig (Vorlauf 60 Tage)
         String due = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
@@ -159,6 +175,7 @@ class ApprovalWorkflowIT {
     }
 
     @Test
+    @DisplayName("REQ-0022: byNameDoesNotDeliverExpiredVersion")
     void byNameDoesNotDeliverExpiredVersion() throws Exception {
         // freigegeben vor 2 Jahren mit Review-Zyklus 1 Jahr → seit einem Jahr abgelaufen (render sperrt mit 404)
         String name = "abgelaufen-" + UUID.randomUUID();
