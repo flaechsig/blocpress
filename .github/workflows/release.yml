@@ -197,7 +197,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: flaechsig/blocpress-studio-quickstart
-          readme-filepath: docs/dockerhub.md
+          readme-filepath: docker/README.md
 
       # ------------------------------------------------------------------
       # Tag setzen & Branch in main mergen

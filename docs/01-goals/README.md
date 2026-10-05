@@ -6,7 +6,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 3 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
+| Stories | ⚪ offen 5 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
 | Requirements | umgesetzt 11 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | angenommen 5 |
 
@@ -22,7 +22,7 @@ Status: ⚪ offen
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -30,6 +30,7 @@ Status: ✅ verifiziert
 | [US-0027](stories/US-0027.md) | In Minuten ausprobieren (Quickstart) | ✅ verifiziert |
 | [US-0028](stories/US-0028.md) | Native Images für schnellen Start | ✅ verifiziert |
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
+| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ⚪ offen |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
 
@@ -70,7 +71,7 @@ Status: ✅ verifiziert
 
 ## [E-RENDER-SERVICE](epics/E-RENDER-SERVICE.md) — Render-Service (REST-API, Auth, Jobs)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -78,6 +79,7 @@ Status: ✅ verifiziert
 | [US-0005](stories/US-0005.md) | Freigegebene Vorlage per Name rendern (versioniert) | ✅ verifiziert |
 | [US-0006](stories/US-0006.md) | Asynchron rendern über eine Job-Queue | ✅ verifiziert |
 | [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ✅ verifiziert |
+| [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 

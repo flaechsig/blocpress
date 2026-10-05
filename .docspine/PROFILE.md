@@ -14,4 +14,4 @@ sources:
 ## Abweichungen vom Standard
 
 Keine. Unter `docs/legacy/` liegt Altbestand, der nach Abschnitt 10 des Standards
-abgebaut wird. `docs/guides/` und `docs/dockerhub.md` sind projekteigene Dateien.
+abgebaut wird. `docs/guides/` ist projekteigen; der Docker-Hub-Text liegt in `docker/README.md`.
