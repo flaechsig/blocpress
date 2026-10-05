@@ -11,6 +11,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -61,6 +62,7 @@ class RegressionRunIT {
     }
 
     @Test
+    @DisplayName("REQ-0017: withoutExpectedPdfTheRunReportsNoBaseline")
     void withoutExpectedPdfTheRunReportsNoBaseline() throws Exception {
         JsonNode result = run();
         assertFalse(result.path("hasExpectedPdf").asBoolean(), result.toString());
@@ -68,6 +70,7 @@ class RegressionRunIT {
     }
 
     @Test
+    @DisplayName("REQ-0016: identicalRenderingPasses")
     void identicalRenderingPasses() throws Exception {
         saveExpected(EXPECTED);
         RecordingRenderServerResource.renderResponse = EXPECTED;
@@ -78,6 +81,7 @@ class RegressionRunIT {
     }
 
     @Test
+    @DisplayName("REQ-0016: changedContentFails")
     void changedContentFails() throws Exception {
         saveExpected(EXPECTED);
         RecordingRenderServerResource.renderResponse = AMOUNT_CHANGED;
@@ -88,6 +92,7 @@ class RegressionRunIT {
     }
 
     @Test
+    @DisplayName("REQ-0018: ignoredPatternTurnsKnownDeviationIntoAcceptedDeviation")
     void ignoredPatternTurnsKnownDeviationIntoAcceptedDeviation() throws Exception {
         saveExpected(EXPECTED);
         RecordingRenderServerResource.renderResponse = DATE_CHANGED;
@@ -108,6 +113,7 @@ class RegressionRunIT {
     }
 
     @Test
+    @DisplayName("REQ-0019: runAllAndDiffPdf")
     void runAllAndDiffPdf() throws Exception {
         saveExpected(EXPECTED);
         RecordingRenderServerResource.renderResponse = AMOUNT_CHANGED;

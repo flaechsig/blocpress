@@ -5,6 +5,7 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -64,6 +65,7 @@ class RenderByNameTest {
     }
 
     @Test
+    @DisplayName("REQ-0022: expiredTemplateIsBlocked")
     void expiredTemplateIsBlocked() throws Exception {
         String name = "expired-" + UUID.randomUUID();
         importTemplate(name, 1, "IfCondition.odt", LocalDateTime.now().minusYears(1), LocalDateTime.now().minusDays(1));
