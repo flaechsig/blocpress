@@ -35,37 +35,36 @@ Benutzer- und Rechteverwaltung entfällt; was davon bleibt, ist der Betreiber.
 ## Technischer Kontext
 
 ```mermaid
-flowchart LR
+flowchart TD
     Browser["Browser<br/>(Gestalter, Prüfer)"]
-    LO["LibreOffice Writer<br/>(Arbeitsplatz)"]
-    App["Anwendungssystem<br/>(API-Konsument)"]
-    IdP["Identity-Provider<br/>(stellt JWT aus)"]
-    Hook["Webhook-Empfänger"]
+    LO["LibreOffice Writer"]
+    App["API-Konsument"]
+    IdP["Identity-Provider"]
 
     subgraph blocpress
-        Studio["blocpress-studio"]
-        WB["blocpress-workbench"]
-        Render["blocpress-render"]
-        Soffice["soffice<br/>(LibreOffice headless)"]
+        Studio["studio"]
+        WB["workbench"]
+        Render["render"]
+        Soffice["soffice"]
     end
 
-    PGW[("PostgreSQL<br/>DB workbench")]
-    PGP[("PostgreSQL<br/>DB production")]
+    PGW[("DB workbench")]
+    PGP[("DB production")]
     ES[("Elasticsearch")]
+    Hook["Webhook-Empfänger"]
 
-    Browser -->|HTTP, Web Components| Studio
-    Studio -->|"/api/* (Proxy)"| WB
-    LO -->|WebDAV /api/webdav| WB
-    WB -->|"POST /api/render/templates/import"| Render
-    WB -->|"POST /api/render/template (Vorschau, Regression)"| Render
-    App -->|"/api/render/{name}, /api/render/template, /api/render/jobs"| Render
+    Browser --> Studio
+    Studio -->|Proxy| WB
+    LO -->|WebDAV| WB
+    WB -->|Import, Vorschau| Render
+    App -->|REST| Render
     IdP -.->|Token| Browser
     IdP -.->|Token| App
-    Render -->|Prozessaufruf| Soffice
-    Render -->|HTTP POST| Hook
-    WB -->|JDBC| PGW
-    Render -->|JDBC| PGP
-    WB -->|REST| ES
+    Render --> Soffice
+    Render --> Hook
+    WB --> PGW
+    WB --> ES
+    Render --> PGP
 ```
 
 | Nachbar | Richtung | Technik | Inhalt |
