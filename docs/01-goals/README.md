@@ -118,7 +118,7 @@ Status: ✅ verifiziert
 
 ## Offene Fragen
 
-- [05-building-blocks/render.md](../05-building-blocks/render.md): UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der OpenAPI-Generator aus openapi.yml erzeugt? RenderResource ist von Hand geschrieben und implementiert sie nicht.
+- [05-building-blocks/render.md](../05-building-blocks/render.md): UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der OpenAPI-Generator aus `openapi.yml` erzeugt? `RenderResource` ist von Hand geschrieben und implementiert sie nicht.
 
 ## Offene Entscheidungen
 

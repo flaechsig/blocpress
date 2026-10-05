@@ -4,6 +4,11 @@ What changed in what docspine delivers to projects (`.docspine/`, `.agents/skill
 The newest version comes first. `spine-update` shows the entries between the installed and
 the new version.
 
+## 0.14
+
+- **Code spans stay in listed lines:** open questions and contradictions in the overview
+  (`01-goals/README.md`) lost text in backticks. They are now listed as written.
+
 ## 0.13
 
 - **The checker finds JUnit XML reports itself** anywhere in the repository; the profile

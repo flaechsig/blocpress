@@ -1,8 +1,8 @@
-<!-- docspine 0.13 · source: standard/en/STANDARD.md · do not edit in projects -->
+<!-- docspine 0.14 · source: standard/en/STANDARD.md · do not edit in projects -->
 
 # docspine Standard
 
-Version 0.13 (draft)
+Version 0.14 (draft)
 
 This document defines the rules for projects that follow docspine, a way of developing
 in which the documentation is the spine: from vision through requirements and decisions
