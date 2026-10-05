@@ -5,8 +5,19 @@ path: [blocpress-render]
 
 # Baustein blocpress-render
 
-Render-Dienst: Quarkus-REST-Schnittstelle und Export über LibreOffice. _(confidence: verified — Modulstruktur im Code; übernommen aus dem
-arc42-Gerüst, Detail folgt entlang der Änderungen)_
+Render-Dienst: Quarkus-REST-Schnittstelle und Export über LibreOffice, ausgeliefert als
+Container-Image.
+
+Die REST-Schnittstelle liegt in `RenderResource` unter `/api/render`, z. B.
+`POST /api/render/template` (Multipart). Sie nutzt `TemplateCache`, `LibreOfficePool` und
+`RenderJobWorker`. Die Schnittstelle ist in `src/main/resources/META-INF/openapi.yml`
+beschrieben.
+
+_(confidence: verified — Pfade und Abhängigkeiten von `RenderResource` im Code geprüft)_
+
+- UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der
+  OpenAPI-Generator aus openapi.yml erzeugt? RenderResource ist von Hand geschrieben und
+  implementiert sie nicht.
 
 ## Umgesetzte Requirements
 

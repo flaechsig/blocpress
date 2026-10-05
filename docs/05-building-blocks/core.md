@@ -5,8 +5,28 @@ path: [blocpress-core]
 
 # Baustein blocpress-core
 
-Parsing, Validierung und Merge-Pipeline der Vorlagen, reines Java mit odfdom. _(confidence: verified — Modulstruktur im Code; übernommen aus dem
-arc42-Gerüst, Detail folgt entlang der Änderungen)_
+Parsing, Validierung und Merge-Pipeline der Vorlagen, reines Java mit odfdom, ohne
+Abhängigkeit von LibreOffice im Kern.
+
+**Einstieg** ist `RenderEngine.mergeTemplate(URL template, JsonNode data)`, optional mit
+einer Standard-Locale. Die Pipeline läuft in vier Schritten nacheinander:
+
+1. **Textbausteine einsetzen:** Abschnitte, die auf externe ODT-Dateien verweisen
+   (`text:section-source`), werden eingebettet.
+2. **Bedingungen auswerten:** bedingte Elemente (`text:section`, `text:conditional-text`,
+   `text:p`, `text:span`) werden mit JEXL-Ausdrücken gegen die JSON-Daten aufgelöst.
+3. **Schleifen:** Abschnitte und Tabellenzeilen mit Feldern auf Array-Pfaden werden je
+   Element vervielfacht; die Felder bekommen indizierte Namen (z. B. `customer.0.name`).
+4. **Felder ersetzen:** Benutzerfelder (`text:user-field-get`, `text:variable-get`) werden
+   über Punkt-Notation mit Werten aus den JSON-Daten gefüllt.
+
+**Abstraktionen:** `TemplateDocument` mit der Umsetzung `OdtTemplateDocument` (umhüllt
+odfdoms `OdfTextDocument`), `TemplateElement` mit `OdtTemplateElement` (einzelne
+ODF-Elemente, Bedingungen über `JexlConditionEvaluator`), `LibreOfficeProcessor` für die
+Konvertierung nach PDF und RTF über ein LibreOffice im Hintergrund.
+
+_(confidence: verified — Klassen und Signatur von `mergeTemplate` im Code geprüft; die
+Reihenfolge der Schritte übernommen aus der bisherigen `CLAUDE.md`)_
 
 ## Umgesetzte Requirements
 

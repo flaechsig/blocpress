@@ -8,7 +8,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 3 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
 | Requirements | umgesetzt 11 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | angenommen 4 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 4 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -118,11 +118,11 @@ Status: ✅ verifiziert
 
 ## Offene Fragen
 
-_keine_
+- [05-building-blocks/render.md](../05-building-blocks/render.md): UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der OpenAPI-Generator aus openapi.yml erzeugt? RenderResource ist von Hand geschrieben und implementiert sie nicht.
 
 ## Offene Entscheidungen
 
-_keine_
+- [ADR-0005](../09-decisions/ADR-0005.md) — docspine-Prüfung statt eigenem Traceability-Gate
 
 ## Widersprüche
 
@@ -130,12 +130,10 @@ _keine_
 
 ## Kapitel ohne Inhalt
 
-- 02-constraints
 - 03-context
 - 04-strategy
 - 06-runtime
 - 07-deployment
-- 08-concepts
 - 10-quality
 - 11-risks
 - 12-glossary
