@@ -4,6 +4,13 @@ What changed in what docspine delivers to projects (`.docspine/`, `.agents/skill
 The newest version comes first. `spine-update` shows the entries between the installed and
 the new version.
 
+## 0.15
+
+- **Maven integration: integration tests.** Failsafe needs the same reporter setting as
+  Surefire, otherwise requirements proven by integration tests count as not proven.
+- **Narrow diagrams** (standard 9): Markdown readers cannot scale Mermaid diagrams; prefer
+  top to bottom, few participants, short labels, details below the diagram.
+
 ## 0.14
 
 - **Code spans stay in listed lines:** open questions and contradictions in the overview
