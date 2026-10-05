@@ -1,8 +1,8 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class SectionPdfTest {
 
-    @ParameterizedTest
-    @Tag("REQ-0002")
+    @ParameterizedTest(name = "{displayName} [{index}] {argumentsWithNames}")
+    @DisplayName("REQ-0002: onlyTheMatchingSectionIsVisibleInPdf")
     @CsvSource(delimiter = '|', value = {
             "FRAU   | Absatz der unter der Bedingung „kunde.anrede“ == „FRAU“ angezeigt werden soll. Hier folgt dann weiterer Text und auch der Nachname von Müller.",
             "HERR   | Dieser Absatz wird für angezeigt, wenn die Anrede auf „HERR“ steht. Und dann kommt weiterer Text und auch der Nachname von Müller.",

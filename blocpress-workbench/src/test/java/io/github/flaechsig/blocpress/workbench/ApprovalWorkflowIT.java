@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ApprovalWorkflowIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Path TEMPLATE = Path.of("../docs/samples/quickstart/invoice.odt");
+    private static final Path TEMPLATE = Path.of("../site/samples/quickstart/invoice.odt");
     private static final String BASE = "/api/workbench/templates/";
 
     @BeforeEach

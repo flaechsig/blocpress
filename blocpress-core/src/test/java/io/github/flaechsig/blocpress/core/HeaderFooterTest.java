@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -31,7 +31,7 @@ class HeaderFooterTest {
     private final URI baseUri = Path.of(System.getProperty("user.dir"), "src/test/resources").toAbsolutePath().toUri();
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: fieldsAndConditionsInAllHeadersAndFootersAreResolved")
     void fieldsAndConditionsInAllHeadersAndFootersAreResolved() throws Exception {
         byte[] odt = render("{\"offer\":{\"reference\":\"ANG-2026-0815\",\"supportId\":\"SUP-77\"},\"numbertest\":500000,\"kunde\":{\"anrede\":\"FRAU\"}}",
                 Locale.GERMANY);
@@ -50,7 +50,7 @@ class HeaderFooterTest {
     }
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: sameFieldInBodyAndFooterGetsSameValue")
     void sameFieldInBodyAndFooterGetsSameValue() throws Exception {
         byte[] odt = render("{\"offer\":{\"reference\":\"ANG-2026-0815\",\"supportId\":\"SUP-77\"},\"numbertest\":500000,\"kunde\":{\"anrede\":\"FRAU\"}}",
                 Locale.GERMANY);
@@ -61,7 +61,7 @@ class HeaderFooterTest {
     }
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: conditionsInFooterEvaluateOtherBranch")
     void conditionsInFooterEvaluateOtherBranch() throws Exception {
         byte[] odt = render("{\"offer\":{\"reference\":\"X\"},\"numbertest\":-5,\"kunde\":{\"anrede\":\"HERR\"}}", Locale.GERMANY);
         String footer = headersAndFooters(odt).get("Standard/footer");
@@ -71,7 +71,7 @@ class HeaderFooterTest {
     }
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: footerFormatsFollowLocaleRules")
     void footerFormatsFollowLocaleRules() throws Exception {
         // Format ohne Sprachangabe -> Ersatzsprache gilt auch in der Fusszeile (REQ-0006)
         byte[] odt = render("{\"offer\":{\"reference\":\"X\"},\"numbertest\":500000,\"kunde\":{\"anrede\":\"FRAU\"}}", Locale.US);

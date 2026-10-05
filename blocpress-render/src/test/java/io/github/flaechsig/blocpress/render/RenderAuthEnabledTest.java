@@ -1,10 +1,10 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 /** REQ-0008: bei eingeschaltetem JWT verlangen Render-, Job- und Dashboard-Endpunkte ein gueltiges Token. */
 @QuarkusTest
 @TestProfile(RenderAuthEnabledTest.AuthEnabled.class)
-@Tag("REQ-0008")
+@DisplayName("REQ-0008: RenderAuthEnabledTest")
 class RenderAuthEnabledTest {
 
     public static class AuthEnabled implements QuarkusTestProfile {

@@ -1,8 +1,8 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -60,7 +60,7 @@ public class TextBlockTest {
      * Felder des Bausteins JSON-Pfaden zu. Im Baustein steht als Beispiel "Max Mustermann".
      */
     @Test
-    @Tag("REQ-0011")
+    @DisplayName("REQ-0011: testTextBlock")
     public void testTextBlock() throws Exception {
         JsonNode node = mapper.readTree(JSON);
         String text = extractOdtContent(render(node));
@@ -73,7 +73,7 @@ public class TextBlockTest {
     }
 
     @Test
-    @Tag("REQ-0011")
+    @DisplayName("REQ-0011: textBlockAppearsInPdf")
     @EnabledIf("io.github.flaechsig.blocpress.core.TransformTest#sofficeAvailable")
     public void textBlockAppearsInPdf() throws Exception {
         byte[] pdf = LibreOfficeProcessor.refreshAndTransform(render(mapper.readTree(JSON)), OutputFormat.PDF);

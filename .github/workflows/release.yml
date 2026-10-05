@@ -50,9 +50,9 @@ jobs:
 
       - name: Landing Page aktualisieren
         run: |
-          OLD=$(grep -oP '"softwareVersion": "\K[^"]+' docs/index.html | head -1)
-          sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" docs/index.html
-          sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" docs/index.html
+          OLD=$(grep -oP '"softwareVersion": "\K[^"]+' site/index.html | head -1)
+          sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" site/index.html
+          sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" site/index.html
 
       - name: Version committen
         run: |
@@ -63,7 +63,7 @@ jobs:
       # Build & Test
       # ------------------------------------------------------------------
       # Wie ci.yml: LibreOffice fuer die PDF/RTF-Tests (REQ-0004), Reactor inkl.
-      # blocpress-req-trace (Test-Dependency von core/render) und req-check-Gate.
+      # Danach prueft docspine Doku und Testberichte aller Module.
       - name: Install LibreOffice (headless)
         # apt-Spiegel haengen gelegentlich (2026-10-02: >20 min) — lieber sauber abbrechen
         timeout-minutes: 10
@@ -71,10 +71,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui poppler-utils imagemagick
 
-      - name: Build, Tests und Traceability-Gate
-        run: mvn -B clean verify -pl blocpress-req-trace,blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-req-check
+      - name: Build und Tests
+        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      - name: docspine check
+        run: python3 .docspine/docspine.pyz check
 
       # ------------------------------------------------------------------
       # Native-Binaries bauen (GraalVM/Mandrel-Container-Build) — BEWUSST VOR

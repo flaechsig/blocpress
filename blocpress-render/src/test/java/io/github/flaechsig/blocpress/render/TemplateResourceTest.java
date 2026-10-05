@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -82,7 +82,7 @@ class TemplateResourceTest {
     }
 
     @Test
-    @Tag("REQ-0012")
+    @DisplayName("REQ-0012: mergeTemplatePdf")
     void mergeTemplatePdf() throws Exception {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");
@@ -111,7 +111,7 @@ class TemplateResourceTest {
     }
 
     @Test
-    @Tag("REQ-0012")
+    @DisplayName("REQ-0012: mergeTemplateRtf")
     void mergeTemplateRtf() throws Exception {
         InputStream template = getClass().getResourceAsStream("/kuendigung_generated.odt");
         assertNotNull(template, "Template /kuendigung_generated.odt not found on classpath");

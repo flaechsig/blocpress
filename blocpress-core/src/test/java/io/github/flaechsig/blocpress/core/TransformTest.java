@@ -1,6 +1,6 @@
 package io.github.flaechsig.blocpress.core;
 
-import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * uebersprungen (Unit-Tests bleiben ohne LibreOffice lauffaehig). Das req-check-Gate
  * wertet einen uebersprungenen Test bewusst nicht als Nachweis.</p>
  */
-@Tag("REQ-0012")
+@DisplayName("REQ-0012: TransformTest")
 @EnabledIf("sofficeAvailable")
 public class TransformTest {
 

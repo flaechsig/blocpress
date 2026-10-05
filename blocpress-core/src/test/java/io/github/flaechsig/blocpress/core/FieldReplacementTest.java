@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FieldReplacementTest {
 
     @Test
-    @Tag("REQ-0001")
+    @DisplayName("REQ-0001: userFieldsAreReplacedByJsonValues")
     void userFieldsAreReplacedByJsonValues() throws Exception {
         var data = new ObjectMapper().readTree("""
                 {"invoice": {"number": "LT-2026-0042", "currency": "€", "paymentTermsDays": 30},
@@ -29,7 +29,7 @@ class FieldReplacementTest {
                  "summary": {"netTotal": 14814.0, "taxRate": 19, "taxAmount": 2814.66, "grossTotal": 17628.66}}
                 """);
         String text = extractOdtContent(RenderEngine.mergeTemplate(
-                Path.of("../docs/samples/quickstart/invoice.odt").toUri().toURL(), data));
+                Path.of("../site/samples/quickstart/invoice.odt").toUri().toURL(), data));
 
         for (String value : new String[]{"Erika", "Mustermann", "Hauptstr. 5", "50667", "Köln", "LT-2026-0042",
                 "Render-Lizenz", "Jahreslizenz", "1234,50"}) {

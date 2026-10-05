@@ -3,7 +3,7 @@
   "scenarios": [
     {
       "name": "invoice",
-      "template": "../docs/samples/quickstart/invoice.odt",
+      "template": "../site/samples/quickstart/invoice.odt",
       "covers": "Tabellen-Schleife, Zahl/Waehrung mit und ohne Sprachangabe (das Datum oben ist ein LibreOffice-Feld mit dem Tagesdatum, daher kein Pflichttext)",
       "data": {
         "invoice": {

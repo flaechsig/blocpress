@@ -47,7 +47,7 @@ class RegressionRunIT {
         RecordingRenderServerResource.reset();
         Response upload = RestAssured.given()
                 .multiPart("name", "regression-" + UUID.randomUUID())
-                .multiPart("file", "template.odt", Files.readAllBytes(Path.of("../docs/samples/quickstart/invoice.odt")),
+                .multiPart("file", "template.odt", Files.readAllBytes(Path.of("../site/samples/quickstart/invoice.odt")),
                         "application/vnd.oasis.opendocument.text")
                 .post("/api/workbench/templates");
         assertEquals(201, upload.statusCode(), upload.asString());
