@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -22,8 +22,8 @@ class DateFormatTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final URI baseUri = Path.of(System.getProperty("user.dir"), "src/test/resources").toAbsolutePath().toUri();
 
-    @ParameterizedTest(name = "{0}")
-    @Tag("REQ-0006")
+    @ParameterizedTest(name = "{displayName} {0}")
+    @DisplayName("REQ-0006: dateFieldsAreFormattedPerStyle")
     @CsvSource(delimiter = '|', value = {
             "2026-10-03T14:30:00 | DE 03.10.2026 | ISO 2026-10-03 | KURZ 3.10.26 | ZEIT 03.10.2026 14:30 | OHNE 03/10/2026",
             "2026-10-03          | DE 03.10.2026 | ISO 2026-10-03 | KURZ 3.10.26 | ZEIT 03.10.2026 00:00 | OHNE 03/10/2026",

@@ -1,12 +1,12 @@
 package io.github.flaechsig.blocpress.workbench;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.flaechsig.blocpress.workbench.entity.ValidationResult;
 import io.github.flaechsig.blocpress.workbench.service.JsonSchemaGenerator;
 import io.github.flaechsig.blocpress.workbench.service.TemplateValidator;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -43,13 +43,13 @@ class HeaderFooterFieldDetectionTest {
     }
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: footerOnlyFieldsAndConditionsAreDetected")
     void footerOnlyFieldsAndConditionsAreDetected() throws Exception {
         assertDetected(validator.validate(Files.readAllBytes(TEMPLATE)));
     }
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: footerOnlyFieldsAreDetectedWithoutDeclarations")
     void footerOnlyFieldsAreDetectedWithoutDeclarations() throws Exception {
         // Fallback des Validators: ohne text:user-field-decls werden die Felder aus den Verwendungen gelesen
         assertDetected(validator.validate(withoutDeclarations(Files.readAllBytes(TEMPLATE))));

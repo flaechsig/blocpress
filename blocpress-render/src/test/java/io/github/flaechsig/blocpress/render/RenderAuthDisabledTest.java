@@ -1,8 +1,8 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** REQ-0008: im Default (JWT aus) bleibt die Render-API ohne Token erreichbar. */
 @QuarkusTest
-@Tag("REQ-0008")
+@DisplayName("REQ-0008: RenderAuthDisabledTest")
 class RenderAuthDisabledTest {
 
     @TestHTTPResource("/")

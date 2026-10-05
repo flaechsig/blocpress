@@ -1,8 +1,8 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -27,7 +27,7 @@ class HeaderFooterPdfTest {
             """;
 
     @Test
-    @Tag("REQ-0010")
+    @DisplayName("REQ-0010: headersAndFootersAreFilledOnEveryPage")
     void headersAndFootersAreFilledOnEveryPage() throws Exception {
         RenderResource resource = new RenderResource();
         set(resource, "libreOfficePool", new LibreOfficePool());

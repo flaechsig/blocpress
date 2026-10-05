@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -29,7 +29,7 @@ public class DefaultLocaleTest {
             .toUri();
 
     @Test
-    @Tag("REQ-0006")
+    @DisplayName("REQ-0006: styleWithoutLanguageUsesGermanDefault")
     public void styleWithoutLanguageUsesGermanDefault() throws Exception {
         assertEquals(List.of("500000", "500000,00", "500.000", "500.000,00"),
                 render(500000, "de-DE").subList(0, 4));
@@ -37,7 +37,7 @@ public class DefaultLocaleTest {
     }
 
     @Test
-    @Tag("REQ-0006")
+    @DisplayName("REQ-0006: styleWithoutLanguageUsesEnglishDefault")
     public void styleWithoutLanguageUsesEnglishDefault() throws Exception {
         assertEquals(List.of("500000", "500000.00", "500,000", "500,000.00"),
                 render(500000, "en-US").subList(0, 4));
@@ -45,7 +45,7 @@ public class DefaultLocaleTest {
     }
 
     @Test
-    @Tag("REQ-0005")
+    @DisplayName("REQ-0005: languageInStyleWinsOverDefault")
     public void languageInStyleWinsOverDefault() throws Exception {
         List<String> german = render(-98765.4321, "de-DE");
         List<String> english = render(-98765.4321, "en-US");
@@ -59,7 +59,7 @@ public class DefaultLocaleTest {
     }
 
     @Test
-    @Tag("REQ-0006")
+    @DisplayName("REQ-0006: defaultLocaleIgnoresOperatingSystemLocale")
     public void defaultLocaleIgnoresOperatingSystemLocale() throws Exception {
         Locale original = Locale.getDefault();
         try {
@@ -74,7 +74,7 @@ public class DefaultLocaleTest {
     }
 
     @Test
-    @Tag("REQ-0006")
+    @DisplayName("REQ-0006: numbersSentAsGermanTextAreParsed")
     public void numbersSentAsGermanTextAreParsed() throws Exception {
         // Zahl im JSON als Text in deutscher Schreibweise (z.B. aus Formularen): wird gelesen und neu formatiert
         var node = mapper.readTree("{\"numbertest\": \"500.000,50\"}");

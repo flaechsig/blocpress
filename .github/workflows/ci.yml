@@ -22,7 +22,7 @@ jobs:
           cache: maven
 
       # PDF/RTF-Konvertierung (REQ-0004): render-Tests brauchen soffice, und ohne
-      # LibreOffice wird core-TransformTest uebersprungen -> req-check-Gate rot.
+      # LibreOffice wird core-TransformTest uebersprungen -> docspine-Prüfung rot.
       - name: Install LibreOffice (headless)
         # apt-Spiegel haengen gelegentlich (2026-10-02: >20 min) — lieber sauber abbrechen
         timeout-minutes: 10
@@ -32,9 +32,9 @@ jobs:
 
       # Unit- + Integrationstests aller Module ausser e2e (braucht das gebaute
       # Quickstart-Image). render/studio-ITs sind per Default aus (skipITs=true).
-      # blocpress-req-check laeuft als letztes Modul und prueft die Traceability.
-      - name: Build, test and traceability gate
-        run: mvn -B clean verify -pl blocpress-req-trace,blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-req-check
+      # blocpress-docs-check laeuft als letztes Modul und ruft die docspine-Prüfung auf.
+      - name: Build, test and docspine check
+        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-docs-check
         env:
           # Testcontainers needs Docker socket
           TESTCONTAINERS_RYUK_DISABLED: "true"

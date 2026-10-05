@@ -7,6 +7,10 @@ sources:
   - OpenDocument (ODF) 1.3 — style:master-page (style:header, style:footer, -left, -first)
   - OpenDocument (ODF) 1.3 — text:condition
   - OpenDocument (ODF) 1.3 — text:section-source
+test_reports:
+  - blocpress-core/target/surefire-reports
+  - blocpress-render/target/surefire-reports
+  - blocpress-workbench/target/surefire-reports
 ---
 
 # Profil

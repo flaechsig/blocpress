@@ -13,15 +13,13 @@
     <url>https://github.com/flaechsig/blocpress</url>
 
     <modules>
-        <!-- req-trace VOR den getesteten Modulen: liefert den JUnit-Listener als Test-Dependency. -->
-        <module>blocpress-req-trace</module>
         <module>blocpress-core</module>
         <module>blocpress-render</module>
         <module>blocpress-workbench</module>
         <module>blocpress-studio</module>
         <module>blocpress-e2e</module>
-        <!-- req-check als LETZTES Modul: scannt in der verify-Phase alle target/req-coverage.json. -->
-        <module>blocpress-req-check</module>
+        <!-- docs-check als LETZTES Modul: die docspine-Prüfung läuft nach den Tests aller Module. -->
+        <module>blocpress-docs-check</module>
     </modules>
 
     <properties>
@@ -65,6 +63,11 @@
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     </systemPropertyVariables>
                     <argLine>${surefireArgLine}</argLine>
+                    <!-- docspine: Anzeigenamen mit der Requirement-ID kommen in die Testberichte -->
+                    <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+                        <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
+                        <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+                    </statelessTestsetReporter>
                 </configuration>
             </plugin>
             <plugin>
@@ -490,11 +493,10 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <!-- Build-Zubehoer (Traceability-Gate) landet bei -am im Reactor,
+                            <!-- Build-Zubehoer (docspine-Prüfung) landet bei -am im Reactor,
                                  gehoert aber nicht nach Maven Central. -->
                             <excludeArtifacts>
-                                <excludeArtifact>blocpress-req-trace</excludeArtifact>
-                                <excludeArtifact>blocpress-req-check</excludeArtifact>
+                                <excludeArtifact>blocpress-docs-check</excludeArtifact>
                             </excludeArtifacts>
                         </configuration>
                     </plugin>

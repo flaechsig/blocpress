@@ -1,8 +1,8 @@
 package io.github.flaechsig.blocpress.render;
 
+import org.junit.jupiter.api.DisplayName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -33,7 +33,7 @@ class RenderedPdfTest {
             """;
 
     @Test
-    @Tag("REQ-0001")
+    @DisplayName("REQ-0001: fieldsAreReplacedInPdf")
     void fieldsAreReplacedInPdf() throws Exception {
         String pdf = render(Path.of("../site/samples/quickstart/invoice.odt"), INVOICE_DATA);
 
@@ -49,7 +49,7 @@ class RenderedPdfTest {
     }
 
     @Test
-    @Tag("REQ-0003")
+    @DisplayName("REQ-0003: loopRowsAppearOncePerElementInOrder")
     void loopRowsAppearOncePerElementInOrder() throws Exception {
         String pdf = render("loop_table.odt", """
                 {"kunde": "Max Mustermann", "produkte": [
@@ -74,8 +74,8 @@ class RenderedPdfTest {
         }
     }
 
-    @ParameterizedTest
-    @Tag("REQ-0002")
+    @ParameterizedTest(name = "{displayName} [{index}] {argumentsWithNames}")
+    @DisplayName("REQ-0002: conditionalTextShowsMatchingBranchInPdf")
     @CsvSource({
             "FRAU, Liebe Frau Müller,  Lieber Herr",
             "HERR, Lieber Herr Müller, Liebe Frau"
@@ -88,7 +88,7 @@ class RenderedPdfTest {
     }
 
     @Test
-    @Tag("REQ-0006")
+    @DisplayName("REQ-0006: dateAndDateTimeFormatsInPdf")
     void dateAndDateTimeFormatsInPdf() throws Exception {
         String pdf = render("dateformats.odt", "{\"datumtest\":\"2026-10-03T14:30:00\"}");
         for (String expected : new String[]{"DE 03.10.2026", "ISO 2026-10-03", "KURZ 3.10.26", "ZEIT 03.10.2026 14:30",

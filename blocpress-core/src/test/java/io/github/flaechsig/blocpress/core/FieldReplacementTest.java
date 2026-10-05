@@ -1,7 +1,7 @@
 package io.github.flaechsig.blocpress.core;
 
+import org.junit.jupiter.api.DisplayName;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FieldReplacementTest {
 
     @Test
-    @Tag("REQ-0001")
+    @DisplayName("REQ-0001: userFieldsAreReplacedByJsonValues")
     void userFieldsAreReplacedByJsonValues() throws Exception {
         var data = new ObjectMapper().readTree("""
                 {"invoice": {"number": "LT-2026-0042", "currency": "€", "paymentTermsDays": 30},
