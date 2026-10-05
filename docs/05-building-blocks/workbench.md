@@ -8,6 +8,175 @@ path: [blocpress-workbench]
 Lebenszyklus der Vorlagen. _(confidence: verified — Modulstruktur im Code; übernommen aus dem
 arc42-Gerüst, Detail folgt entlang der Änderungen)_
 
+Die Workbench ist der Arbeitsplatz für Gestalter und Prüfer: Vorlagen und Textbausteine
+hochladen, validieren, versionieren, mit Testdaten in der Vorschau rendern, per
+Regressionstest absichern, durchsuchen, einreichen, freigeben, ablehnen und zurückziehen.
+Bei der Freigabe übergibt sie die Vorlage an render. Sie hat eine eigene Datenbank
+`workbench` und einen Elasticsearch-Index; LibreOffice braucht sie nicht, gerendert wird über
+render. Ihre Oberfläche ist die Web Component `bp-workbench`, die das
+[Studio](studio.md) lädt.
+
+_(confidence: verified — blocpress-workbench/src/main/java/…/workbench, application.properties,
+blocpress-workbench/Dockerfile; derived_from: docs/legacy/specification/arc42.adoc:545-550,
+docs/legacy/specification/arc42.adoc:576-621)_
+
+## Aufbau
+
+```mermaid
+flowchart TD
+    UI["bp-workbench"]
+    LO["LibreOffice Writer"]
+    TR["TemplateResource"]
+    SR["SearchResource"]
+    WD["WebDavResource"]
+    TV["TemplateValidator"]
+    ESI["ElasticsearchIndexService"]
+    PDF["PdfComparisonService"]
+    DB[("DB workbench")]
+    ES[("Elasticsearch")]
+    RD["render"]
+
+    UI --> TR
+    UI --> SR
+    LO --> WD
+    TR --> TV
+    WD --> TV
+    TR --> ESI
+    WD --> ESI
+    SR --> ESI
+    TR --> PDF
+    TR --> DB
+    WD --> DB
+    ESI --> ES
+    TR -->|Vorschau, Import| RD
+```
+
+| Schnittstelle | Klasse | Zweck |
+|---|---|---|
+| `/api/workbench/templates/…` | `TemplateResource` | Hochladen, Inhalt ersetzen, Duplizieren, Statuswechsel, Einreichen, Ablehnen, Vorschau, Testdaten, Regression, Abdeckung, fällige Reviews |
+| `GET /api/workbench/search?q=&type=&status=&from=&size=` | `SearchResource` | Volltextsuche ([US-0015](../01-goals/stories/US-0015.md)) |
+| `/api/webdav/…` | `WebDavResource` | Bearbeiten in LibreOffice ([US-0014](../01-goals/stories/US-0014.md)) |
+
+| Klasse | Aufgabe |
+|---|---|
+| `TemplateValidator` | prüft eine hochgeladene ODT-Datei und erzeugt das JSON-Schema der Daten (mit `JsonSchemaGenerator`) |
+| `ElasticsearchIndexService` | legt den Index `blocpress-templates` an, indiziert, sucht |
+| `TestDataSetService`, `CoverageAnalysisService` | Testdatensätze mit erwartetem PDF, Abdeckung der Bedingungen durch die Testdaten |
+| `PdfComparisonService` | vergleicht gerenderte mit erwarteten PDFs über `pdftotext`, `pdftoppm` und ImageMagick `convert` |
+| `ComplianceReviewScheduler` | täglich um 8 Uhr: loggt freigegebene Vorlagen, deren `validUntil` innerhalb von `BLOCPRESS_COMPLIANCE_LEAD_DAYS` (Standard 60) liegt |
+
+Die Workbench ruft render über `RENDER_URL` auf: `POST /api/render/template` für Vorschau
+und Regression, `POST /api/render/templates/import` bei der Freigabe, `DELETE
+/api/render/templates/import/{name}` beim Zurückziehen, jeweils mit dem `HttpClient` des JDK.
+Der REST-Client `RenderImportClient` ist deklariert, wird aber nirgends genutzt.
+
+_(confidence: verified — TemplateResource.java, SearchResource.java, WebDavResource.java,
+service/*.java, RenderImportClient.java, application.properties)_
+
+Die Workbench schickt bei Vorschau und Regression kein Token an render. Ist in render
+`BLOCPRESS_AUTH_ENABLED=true` gesetzt, antwortet render darauf mit 401, und Vorschau und
+Regression schlagen fehl. Import und Entfernen sind davon nicht betroffen, weil diese Pfade
+in render immer offen sind.
+
+_(confidence: verified — TemplateResource.java (`previewTemplate`, `renderPdf`),
+blocpress-render/src/main/resources/application.properties; Folge aus dem Code, nicht
+ausprobiert)_
+
+Gegenüber dem Altbestand korrigiert: Es gibt keinen Storage-Service, keinen eigenen
+Baustein-Service und keine Repository-Schicht für Vorlagen; Bausteine sind Vorlagen vom Typ
+`BAUSTEIN`, die Entitäten nutzen Panache, die Binärdaten liegen als `bytea` an der Vorlage
+([ADR-0006](../09-decisions/ADR-0006.md)). Prüfung, Freigabe, Testdaten, Regression und
+Compliance-Review, im Altbestand Teil von proof, liegen hier
+([ADR-0003](../09-decisions/ADR-0003.md)). Die Datenbank ist eine eigene, kein Schema
+`workbench` einer gemeinsamen Datenbank.
+
+## Validierung
+
+`TemplateValidator.validate` läuft beim Hochladen, beim Ersetzen des Inhalts, beim
+Duplizieren und bei jedem WebDAV-`PUT`. Das Ergebnis (`ValidationResult`) wird an der
+Vorlage gespeichert; nur eine gültige Vorlage (keine Fehler) lässt sich einreichen
+([US-0009](../01-goals/stories/US-0009.md)). `POST …/{id}/new-draft` kopiert Inhalt und
+Testdaten in eine neue Version, validiert aber nicht und übernimmt kein Ergebnis; ein so
+angelegter Entwurf lässt sich erst einreichen, nachdem sein Inhalt ersetzt wurde.
+
+| Prüfung | Ergebnis |
+|---|---|
+| Datei lässt sich nicht als ODT laden | Fehler `INVALID_ODT_STRUCTURE` |
+| Feldname folgt nicht der Punkt-Notation (`^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)*$`) | Warnung `INVALID_FIELD_NAME` |
+| Bedingung lässt sich nicht als JEXL übersetzen oder ohne Daten nicht auswerten | Fehler `INVALID_CONDITION` und zusätzlich Warnung `INVALID_CONDITION_SYNTAX` zur selben Bedingung |
+| Bedingung verweist auf ein Feld, das nicht als Benutzerfeld vorkommt | kein Fehler: der Pfad wird ins JSON-Schema aufgenommen |
+
+Die Felder kommen bevorzugt aus den Deklarationen (`text:user-field-decl`), sonst aus den
+Verwendungen. Wiederholungsgruppen erkennt `OdtTemplateDocument.detectRepetitionGroupPaths`
+an Abschnitten und Tabellenzeilen, deren Felder ein gemeinsames Präfix haben. Der Typ eines
+Feldes im Schema folgt aus `office:value-type` (`float`, `percentage`, `currency` → `number`,
+`boolean` → `boolean`, sonst `string`).
+
+_(confidence: verified — service/TemplateValidator.java, entity/ValidationResult.java,
+JexlConditionEvaluator.java (`strict(false)`), TemplateResource.java (`submitForApproval`,
+`createNewDraft`);
+derived_from: docs/legacy/specification/Element_Design_Concept.adoc:548-592)_
+
+Gegenüber dem Altbestand korrigiert: Der Validator liegt in der Workbench, nicht in
+blocpress-core. Ein Feld in einer Bedingung, das es nicht gibt, ist kein Fehler; der
+Validator nimmt es ins Schema auf, damit Testdaten es füllen können. Ein Syntaxfehler in
+einer Bedingung erzeugt einen Fehler und eine Warnung. Das Ergebnis enthält statt
+`userFields` das JSON-Schema.
+
+- UNKNOWN — offene Frage: Soll ein Feld, das nur in einer Bedingung vorkommt, gemeldet werden (Warnung), weil es auf einen Tippfehler hindeuten kann, oder ist die Aufnahme ins Schema gewollt?
+
+## Suchindex
+
+`ElasticsearchIndexService` pflegt den Index `blocpress-templates` (deutscher Analyzer für
+Name und Text). Ein Dokument je Vorlagenversion enthält Name, Typ, Status, Version, die
+Feldnamen der obersten Ebene des Schemas, die Bedingungen und den Text, den
+`OdtTextExtractor` aus blocpress-core aus allen `text:p` in `content.xml` zieht. Die Suche
+kombiniert eine unscharfe Suche über Name, Felder, Bedingungen und Text mit einer
+Präfixsuche und liefert Treffer mit Hervorhebung.
+
+Alle Zugriffe sind best effort: Ist Elasticsearch nicht erreichbar, wird gewarnt, die
+Datenbank-Transaktion läuft weiter, und die Suche liefert ein leeres Ergebnis.
+
+| Auslöser | Index |
+|---|---|
+| Hochladen (`POST …/templates`), WebDAV-`PUT` | Dokument anlegen oder ersetzen |
+| Statuswechsel über `PUT …/{id}/status` | nur `status` aktualisieren |
+| Löschen, Zurückziehen (`RETIRED`) | Dokument entfernen |
+
+Nicht nachgeführt wird der Index beim Ersetzen des Inhalts (`PUT …/{id}/content`), beim
+Duplizieren, bei `POST …/{id}/new-draft` und bei den Statuswechseln über
+`POST …/{id}/submit` und `POST …/{id}/reject`. Danach findet die Suche alte Inhalte, keine
+Kopien und einen veralteten Status. Zurückgezogene Vorlagen sind nicht mehr auffindbar.
+Text aus Überschriften (`text:h`) sowie aus Kopf- und Fußzeilen (`styles.xml`) wird nicht
+indiziert.
+
+_(confidence: verified — service/ElasticsearchIndexService.java, OdtTextExtractor.java,
+TemplateResource.java (`upload`, `updateStatus`, `delete`, `updateContent`, `duplicate`,
+`createNewDraft`, `submitForApproval`, `reject`), WebDavResource.java (`putDraft`);
+derived_from: docs/legacy/specification/System_Design_Concept.adoc:229-239)_
+
+Gegenüber dem Altbestand korrigiert: Nicht Elasticsearch extrahiert den Text, sondern die
+Workbench vor dem Senden. Eine Beziehung zwischen Baustein und Vorlage wird nicht indiziert.
+Elasticsearch bestätigt nichts, worauf die Workbench wartet; Fehler werden nur geloggt.
+
+## WebDAV
+
+`WebDavResource` bietet Vorlagen und Bausteine unter `/api/webdav/templates/` und
+`/api/webdav/bausteine/` an ([ADR-0011](../09-decisions/ADR-0011.md)): `GET` und `PUT` auf
+`{name}.odt`, `PROPFIND` auf Sammlung und Datei, `OPTIONS` mit `DAV: 1`. Unter
+`/api/webdav/released/…` liegt der freigegebene Stand nur zum Lesen; `PUT` dort ergibt 403.
+
+- `GET` und `PUT` ohne `released` nehmen die höchste Version des Namens, gleich welchen
+  Status (die Methode heißt `findLatestDraft`). Ist sie nicht `DRAFT`, lehnt `PUT` mit 403 ab,
+  statt einen neuen Entwurf anzulegen.
+- Gibt es den Namen noch nicht, legt `PUT` Version 1 als `DRAFT` an.
+- Jedes `PUT` validiert und indiziert wie ein Upload.
+- `PROPFIND` auf `released/…` listet alle freigegebenen Versionen; mehrere freigegebene
+  Versionen eines Namens erscheinen dann mehrfach unter demselben Dateinamen.
+- Es gibt kein `LOCK`; Klassen 2 und 3 von WebDAV werden nicht angeboten.
+
+_(confidence: verified — WebDavResource.java, PROPFIND.java)_
+
 ## Umgesetzte Requirements
 
 <!-- generated:realized -->
