@@ -6,9 +6,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 3 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
+| Stories | ⚪ offen 6 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
 | Requirements | umgesetzt 11 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | angenommen 5 |
+| [Entscheidungen](../09-decisions/) | angenommen 12 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -22,7 +22,7 @@ Status: ⚪ offen
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -30,6 +30,8 @@ Status: ✅ verifiziert
 | [US-0027](stories/US-0027.md) | In Minuten ausprobieren (Quickstart) | ✅ verifiziert |
 | [US-0028](stories/US-0028.md) | Native Images für schnellen Start | ✅ verifiziert |
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
+| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ⚪ offen |
+| [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⚪ offen |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
 
@@ -70,7 +72,7 @@ Status: ✅ verifiziert
 
 ## [E-RENDER-SERVICE](epics/E-RENDER-SERVICE.md) — Render-Service (REST-API, Auth, Jobs)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -78,6 +80,7 @@ Status: ✅ verifiziert
 | [US-0005](stories/US-0005.md) | Freigegebene Vorlage per Name rendern (versioniert) | ✅ verifiziert |
 | [US-0006](stories/US-0006.md) | Asynchron rendern über eine Job-Queue | ✅ verifiziert |
 | [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ✅ verifiziert |
+| [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 
@@ -118,7 +121,15 @@ Status: ✅ verifiziert
 
 ## Offene Fragen
 
+- [03-context.md](../03-context.md): UNKNOWN — offene Frage: Lädt render zur Laufzeit Textbausteine über die WebDAV-Adresse der Workbench nach, wenn eine freigegebene Vorlage auf sie verweist? Der Altbestand sagt ja; im Code löst blocpress-core ohne gesetzte System-Property blocpress.mode den Verweis (xlink:href) aus der Vorlage selbst auf, die Abhängigkeit render → workbench entstünde also nur über den Inhalt der Vorlage.
+- [03-context.md](../03-context.md): UNKNOWN — offene Frage: Wie kommt ein Benutzer in einer produktiven Installation an sein Token? Das Studio kennt nur das Eingabefeld, keinen Anmeldeablauf gegen den Identity-Provider.
 - [05-building-blocks/render.md](../05-building-blocks/render.md): UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der OpenAPI-Generator aus `openapi.yml` erzeugt? `RenderResource` ist von Hand geschrieben und implementiert sie nicht.
+- [08-concepts/domaenenmodell.md](../08-concepts/domaenenmodell.md): UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev), und die SQL-Skripte unter docker/ für docker-compose.yml enthalten weder valid_until, review_cycle_years, ignored_patterns noch die Tabelle render_job; vollständig ist nur docker/studio/init-studio.sql.
+- [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
+- [09-decisions/ADR-0006.md](../09-decisions/ADR-0006.md): UNKNOWN — offene Frage: Gilt die Grenze von 5.000 Dokumenten noch, und wurde sie je gemessen?
+- [09-decisions/ADR-0007.md](../09-decisions/ADR-0007.md): UNKNOWN — offene Frage: Die Startzeiten aus dem Altbestand (unter 1 s gegenüber 5–10 s) sind nicht gemessen; gibt es Messwerte?
+- [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
+- [09-decisions/ADR-0012.md](../09-decisions/ADR-0012.md): UNKNOWN — offene Frage: Die Init-Skripte für docker-compose legen render_job nicht an (nur das Quickstart-Skript docker/studio/init-studio.sql); wie entsteht die Tabelle dort, wenn Hibernate nur validiert?
 
 ## Offene Entscheidungen
 
@@ -130,7 +141,6 @@ _keine_
 
 ## Kapitel ohne Inhalt
 
-- 03-context
 - 04-strategy
 - 06-runtime
 - 07-deployment

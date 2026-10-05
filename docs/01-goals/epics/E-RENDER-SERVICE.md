@@ -22,4 +22,5 @@ Lastverhalten (Großdokumente, Batch-Läufe) in ein gemeinsames Thema.
 - [US-0005](../stories/US-0005.md) — Freigegebene Vorlage per Name rendern (versioniert)
 - [US-0006](../stories/US-0006.md) — Asynchron rendern über eine Job-Queue
 - [US-0007](../stories/US-0007.md) — Render-API optional per JWT absichern
+- [US-0038](../stories/US-0038.md) — Fehlerpfade und Dashboard von render testen
 <!-- /generated -->

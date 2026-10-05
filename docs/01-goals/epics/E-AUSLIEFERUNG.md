@@ -20,4 +20,6 @@ vom ersten `docker run` zum ersten gerenderten Dokument muss in Minuten gehen.
 - [US-0027](../stories/US-0027.md) — In Minuten ausprobieren (Quickstart)
 - [US-0028](../stories/US-0028.md) — Native Images für schnellen Start
 - [US-0034](../stories/US-0034.md) — render für die eigene Last richtig bemessen
+- [US-0037](../stories/US-0037.md) — Worker-Zahl aus dem CPU-Kontingent ableiten
+- [US-0039](../stories/US-0039.md) — blocpress mit docker-compose vollständig starten
 <!-- /generated -->
