@@ -49,7 +49,7 @@ mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.
 - Docker (for integration tests, render builds, and render's `@QuarkusTest`s — they start PostgreSQL via Quarkus DevServices)
 - LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
   render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
-  req-check gate fails for REQ-0012 (skipped ≠ proven) — use `-Dreq.check.skip=true` on machines without LibreOffice
+  docspine check fails for REQ-0012 (skipped ≠ proven) — use `-Dexec.skip=true` on machines without LibreOffice
 
 ## Architecture
 
@@ -87,22 +87,9 @@ Integration tests use **TestContainers** to spin up the Docker image and test ag
 
 Templates are regular ODT files using LibreOffice **User Fields** (CTRL+F2) with dot-notation names mapping to JSON paths. Sections and table rows serve as repeat groups for arrays. External ODT files can be referenced as text blocks via `text:section-source` for shared content like Terms & Conditions.
 
-## Documentation & Traceability Methodology (adapted from tarifnova — ADR-001)
+## Documentation
 
-Living documentation under `docs/`, with a build-enforced link between requirements and tests. Rationale and full rules: **`docs/CONVENTIONS.md`**. Decision to adopt: `docs/architecture/decisions/ADR-001.adoc`.
-
-**Structure** (`docs/`, additive next to the existing website and legacy docs):
-- `README.md` (hand-written entry) · `STATUS.md` (generated) · `CONVENTIONS.md`
-- `spec/` — description hierarchy **Epic ⊃ Story ⊃ Requirement** (Markdown + YAML frontmatter). Requirements use **EARS** statements. `SPEC.md`, `requirements/CATALOG.md` are **generated**.
-- `planning/` — `ROADMAP.md` (hand-written anchors) + generated `README.md` (status roll-up).
-- `architecture/` — arc42 (`index.adoc`, `UNKNOWN` placeholders allowed) + `decisions/ADR-NNN.adoc`.
-
-**Traceability gate** (two build-only Maven modules, no LLM):
-- `blocpress-req-trace` — JUnit-Platform `TestExecutionListener` (ServiceLoader); tests tagged `@Tag("REQ-NNNN")` are written per module to `target/req-coverage.json`. Add it as a **test** dependency wherever tests tag requirements (currently `blocpress-core` and `blocpress-render`).
-- `blocpress-req-check` — **last reactor module**, bound to `verify`. Compares coverage against `docs/spec/requirements/` + the spec layer, fails on 8 error classes, and (re)generates the read views. Skip with `-Dreq.check.skip=true` (views are still generated). `mvn verify` runs it automatically; scoped smoke: `mvn -q clean verify -pl blocpress-req-trace,blocpress-core,blocpress-req-check`.
-- **Never hand-edit generated files** (`STATUS.md`, `SPEC.md`, `CATALOG.md`, `planning/README.md`).
-
-**Methodology skills** (`.claude/skills/`, consultative — the human decides):
-- Spec loop: `/anforderung` (elicit REQ/Story in EARS) → `/arc42` (architecture impact) → `/adr` (record a decision) → `/umsetzung` (code + `@Tag` test + status-flip) → `/nachweis` (audit the requirement↔test honesty).
-- Refactoring: `/agent-orchestrator` drives `/srp-splitter` → `/compiler-guard` → `/test-tracker`.
-- The tarifnova insurer-onboarding skills were intentionally **not** adopted (no blocpress equivalent).
+The documentation follows docspine: see `AGENTS.md` for where things are and how to
+check, `.docspine/STANDARD.md` for the rules. Tests carry the requirement ID in
+`@DisplayName("REQ-NNNN: …")`; the module `blocpress-docs-check` runs the check as the
+last reactor module.
