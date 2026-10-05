@@ -15,9 +15,8 @@ beschrieben.
 
 _(confidence: verified — Pfade und Abhängigkeiten von `RenderResource` im Code geprüft)_
 
-- UNKNOWN — offene Frage: Werden die Schnittstellen noch gebraucht, die der
-  OpenAPI-Generator aus `openapi.yml` erzeugt? `RenderResource` ist von Hand geschrieben und
-  implementiert sie nicht.
+Die erzeugten Interfaces sind derzeit ungenutzt; wie das aufgelöst wird, entscheidet
+[ADR-0013](../09-decisions/ADR-0013.md).
 
 ## Umgesetzte Requirements
 
