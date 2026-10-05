@@ -14,32 +14,29 @@ Blocpress is a lightweight document template/rendering engine. It takes LibreOff
 ## Build Commands
 
 ```bash
-# Build everything (compile + tests + req-check gate)
+# Build everything (compile + tests + docspine check in blocpress-docs-check)
 mvn clean verify
 
 # Build without tests
 mvn clean package -DskipTests
 
-# Partial builds: core and render depend on blocpress-req-trace (test scope), which is
-# NOT installed in ~/.m2 — always include it in -pl, e.g.:
-
 # Run only unit tests (core module)
-mvn clean test -pl blocpress-req-trace,blocpress-core
+mvn clean test -pl blocpress-core
 
-# Run a single unit test (-Dsurefire... keeps req-trace from failing on "no tests matched")
-mvn clean test -pl blocpress-req-trace,blocpress-core -Dtest=ShowVariableTest -Dsurefire.failIfNoSpecifiedTests=false
+# Run a single unit test
+mvn clean test -pl blocpress-core -Dtest=ShowVariableTest -Dsurefire.failIfNoSpecifiedTests=false
 
 # Run a single test method
-mvn clean test -pl blocpress-req-trace,blocpress-core -Dtest=ShowVariableTest#renderTemplate -Dsurefire.failIfNoSpecifiedTests=false
+mvn clean test -pl blocpress-core -Dtest=ShowVariableTest#renderTemplate -Dsurefire.failIfNoSpecifiedTests=false
 
-# Traceability gate smoke (core requirements only)
-mvn -q clean verify -pl blocpress-req-trace,blocpress-core,blocpress-req-check
+# Documentation check alone (no tests)
+python3 .docspine/docspine.pyz check --without-tests
 
 # Run render integration tests (requires Docker — ITs are skipped by default)
-mvn verify -pl blocpress-req-trace,blocpress-core,blocpress-render -DskipITs=false
+mvn verify -pl blocpress-core,blocpress-render -DskipITs=false
 
 # Build Docker image
-mvn package -pl blocpress-req-trace,blocpress-core,blocpress-render -Dquarkus.container-image.build=true -DskipTests
+mvn package -pl blocpress-core,blocpress-render -Dquarkus.container-image.build=true -DskipTests
 
 # Load test for blocpress-render (never in the normal build; needs Docker) — see docs/guides/render-sizing.md
 mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 -Dload.cpus=1 -Dload.workers=1 -Dload.levels=1,4,16
