@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 800 200"
+   version="1.1"
+   id="svg15"
+   sodipodi:docname="blocpress-logo-large.svg"
+   inkscape:version="1.4.3 (fcd0343856, 2026-01-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs15" />
+  <sodipodi:namedview
+     id="namedview15"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="3.01625"
+     inkscape:cx="400"
+     inkscape:cy="99.958558"
+     inkscape:window-width="2560"
+     inkscape:window-height="1403"
+     inkscape:window-x="2560"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg15" />
+  <!-- Icon container -->
+  <rect
+     x="15"
+     y="45"
+     width="110"
+     height="110"
+     rx="15"
+     fill="#0099ff"
+     opacity="0.1"
+     id="rect1" />
+  <!-- Document icon - flat style -->
+  <g
+     transform="translate(35, 70)"
+     id="g4">
+    <path
+       d="M 0,0 L 45,0 L 45,10 L 55,10 L 55,70 L 0,70 Z"
+       fill="#3d4f5c"
+       id="path1" />
+    <path
+       d="M 45,0 L 45,10 L 55,10 Z"
+       fill="#2d3f4c"
+       id="path2" />
+    <rect
+       x="8"
+       y="20"
+       width="25"
+       height="3"
+       fill="white"
+       rx="1.5"
+       id="rect2" />
+    <rect
+       x="8"
+       y="30"
+       width="35"
+       height="3"
+       fill="white"
+       rx="1.5"
+       id="rect3" />
+    <rect
+       x="8"
+       y="40"
+       width="20"
+       height="3"
+       fill="white"
+       rx="1.5"
+       id="rect4" />
+  </g>
+  <!-- Gear - flat overlapping style -->
+  <g
+     transform="translate(85, 115)"
+     id="g13">
+    <circle
+       r="22"
+       fill="#6bb33f"
+       id="circle4" />
+    <circle
+       cx="0"
+       cy="-25"
+       r="4"
+       fill="#6bb33f"
+       id="circle5" />
+    <circle
+       cx="0"
+       cy="25"
+       r="4"
+       fill="#6bb33f"
+       id="circle6" />
+    <circle
+       cx="-25"
+       cy="0"
+       r="4"
+       fill="#6bb33f"
+       id="circle7" />
+    <circle
+       cx="25"
+       cy="0"
+       r="4"
+       fill="#6bb33f"
+       id="circle8" />
+    <circle
+       cx="-18"
+       cy="-18"
+       r="4"
+       fill="#6bb33f"
+       id="circle9" />
+    <circle
+       cx="18"
+       cy="-18"
+       r="4"
+       fill="#6bb33f"
+       id="circle10" />
+    <circle
+       cx="-18"
+       cy="18"
+       r="4"
+       fill="#6bb33f"
+       id="circle11" />
+    <circle
+       cx="18"
+       cy="18"
+       r="4"
+       fill="#6bb33f"
+       id="circle12" />
+    <circle
+       r="10"
+       fill="white"
+       id="circle13" />
+  </g>
+  <!-- Bold modern text - no space between bloc and press -->
+  <text
+     x="155"
+     y="125"
+     font-family="Arial, sans-serif"
+     font-size="72"
+     font-weight="800"
+     fill="#0099ff"
+     id="text13">bloc</text>
+  <text
+     x="301.35309"
+     y="124.33692"
+     font-family="Arial, sans-serif"
+     font-size="72px"
+     font-weight="800"
+     fill="#6bb33f"
+     id="text14">press</text>
+  <!-- Optional tagline -->
+  <text
+     x="155"
+     y="155"
+     font-family="Arial, sans-serif"
+     font-size="16"
+     font-weight="400"
+     fill="#666"
+     opacity="0.7"
+     id="text15">document automation</text>
+</svg>

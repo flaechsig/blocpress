@@ -35,7 +35,7 @@ class RenderedPdfTest {
     @Test
     @Tag("REQ-0001")
     void fieldsAreReplacedInPdf() throws Exception {
-        String pdf = render(Path.of("../docs/samples/quickstart/invoice.odt"), INVOICE_DATA);
+        String pdf = render(Path.of("../site/samples/quickstart/invoice.odt"), INVOICE_DATA);
 
         for (String value : new String[]{"Erika Mustermann", "Hauptstr. 5", "50667 Köln", "LT-2026-0042",
                 "Payment Terms: 30 Days", "Render-Lizenz", "1234,50 €", "Total Amount Due: 21734,12 €"}) {

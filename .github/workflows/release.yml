@@ -50,9 +50,9 @@ jobs:
 
       - name: Landing Page aktualisieren
         run: |
-          OLD=$(grep -oP '"softwareVersion": "\K[^"]+' docs/index.html | head -1)
-          sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" docs/index.html
-          sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" docs/index.html
+          OLD=$(grep -oP '"softwareVersion": "\K[^"]+' site/index.html | head -1)
+          sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" site/index.html
+          sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" site/index.html
 
       - name: Version committen
         run: |
