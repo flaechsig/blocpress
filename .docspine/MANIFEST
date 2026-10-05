@@ -1,0 +1,13 @@
+.agents/skills/spine-gate/SKILL.md
+.agents/skills/spine-gate/integrations/README.md
+.agents/skills/spine-gate/integrations/maven-junit5.md
+.agents/skills/spine-init/SKILL.md
+.agents/skills/spine-require/SKILL.md
+.agents/skills/spine-update/SKILL.md
+.claude/skills
+.docspine/CHANGELOG.md
+.docspine/LICENSE
+.docspine/MANIFEST
+.docspine/README.en.md
+.docspine/STANDARD.md
+.docspine/docspine.pyz
