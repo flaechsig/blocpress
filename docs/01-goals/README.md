@@ -8,7 +8,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 3 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
 | Requirements | umgesetzt 11 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 4 |
+| [Entscheidungen](../09-decisions/) | angenommen 5 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -122,7 +122,7 @@ Status: ✅ verifiziert
 
 ## Offene Entscheidungen
 
-- [ADR-0005](../09-decisions/ADR-0005.md) — docspine-Prüfung statt eigenem Traceability-Gate
+_keine_
 
 ## Widersprüche
 
