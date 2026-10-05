@@ -32,9 +32,12 @@ jobs:
 
       # Unit- + Integrationstests aller Module ausser e2e (braucht das gebaute
       # Quickstart-Image). render/studio-ITs sind per Default aus (skipITs=true).
-      # blocpress-docs-check laeuft als letztes Modul und ruft die docspine-Prüfung auf.
-      - name: Build, test and docspine check
-        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-docs-check
+      # Danach prueft docspine Doku und Testberichte aller Module.
+      - name: Build and test
+        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio
         env:
           # Testcontainers needs Docker socket
           TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      - name: docspine check
+        run: python3 .docspine/docspine.pyz check

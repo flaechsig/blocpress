@@ -77,7 +77,8 @@ a numbered list, each change with a short explanation:
    reports (for example a reporter setting), and which tests would need an ID in their
    name. List those tests; do not rename them yet.
 2. **Check in the build** — the configuration that runs `check` after the tests.
-3. **Profile** — `test_reports` with the locations from the integration.
+3. **Profile** — nothing to do, the check finds the reports itself. Set `test_reports`
+   only if the search must be limited (STANDARD 8.1).
 4. **AGENTS.md** — the workflow in this order: `python3 .docspine/docspine.pyz render`,
    then the integration's `test_command`.
 5. **Constraints** — the prerequisites from `requires` that are new for the project, in

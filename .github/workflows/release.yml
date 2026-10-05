@@ -63,7 +63,7 @@ jobs:
       # Build & Test
       # ------------------------------------------------------------------
       # Wie ci.yml: LibreOffice fuer die PDF/RTF-Tests (REQ-0004), Reactor inkl.
-      # blocpress-docs-check als letztes Modul (docspine-Prüfung).
+      # Danach prueft docspine Doku und Testberichte aller Module.
       - name: Install LibreOffice (headless)
         # apt-Spiegel haengen gelegentlich (2026-10-02: >20 min) — lieber sauber abbrechen
         timeout-minutes: 10
@@ -71,10 +71,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui poppler-utils imagemagick
 
-      - name: Build, Tests und docspine-Prüfung
-        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio,blocpress-docs-check
+      - name: Build und Tests
+        run: mvn -B clean verify -pl blocpress-core,blocpress-render,blocpress-workbench,blocpress-studio
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      - name: docspine check
+        run: python3 .docspine/docspine.pyz check
 
       # ------------------------------------------------------------------
       # Native-Binaries bauen (GraalVM/Mandrel-Container-Build) — BEWUSST VOR

@@ -17,6 +17,7 @@ Prüfen, spätestens vor dem Zusammenführen, am besten vor jedem Commit:
 ```
 python3 .docspine/docspine.pyz render
 mvn verify
+python3 .docspine/docspine.pyz check
 ```
 
 Die Tests tragen die Requirement-ID im `@DisplayName`, zum Beispiel

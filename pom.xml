@@ -18,8 +18,6 @@
         <module>blocpress-workbench</module>
         <module>blocpress-studio</module>
         <module>blocpress-e2e</module>
-        <!-- docs-check als LETZTES Modul: die docspine-Prüfung läuft nach den Tests aller Module. -->
-        <module>blocpress-docs-check</module>
     </modules>
 
     <properties>
@@ -493,11 +491,6 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <!-- Build-Zubehoer (docspine-Prüfung) landet bei -am im Reactor,
-                                 gehoert aber nicht nach Maven Central. -->
-                            <excludeArtifacts>
-                                <excludeArtifact>blocpress-docs-check</excludeArtifact>
-                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>

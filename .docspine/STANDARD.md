@@ -1,8 +1,8 @@
-<!-- docspine 0.12 · source: standard/en/STANDARD.md · do not edit in projects -->
+<!-- docspine 0.13 · source: standard/en/STANDARD.md · do not edit in projects -->
 
 # docspine Standard
 
-Version 0.12 (draft)
+Version 0.13 (draft)
 
 This document defines the rules for projects that follow docspine, a way of developing
 in which the documentation is the spine: from vision through requirements and decisions
@@ -126,7 +126,7 @@ statement_language: en      # language of requirement statements, default en
 sources:                    # permitted values for a requirement's source
   - GDPR Art. 32
   - RFC 6749 (OAuth 2.0)
-test_reports:               # where JUnit XML test reports are written (section 8.1)
+test_reports:               # optional: limits where JUnit XML reports are read (section 8.1)
   - target/surefire-reports
 ---
 ```
@@ -507,7 +507,10 @@ decides how it is resolved.
 The checker reads test results from two sources. A project may use either or both.
 
 **JUnit XML reports.** Most test tools can write this format (Maven Surefire, Gradle,
-pytest, Jest, Go, .NET). The profile names where the reports are:
+pytest, Jest, Go, .NET). The checker finds the reports itself: every XML file in the
+repository whose root is a test suite, outside `.git/`, `docs/`, `.docspine/` and the
+skill folders. New modules are found without configuration. To limit the search, the
+profile names the locations; then only those are read:
 
 ```yaml
 test_reports: [target/surefire-reports]
@@ -610,9 +613,10 @@ implemented and reports it.
 the check cannot be forgotten. Whatever the tool chain, an integration must:
 
 1. deliver test results as described in section 8.1 (JUnit XML reports with the
-   requirement ID in the test name, or `req-results.json`), and name report locations
-   in the profile's `test_reports`;
-2. run `check` after the tests and fail the build on any error;
+   requirement ID in the test name, or `req-results.json`);
+2. run `check` after the tests and fail on any error: either inside the build, or as a
+   separate step right after it. In the second case the continuous integration runs
+   that step, so that nothing reaches the main branch unchecked;
 3. leave `render` outside the build, so that a build never changes files under `docs/`.
 
 How a particular tool chain meets this contract is described in the docspine

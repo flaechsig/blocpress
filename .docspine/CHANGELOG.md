@@ -4,6 +4,18 @@ What changed in what docspine delivers to projects (`.docspine/`, `.agents/skill
 The newest version comes first. `spine-update` shows the entries between the installed and
 the new version.
 
+## 0.13
+
+- **The checker finds JUnit XML reports itself** anywhere in the repository; the profile
+  field `test_reports` becomes optional and only limits the search.
+- **The check may run as a separate step right after the build** (integration contract,
+  standard 11), run by the continuous integration. The Maven integration uses this for
+  multi-module projects instead of an extra module.
+- **Maven integration corrected:** the reporter needs `usePhrasedTestCaseClassName`
+  as well, otherwise a requirement ID in the display name of a class is lost. Notes on
+  parameterized tests (`{displayName}` in the name pattern) and on multi-module projects
+  (the check runs in a small last module).
+
 ## 0.12
 
 - **Rules moved from the skills into the standard:** how the README is translated (2.4),

@@ -4,9 +4,9 @@ title: Maven with JUnit 5
 detect: pom.xml
 keywords: [Java, Maven, JUnit]
 test_command: mvn verify
-test_reports: [target/surefire-reports]
+test_reports: [target/surefire-reports]   # optional, the checker finds reports itself
 requires: [JDK, Maven 3.8 or later, Python 3.9 or later]
-tested_with: [Maven 3.8.7, Surefire 3.5.4, exec-maven-plugin 3.5.0, JUnit 5.11 and 5.13]
+tested_with: [Maven 3.8.7, Surefire 3.2.5 and 3.5.4, exec-maven-plugin 3.5.0, JUnit 5.11 and 5.13, multi-module reactor]
 ---
 
 # Integration: Maven with JUnit 5
@@ -47,16 +47,24 @@ Surefire does not write tags into the report.
   <version>3.5.4</version>
   <configuration>
     <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+      <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
       <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
     </statelessTestsetReporter>
   </configuration>
 </plugin>
 ```
 
-Without this setting, the report contains the method name instead of the display name.
-The display name of the class is written either way.
+Both settings are needed. Once the reporter is configured, every option not set falls
+back to `false`: without `usePhrasedTestCaseClassName`, a requirement ID in the display
+name of a class is lost; without `usePhrasedTestCaseMethodName`, the report contains the
+method name instead of the display name.
 
-**The profile names the reports.** In `.docspine/PROFILE.md`:
+**Parameterized tests:** the report contains the name of each invocation, not the
+display name of the method. Put `{displayName}` into the name pattern, for example
+`@ParameterizedTest(name = "{displayName} [{index}] {argumentsWithNames}")`.
+
+**Finding the reports.** The check finds the reports under `target/surefire-reports`
+itself. Only to limit the search, name them in `.docspine/PROFILE.md`:
 
 ```yaml
 test_reports: [target/surefire-reports]
@@ -88,6 +96,29 @@ test_reports: [target/surefire-reports]
   </executions>
 </plugin>
 ```
+
+**Multi-module projects.** In a reactor with several modules, the check needs the
+reports of all modules, but Maven 3 has no step "after all modules". Do not put the
+`exec-maven-plugin` into the parent POM. Run the check as a separate step right after
+the build instead; it finds the reports of every module itself:
+
+```
+mvn verify
+python3 .docspine/docspine.pyz check
+```
+
+In the continuous integration, add the check as a step after the build, for example in
+GitHub Actions:
+
+```yaml
+- name: Build and test
+  run: mvn -B clean verify
+- name: docspine check
+  run: python3 .docspine/docspine.pyz check
+```
+
+Verified in a reactor with five modules and 278 tests: the check finds the reports of
+all modules and reports `OK`.
 
 Workflow:
 
@@ -152,7 +183,8 @@ Code goes under `src/main/java/`, tests under `src/test/java/`.
         <version>3.5.4</version>
         <configuration>
           <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
-            <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
+            <usePhrasedTestCaseClassName>true</usePhrasedTestCaseClassName>
+      <usePhrasedTestCaseMethodName>true</usePhrasedTestCaseMethodName>
           </statelessTestsetReporter>
         </configuration>
       </plugin>

@@ -14,8 +14,9 @@ Blocpress is a lightweight document template/rendering engine. It takes LibreOff
 ## Build Commands
 
 ```bash
-# Build everything (compile + tests + docspine check in blocpress-docs-check)
+# Build everything (compile + tests), then the docspine check over all modules
 mvn clean verify
+python3 .docspine/docspine.pyz check
 
 # Build without tests
 mvn clean package -DskipTests
@@ -49,7 +50,7 @@ mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.
 - Docker (for integration tests, render builds, and render's `@QuarkusTest`s — they start PostgreSQL via Quarkus DevServices)
 - LibreOffice 24+ (`soffice` on PATH) — needed at runtime in blocpress-render for PDF/RTF conversion, and for tests:
   render's `TemplateResourceTest` requires it; core's `TransformTest` is skipped without it, but then the
-  docspine check fails for REQ-0012 (skipped ≠ proven) — use `-Dexec.skip=true` on machines without LibreOffice
+  docspine check fails for REQ-0012 (skipped ≠ proven) — use `check --without-tests` on machines without LibreOffice
 
 ## Architecture
 
@@ -91,5 +92,5 @@ Templates are regular ODT files using LibreOffice **User Fields** (CTRL+F2) with
 
 The documentation follows docspine: see `AGENTS.md` for where things are and how to
 check, `.docspine/STANDARD.md` for the rules. Tests carry the requirement ID in
-`@DisplayName("REQ-NNNN: …")`; the module `blocpress-docs-check` runs the check as the
-last reactor module.
+`@DisplayName("REQ-NNNN: …")`; the check runs after `mvn verify` and finds the test
+reports of all modules itself (in CI as its own step).
