@@ -255,10 +255,10 @@ flowchart TD
     B --> D["docspine check"]
     D --> N["Native Binaries"]
     N --> E["E2E-Gate"]
-    E --> M["Maven Central"]
-    M --> H["Docker Hub"]
+    E --> H["Docker Hub"]
     H --> T["Commit und Tag"]
-    T --> G["Merge nach main"]
+    T --> M["Maven Central"]
+    M --> G["Merge nach main"]
     G --> S["nächste SNAPSHOT"]
     S --> R["GitHub Release"]
 ```
@@ -269,18 +269,21 @@ flowchart TD
 | Build und Tests | wie CI: LibreOffice installieren, `mvn -B clean verify` für core, render, workbench, studio, dann `docspine check` |
 | Native Binaries | `mvn clean package -Dnative -pl blocpress-studio,blocpress-render,blocpress-workbench --also-make -DskipTests`, gebaut im Container |
 | E2E-Gate | Quickstart-Image aus `docker/studio/Dockerfile.native` lokal bauen, `mvn -B verify -pl blocpress-e2e -De2e.skip=false -Dstudio.image=…` dagegen |
-| Maven Central | GPG-Schlüssel importieren, `mvn deploy -pl blocpress-core --also-make -Prelease -DskipTests` über `central-publishing-maven-plugin` mit `autoPublish` |
-| Docker Hub | Quickstart-Image und die nativen Images von render, workbench und studio bauen und pushen, je `:X.Y.Z` und `:latest`; Beschreibung von `flaechsig/blocpress-studio-quickstart` aus `docker/README.md` |
+| Docker Hub | Quickstart-Image und die nativen Images von render, workbench und studio bauen und pushen, je `:X.Y.Z` und `:latest`; Beschreibung von `flaechsig/blocpress-studio-quickstart` aus `docker/README.quickstart.md`, von `flaechsig/blocpress-render` aus `docker/README.md` |
 | Commit und Tag | Release-Commit pushen, Tag `vX.Y.Z` setzen und pushen |
+| Maven Central | GPG-Schlüssel importieren, `mvn deploy -pl blocpress-core --also-make -Prelease -DskipTests` über `central-publishing-maven-plugin` mit `autoPublish`, auf dem getaggten Commit |
 | Merge | läuft der Workflow nicht auf `main`: Branch mit `--no-ff` nach `main` mergen, danach den Branch löschen |
 | Nächste Version | `mvn versions:set -DnewVersion=<next>-SNAPSHOT` auf `main` committen und pushen |
 | GitHub Release | Abschnitt `## [X.Y.Z]` aus `CHANGELOG.md` als Text, Release `blocpress vX.Y.Z` |
 
 **Gates.** Tests, `docspine check`, nativer Build und E2E-Suite laufen vor allem, was sich
 nicht zurücknehmen lässt. Scheitert einer davon, ist nichts veröffentlicht und nichts
-gepusht; der Versions-Commit bleibt lokal im Runner. Nach dem Deploy auf Maven Central gibt
-es kein Gate mehr: Scheitert danach Docker Hub oder der Push, ist blocpress-core
-veröffentlicht, ohne dass Tag und Images existieren.
+gepusht; der Versions-Commit bleibt lokal im Runner. Danach veröffentlicht der Release zuerst,
+was sich zurücknehmen lässt (Images überschreiben, Tag löschen), und erst dann blocpress-core
+auf Maven Central, das sich nicht zurücknehmen lässt ([US-0047](01-goals/stories/US-0047.md)).
+Scheitert Docker Hub oder der Push, ist auf Central noch nichts erschienen. Scheitert Central,
+sind Images und Tag schon da; Tag und gegebenenfalls Release-Commit müssen dann von Hand
+zurückgenommen werden, bevor der Release neu läuft.
 
 **Secrets** (nur die Namen): `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_TOKEN`,
 `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE`, `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`. Für Commits,
@@ -294,12 +297,11 @@ Images veröffentlicht.
 _(confidence: verified — .github/workflows/release.yml, pom.xml (Profile `trigger-release`,
 `release`, `native`), CHANGELOG.md; derived_from: arc42.adoc:1745-1807 legacy (git history))_
 
-`docker/README.md` beschreibt das render-Image (`docker run … flaechsig/blocpress-render`),
-wird aber als Beschreibung von `flaechsig/blocpress-studio-quickstart` veröffentlicht. Die
-Repositories der Einzel-Images bekommen vom Workflow keine Beschreibung.
+Die Repositories von `flaechsig/blocpress-workbench` und `flaechsig/blocpress-studio`
+bekommen vom Workflow keine Beschreibung.
 
-_(confidence: verified — docker/README.md, release.yml Schritt „Docker Hub README
-aktualisieren“)_
+_(confidence: verified — docker/README.md, docker/README.quickstart.md, release.yml Schritte
+„Docker Hub README …“)_
 
 Gegenüber dem Altbestand korrigiert: CI testet alle vier Module mit LibreOffice und endet mit
 `docspine check`, statt nur core und workbench. Im Release kommen der native Build, das
@@ -310,15 +312,15 @@ E2E-Gate, `docspine check` und die drei Einzel-Images hinzu. Die Website liegt i
 ### Website (`pages.yml`)
 
 Veröffentlicht `site/` auf GitHub Pages, bei Pushes auf `main`, die Dateien unter `site/`
-ändern, oder manuell. Rechte: `pages: write`, `id-token: write`; Läufe sind über die Gruppe
+ändern, nach jedem erfolgreichen Release (`workflow_run` auf `Release`) oder manuell. Rechte: `pages: write`, `id-token: write`; Läufe sind über die Gruppe
 `pages` serialisiert.
 
 _(confidence: verified — .github/workflows/pages.yml)_
 
-Nach einem Release erscheint die neue Version nicht auf der Website: Der Release pusht mit
-dem Standard-Token des Workflows, und solche Pushes starten keine weiteren Workflows. Nach den
-Releases 2.6.0 und 2.7.0 (2.–3.10.2026) lief `pages.yml` erst beim Merge am 5.10.2026.
-Entschieden (2026-10-06): `pages.yml` startet zusätzlich per `workflow_run`, wenn `release.yml`
-erfolgreich endet ([US-0047](01-goals/stories/US-0047.md)).
+Der Start nach dem Release ist nötig, weil der Release mit dem Standard-Token des Workflows
+pusht und solche Pushes keine weiteren Workflows starten. Nach den Releases 2.6.0 und 2.7.0
+(2.–3.10.2026) lief `pages.yml` deshalb erst beim Merge am 5.10.2026
+([US-0047](01-goals/stories/US-0047.md)).
 
-_(confidence: verified — `gh run list` für release.yml und pages.yml)_
+_(confidence: unverified — pages.yml; der Start nach einem Release ist erst mit dem nächsten
+Release beobachtet)_

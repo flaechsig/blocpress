@@ -14,4 +14,4 @@ sources:
 ## Abweichungen vom Standard
 
 Keine. Der Altbestand ist am 2026-10-05 vollständig übernommen und entfernt; Verweise
-lauten „… legacy (git history)“. `docs/guides/` ist projekteigen; der Docker-Hub-Text liegt in `docker/README.md`.
+lauten „… legacy (git history)“. `docs/guides/` ist projekteigen; die Docker-Hub-Texte liegen in `docker/README.md` (render) und `docker/README.quickstart.md` (Quickstart).

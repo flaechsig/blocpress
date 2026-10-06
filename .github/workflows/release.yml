@@ -100,7 +100,7 @@ jobs:
 
       # ------------------------------------------------------------------
       # E2E-Gate: Quickstart-Image (nativ) lokal bauen und die E2E-Suite
-      # dagegen laufen lassen — VOR Maven Central und Docker Hub. Schlaegt
+      # dagegen laufen lassen — VOR Docker Hub und Maven Central. Schlaegt
       # sie fehl, wird nichts veroeffentlicht.
       # ------------------------------------------------------------------
       - name: Quickstart-Image lokal bauen (für E2E)
@@ -113,27 +113,6 @@ jobs:
           -Dstudio.image=blocpress-studio-quickstart:e2e
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
-
-      # ------------------------------------------------------------------
-      # Maven Central — nur blocpress-core
-      # ------------------------------------------------------------------
-      - name: GPG-Key importieren
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: blocpress-core nach Maven Central deployen
-        run: >
-          mvn deploy
-          -pl blocpress-core
-          --also-make
-          -Prelease
-          -DskipTests
-        env:
-          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       # ------------------------------------------------------------------
       # Docker Hub — natives Quickstart-Image (GraalVM-Binaries, kein JRE)
@@ -197,12 +176,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Docker Hub README aktualisieren
+      - name: Docker Hub README Quickstart aktualisieren
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: flaechsig/blocpress-studio-quickstart
+          readme-filepath: docker/README.quickstart.md
+
+      - name: Docker Hub README render aktualisieren
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: flaechsig/blocpress-render
           readme-filepath: docker/README.md
 
       # ------------------------------------------------------------------
@@ -213,6 +200,29 @@ jobs:
           git push origin HEAD
           git tag v${{ inputs.version }}
           git push origin v${{ inputs.version }}
+
+      # ------------------------------------------------------------------
+      # Maven Central — nur blocpress-core. BEWUSST als letzte Veröffentlichung
+      # (US-0047): Central lässt sich nicht zurücknehmen; Images lassen sich
+      # überschreiben, der Tag löschen. HEAD ist hier genau der getaggte Commit.
+      # ------------------------------------------------------------------
+      - name: GPG-Key importieren
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: blocpress-core nach Maven Central deployen
+        run: >
+          mvn deploy
+          -pl blocpress-core
+          --also-make
+          -Prelease
+          -DskipTests
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: In main mergen
         if: ${{ github.ref_name != 'main' }}
