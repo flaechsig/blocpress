@@ -8,6 +8,11 @@ on:
   push:
     branches: [main]
     paths: ['site/**']
+  # Der Release pusht mit dem Standard-Token; solche Pushes starten keine
+  # Workflows. Daher nach jedem erfolgreichen Release neu veröffentlichen (US-0047).
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +26,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
