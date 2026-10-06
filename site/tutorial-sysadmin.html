@@ -214,7 +214,7 @@
                         <span class="dot green"></span>
                         <span class="title">kubectl apply -k</span>
                     </div>
-                    <pre class="terminal-body"><span class="t-prompt">$</span> kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.8.0"
+                    <pre class="terminal-body"><span class="t-prompt">$</span> kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.7.1"
 <span class="t-comment">deployment.apps/blocpress-render created</span>
 <span class="t-comment">deployment.apps/blocpress-workbench created</span>
 <span class="t-comment">deployment.apps/blocpress-studio created</span>
@@ -339,7 +339,7 @@ kubectl -n blocpress create secret generic blocpress-db \
 
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.8.0"
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.7.1"
 kubectl -n blocpress wait --for=condition=Available deployment --all --timeout=300s</pre>
             </div>
 

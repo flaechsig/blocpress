@@ -12,6 +12,6 @@ resources:
   - studio.yaml
 images:
   # Version setzt der Release-Workflow
-  - {name: flaechsig/blocpress-render, newTag: "2.8.0"}
-  - {name: flaechsig/blocpress-workbench, newTag: "2.8.0"}
-  - {name: flaechsig/blocpress-studio, newTag: "2.8.0"}
+  - {name: flaechsig/blocpress-render, newTag: "2.7.1"}
+  - {name: flaechsig/blocpress-workbench, newTag: "2.7.1"}
+  - {name: flaechsig/blocpress-studio, newTag: "2.7.1"}
