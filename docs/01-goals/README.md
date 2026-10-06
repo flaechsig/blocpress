@@ -6,8 +6,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 15 · ✅ verifiziert 35 · ⛔ abgelöst 2 |
-| Requirements | umgesetzt 27 · abgelöst 1 |
+| Stories | ⚪ offen 14 · ✅ verifiziert 36 · ⛔ abgelöst 2 |
+| Requirements | umgesetzt 28 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -23,7 +23,7 @@ Status: ⚪ offen
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 
-Status: 🟡 in Arbeit
+Status: ✅ verifiziert
 
 | Story | Titel | Status |
 |---|---|---|
@@ -33,7 +33,7 @@ Status: 🟡 in Arbeit
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
 | [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ✅ verifiziert |
 | [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⛔ abgelöst |
-| [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ⚪ offen |
+| [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ✅ verifiziert |
 | [US-0051](stories/US-0051.md) | blocpress in Kubernetes betreiben (Tutorial und Manifeste) | ✅ verifiziert |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
@@ -144,7 +144,6 @@ Status: 🟡 in Arbeit
 - [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
 - [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?
-- [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Kann LibreOffice im Quickstart per WebDAV mit der Workbench arbeiten? Port 8082 ist nicht freigegeben, und der Studio-Proxy leitet nur GET, POST, PUT und DELETE weiter, kein PROPFIND.
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
 
@@ -154,7 +153,7 @@ Status: 🟡 in Arbeit
 
 ## Widersprüche
 
-- [02-constraints.md](../02-constraints.md): Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16, Anhebung in US-0046. (contradiction)
+_keine_
 
 ## Kapitel ohne Inhalt
 

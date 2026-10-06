@@ -151,7 +151,7 @@ interface RenderTarget extends AutoCloseable {
         }
 
         static GenericContainer<?> postgres(Network network) {
-            return new GenericContainer<>(DockerImageName.parse("postgres:16"))
+            return new GenericContainer<>(DockerImageName.parse("postgres:18"))
                     .withNetwork(network)
                     .withNetworkAliases("loadtest-db")
                     .withEnv("POSTGRES_DB", "production")
