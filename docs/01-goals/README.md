@@ -6,8 +6,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 17 · ✅ verifiziert 32 · ⛔ abgelöst 1 |
-| Requirements | umgesetzt 25 · abgelöst 1 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 33 · ⛔ abgelöst 1 |
+| Requirements | umgesetzt 26 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 12 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -31,7 +31,7 @@ Status: 🟡 in Arbeit
 | [US-0027](stories/US-0027.md) | In Minuten ausprobieren (Quickstart) | ✅ verifiziert |
 | [US-0028](stories/US-0028.md) | Native Images für schnellen Start | ✅ verifiziert |
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
-| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ⚪ offen |
+| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ✅ verifiziert |
 | [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⚪ offen |
 | [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ⚪ offen |
 

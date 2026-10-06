@@ -30,7 +30,8 @@ sequenceDiagram
    (sonst 400), legt einen `RenderJob` mit `PENDING` an und antwortet mit 202 und dem
    Job-Status. Ob die Vorlage existiert, wird hier nicht geprüft. Ohne `outputType` gilt `pdf`.
 2. `RenderJobWorker.dispatch` läuft alle `BLOCPRESS_ASYNC_POLL_INTERVAL` (Standard 2 s) und
-   startet bis zu `BLOCPRESS_LO_WORKERS` (Standard 2) Verarbeitungsschleifen.
+   startet so viele Verarbeitungsschleifen, wie es Worker gibt
+   ([REQ-0027](../01-goals/requirements/REQ-0027.md)).
 3. Jede Schleife holt mit `RenderJob.claimNextPending` den ältesten wartenden Job und setzt ihn
    in derselben Anweisung auf `PROCESSING` (`UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP
    LOCKED)`), jeweils in einer eigenen Transaktion. Sie arbeitet, bis kein Job mehr wartet.

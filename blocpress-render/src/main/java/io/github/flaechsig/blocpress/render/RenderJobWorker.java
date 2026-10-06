@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Polling-Worker der PENDING Render-Jobs aus der Datenbank holt und verarbeitet — bis zu
- * {@code BLOCPRESS_LO_WORKERS} parallel je Instanz, bis die Warteschlange leer ist.
+ * so viele parallel je Instanz, wie LibreOffice-Worker laufen ({@link LibreOfficePool#workers()}), bis die Warteschlange leer ist.
  * Nutzt SKIP LOCKED für nebenläufig-sicheres Claiming — mehrere Instanzen möglich.
  */
 @ApplicationScoped
@@ -54,7 +54,6 @@ public class RenderJobWorker {
     RenderLocaleConfig localeConfig;
 
     /** Parallele Job-Verarbeitung je Instanz — gleich der LibreOffice-Worker-Zahl (der Engpass). */
-    @ConfigProperty(name = "blocpress.libreoffice.workers", defaultValue = "2")
     int workers;
 
     /** PROCESSING-Jobs, die laenger haengen (Instanz abgestuerzt), gehen zurueck auf PENDING. */
@@ -66,7 +65,8 @@ public class RenderJobWorker {
 
     @PostConstruct
     void start() {
-        executor = Executors.newFixedThreadPool(Math.max(1, workers));
+        workers = libreOfficePool.workers();
+        executor = Executors.newFixedThreadPool(workers);
     }
 
     @PreDestroy
@@ -83,8 +83,7 @@ public class RenderJobWorker {
     @Scheduled(every = "${blocpress.async.poll-interval:2s}",
             concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void dispatch() {
-        int max = Math.max(1, workers);
-        while (activeLoops.get() < max) {
+        while (activeLoops.get() < workers) {
             activeLoops.incrementAndGet();
             executor.submit(this::drainQueue);
         }

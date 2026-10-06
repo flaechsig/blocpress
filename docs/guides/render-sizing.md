@@ -3,8 +3,9 @@
 > **Kurz:** Ein Render braucht rund **0,5 CPU-Sekunden**. Plane **1 Worker je CPU-Kern**
 > (mindestens 1), **~150 MiB Speicher je Worker** plus Grundbedarf, und skaliere bei mehr
 > Last über **Replicas**, nicht über Worker. Der Engpass ist fast immer das **CPU-Limit**.
-> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod — passend zum
-> Default `BLOCPRESS_LO_WORKERS=2`. **Wer weniger CPU gibt, muss die Worker senken.**
+> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod. Die Worker-Zahl
+> leitet render ab 2.8.0 selbst aus dem CPU-Limit ab (abgerundet, mindestens 1);
+> `BLOCPRESS_LO_WORKERS` kann sie nur noch senken, etwa bei knappem Speicher.
 
 Diese Anleitung erklärt, wie du die Ressourcen für `blocpress-render` **misst statt rätst**.
 Sie stützt sich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
@@ -28,7 +29,7 @@ Aus dem Betrieb bei einem Nutzer (tarifnova, Kubernetes):
 
 | Begriff | Bedeutung für blocpress-render |
 |---|---|
-| **Worker** (`BLOCPRESS_LO_WORKERS`, Default 2) | Wie viele `soffice`-Konvertierungen gleichzeitig laufen. Eine Semaphore im `LibreOfficePool` lässt weitere Anfragen **warten**. Jeder laufende Worker ist ein eigener LibreOffice-Prozess (~150 MiB). |
+| **Worker** (CPU-Limit abgerundet, mindestens 1; `BLOCPRESS_LO_WORKERS` als Obergrenze) | Wie viele `soffice`-Konvertierungen gleichzeitig laufen. Eine Semaphore im `LibreOfficePool` lässt weitere Anfragen **warten**. Jeder laufende Worker ist ein eigener LibreOffice-Prozess (~150 MiB). |
 | **CPU-Request** | Was der Scheduler dem Pod **zusichert**. Bestimmt die Platzierung, begrenzt nichts. |
 | **CPU-Limit** | Obergrenze als cgroup-Kontingent `cpu.max`, z.B. `50000 100000` = 50 ms je 100 ms = 0,5 CPU. |
 | **CFS-Throttling** | Ist das Kontingent im 100-ms-Fenster verbraucht, **hält der Kernel den ganzen Container an** bis zum nächsten Fenster — auch wenn der Host frei ist. Sichtbar in `cpu.stat` (`nr_throttled`, `throttled_usec`). |
@@ -132,13 +133,16 @@ Was man daran sieht:
 
 | Größe | CPU (Request = Limit) | Worker | Speicher native / JVM (Request = Limit) | ≈ Durchsatz je Pod |
 |---|---|---|---|---|
-| **Standard** | **2** | **2** (Default) | **640Mi** / 768Mi | 3,7/s |
-| sparsam (Test/Staging, geringe Last) | 1 | **1** — Worker senken! | 384Mi / — | 2/s |
+| **Standard** | **2** | **2** (abgeleitet) | **640Mi** / 768Mi | 3,7/s |
+| sparsam (Test/Staging, geringe Last) | 1 | **1** (abgeleitet) | 384Mi / — | 2/s |
 | mehr Last | Replicas der Standardgröße | 2 je Pod | 640Mi je Pod | 3,7/s × Replicas |
 
-- **Standard = Default.** blocpress startet mit `BLOCPRESS_LO_WORKERS=2`; mit 2 CPU passt das.
-  Bekommt der Pod weniger CPU, stimmt der Default nicht mehr: **Worker = CPU-Limit abgerundet,
-  mindestens 1** (bei 500m mit 2 Workern: 18 % weniger Durchsatz, doppelter Speicher).
+- **Worker = CPU-Limit abgerundet, mindestens 1.** Das leitet render ab 2.8.0 selbst aus
+  `cpu.max` der cgroup ab ([REQ-0027](../01-goals/requirements/REQ-0027.md)); bis 2.7.0 galt
+  fest 2, und bei 500m kosteten 2 Worker 18 % Durchsatz und doppelten Speicher.
+  `BLOCPRESS_LO_WORKERS` ist nur noch eine Obergrenze, etwa wenn das Speicher-Limit weniger
+  Worker trägt. **Ohne CPU-Limit** nimmt render alle Kerne des Knotens — dann ein Limit setzen
+  oder die Worker über `BLOCPRESS_LO_WORKERS` begrenzen.
 - Die sparsame Größe ist je Kern sogar etwas effizienter (2,04 statt 1,85 Renders/s), reserviert
   aber weniger Reserve für Lastspitzen und keine Redundanz — für Produktion lieber zwei
   Standard-Pods als einen großen.

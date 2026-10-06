@@ -45,7 +45,7 @@
 | Webhook | URL, die render nach Ende eines asynchronen Auftrags einmal mit `{jobId, status}` aufruft. |
 | Wiederholungsgruppe | Abschnitt oder Tabellenzeile, deren Felder auf einen JSON-Array-Pfad zeigen; wird je Array-Element einmal ausgegeben. Auch „Wiederholgruppe“. |
 | workbench | Datenbank der Workbench mit Vorlagen, Textbausteinen und Testdatensätzen in allen Status. |
-| Worker | Platz für eine gleichzeitige `soffice`-Konvertierung in render, Anzahl über `BLOCPRESS_LO_WORKERS` ([render bemessen](guides/render-sizing.md)). |
+| Worker | Platz für eine gleichzeitige `soffice`-Konvertierung in render, Anzahl = CPU-Limit abgerundet, mindestens 1, höchstens `BLOCPRESS_LO_WORKERS` ([render bemessen](guides/render-sizing.md)). |
 | Zurückziehen | Eine freigegebene Vorlage wird `RETIRED` und aus `production` entfernt ([REQ-0023](01-goals/requirements/REQ-0023.md)). |
 
 _(confidence: verified — Begriffe gegen die Kapitel 3, 5 und 8, die Stories und den Code
