@@ -150,12 +150,8 @@ public class RenderResource {
             return result;
         } catch (TemplateNotFoundException e) {
             jobError = e.getMessage();
-            logger.warn("Template not found or not approved: {}", name);
-            if (e.getMessage().contains("not approved")) {
-                throw new WebApplicationException(e.getMessage(), Response.Status.FORBIDDEN);
-            } else {
-                throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
-            }
+            logger.warn("Template not found: {}", name);
+            throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
         } catch (IOException e) {
             jobError = e.getMessage();
             logger.error("Failed to fetch or render template {}: {}", name, e.getMessage(), e);

@@ -63,11 +63,6 @@ _(confidence: verified — TemplateCache.java (`@CacheResult`, `invalidate`),
 TemplateImportResource.java (`@CacheInvalidateAll`, `removeTemplate`),
 `quarkus.cache.type=caffeine`)_
 
-In `renderDocumentByName` gibt es einen Zweig, der bei der Meldung „not approved“ mit 403
-antwortet. `TemplateCache` erzeugt diese Meldung nie; der Zweig wird nicht erreicht.
-
-_(confidence: verified — RenderResource.java, TemplateCache.java)_
-
 Gegenüber dem Altbestand korrigiert: render wählt nicht die „höchste Version mit
 `validFrom ≤ now`“, sondern zuerst nach `validFrom` und beachtet `validUntil`. Der Ablauf ist
 nicht `TemplateNotFoundException` vom Repository, sondern ein leeres Suchergebnis. Konvertiert

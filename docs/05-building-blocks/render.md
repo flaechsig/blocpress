@@ -94,9 +94,8 @@ LibreOfficePool.java, application.properties)_
 ### Cache
 
 `TemplateCache` hält den Inhalt freigegebener Vorlagen im Quarkus-Cache `templates`
-(Caffeine, höchstens 100 Einträge, 10 Minuten nach dem Schreiben). Genutzt wird nur der
-Zugriff nach Name (`getTemplateContentByName`); der Zugriff nach ID (`getTemplateContent`)
-hat keinen Aufrufer. Ein Import leert den ganzen Cache, das Entfernen nur den Eintrag des
+(Caffeine, höchstens 100 Einträge, 10 Minuten nach dem Schreiben). Der Zugriff geht nach
+Name (`getTemplateContentByName`). Ein Import leert den ganzen Cache, das Entfernen nur den Eintrag des
 Namens, jeweils nur in der Instanz, die den Aufruf erhält. Was daraus für Ablaufdatum und
 mehrere Instanzen folgt, steht beim [Rendern per Name](../06-runtime/render-by-name.md).
 

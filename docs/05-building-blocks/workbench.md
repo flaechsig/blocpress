@@ -68,10 +68,9 @@ flowchart TD
 Die Workbench ruft render über `RENDER_URL` auf: `POST /api/render/template` für Vorschau
 und Regression, `POST /api/render/templates/import` bei der Freigabe, `DELETE
 /api/render/templates/import/{name}` beim Zurückziehen, jeweils mit dem `HttpClient` des JDK.
-Der REST-Client `RenderImportClient` ist deklariert, wird aber nirgends genutzt.
 
 _(confidence: verified — TemplateResource.java, SearchResource.java, WebDavResource.java,
-service/*.java, RenderImportClient.java, application.properties)_
+service/*.java, application.properties)_
 
 Die Workbench schickt bei Vorschau und Regression kein Token an render. Ist in render
 `BLOCPRESS_AUTH_ENABLED=true` gesetzt, antwortet render darauf mit 401, und Vorschau und

@@ -136,13 +136,6 @@ liegt unter `site/samples/quickstart/token.txt`.
 _(confidence: verified — bp-app.js, bp-token-input.js, docker/studio/Dockerfile,
 site/samples/quickstart/token.txt)_
 
-Die Dateien `docker/studio/nginx.conf` und `docker/studio/studio.html` werden von keinem
-Dockerfile kopiert. Sie stammen aus einer früheren Variante, in der nginx statt des Studios
-auf Port 8080 lag.
-
-_(confidence: verified — Suche nach den Dateinamen in Dockerfiles, Compose-Dateien und
-Workflows)_
-
 Gegenüber dem Altbestand korrigiert: Das All-in-one-Image heißt
 `flaechsig/blocpress-studio-quickstart`, `flaechsig/blocpress-studio` ist nur das Studio. Es
 enthält auch Elasticsearch. `RENDER_URL` ist eine Variable der Workbench, nicht des Studios. Die

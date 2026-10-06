@@ -7,8 +7,6 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
-
 /**
  * Cache for template content fetched from the production schema.
  *
@@ -21,28 +19,6 @@ import java.util.UUID;
 @ApplicationScoped
 public class TemplateCache {
     private static final Logger logger = LoggerFactory.getLogger(TemplateCache.class);
-
-    /**
-     * Fetches template content by ID from the production schema.
-     * Results are cached for performance (10 minutes TTL).
-     *
-     * @param templateId Template UUID
-     * @return Template binary content (ODT file)
-     * @throws TemplateNotFoundException if template does not exist in production
-     */
-    @Transactional
-    @CacheResult(cacheName = "templates")
-    public byte[] getTemplateContent(UUID templateId) {
-        logger.info("Fetching template {} from production schema (cache miss)", templateId);
-
-        ProductionTemplate template = ProductionTemplate.findById(templateId);
-        if (template == null) {
-            throw new TemplateNotFoundException("Template not found in production: " + templateId);
-        }
-
-        logger.info("Successfully fetched template {} (size: {} bytes)", templateId, template.content.length);
-        return template.content;
-    }
 
     /**
      * Fetches template content by name from the production schema.

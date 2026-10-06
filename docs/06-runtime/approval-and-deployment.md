@@ -68,11 +68,10 @@ arc42.adoc:1162-1172 legacy (git history), arc42.adoc:1272-1310 legacy (git hist
    ([REQ-0015](../01-goals/requirements/REQ-0015.md)).
 
 Der Import-Endpunkt ist ohne Anmeldung erreichbar, auch wenn JWT für render eingeschaltet ist.
-Die Workbench ruft ihn mit einem eigenen `HttpClient` auf; die Schnittstelle
-`RenderImportClient` wird nicht verwendet.
+Die Workbench ruft ihn mit einem eigenen `HttpClient` auf.
 
 _(confidence: verified — TemplateResource.java (`updateStatus`), TemplateImportResource.java,
-RenderImportClient.java, blocpress-render/src/main/resources/application.properties
+blocpress-render/src/main/resources/application.properties
 (`permission.internal`); derived_from: arc42.adoc:1222-1260 legacy (git history))_
 
 Scheitert der Deploy, ist der Status im Suchindex schon auf `APPROVED` gesetzt; die
