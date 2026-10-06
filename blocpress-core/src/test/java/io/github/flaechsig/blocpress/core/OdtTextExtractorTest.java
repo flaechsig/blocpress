@@ -1,8 +1,11 @@
 package io.github.flaechsig.blocpress.core;
 
 import io.github.flaechsig.blocpress.core.odt.OdtTextExtractor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -35,6 +38,31 @@ class OdtTextExtractorTest {
         String text = extractor.extract(odt);
         assertNotNull(text);
         assertFalse(text.isBlank());
+    }
+
+    @Test
+    @DisplayName("REQ-0031: headerAndFooterTextIsExtracted")
+    void headerAndFooterTextIsExtracted() throws IOException {
+        // header_footer.odt: Kopfzeile "KOPF-STD", Fusszeile mit "FUSS-RECHTS" (styles.xml)
+        String text = extractor.extract(loadResource("header_footer.odt"));
+        assertTrue(text.contains("KOPF-STD"), "Kopfzeile fehlt: " + text);
+        assertTrue(text.contains("FUSS-RECHTS"), "Fusszeile fehlt: " + text);
+    }
+
+    @Test
+    @DisplayName("REQ-0031: headingTextIsExtractedInDocumentOrder")
+    void headingTextIsExtractedInDocumentOrder() throws Exception {
+        OdfTextDocument doc = OdfTextDocument.newTextDocument();
+        doc.getContentRoot().newTextHElement(1).setTextContent("Kündigungsfrist");
+        doc.addText("Der Vertrag endet zum Monatsende.");
+        var out = new ByteArrayOutputStream();
+        doc.save(out);
+
+        String text = extractor.extract(out.toByteArray());
+
+        int heading = text.indexOf("Kündigungsfrist");
+        int paragraph = text.indexOf("Der Vertrag endet");
+        assertTrue(heading >= 0 && heading < paragraph, "Überschrift fehlt oder falsche Reihenfolge: " + text);
     }
 
     @Test

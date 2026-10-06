@@ -106,7 +106,7 @@ public class WebDavResource {
             // wie beim Upload: validieren (Felder/Schema, Einreichbarkeit) und indizieren
             template.validationResult = validator.validate(content);
             template.persist();
-            elasticsearchIndexService.index(template);
+            elasticsearchIndexService.indexAfterCommit(template);
             return Response.created(
                 jakarta.ws.rs.core.UriBuilder.fromPath("/api/webdav/{c}/{n}.odt")
                     .build(collection, name)
@@ -122,7 +122,7 @@ public class WebDavResource {
         // in LibreOffice bearbeitet: Feldliste/Schema neu ermitteln, sonst bleiben sie veraltet
         template.validationResult = validator.validate(content);
         template.persist();
-        elasticsearchIndexService.index(template);
+        elasticsearchIndexService.indexAfterCommit(template);
         return Response.noContent().build();
     }
 

@@ -108,7 +108,7 @@ public class TemplateResource {
         template.type = templateType;
         template.validationResult = validationResult;
         template.persist();
-        elasticsearchIndexService.index(template);
+        elasticsearchIndexService.indexAfterCommit(template);
 
         return Response.status(Response.Status.CREATED)
                 .entity(Map.of(
@@ -331,6 +331,7 @@ public class TemplateResource {
         template.rejectionReason = null;
         template.rejectedAt = null;
         template.persist();
+        elasticsearchIndexService.indexAfterCommit(template);
 
         return Response.ok(Map.of(
             "id", template.id,
@@ -355,6 +356,7 @@ public class TemplateResource {
         template.rejectionReason = request.reason();
         template.rejectedAt = LocalDateTime.now();
         template.persist();
+        elasticsearchIndexService.indexAfterCommit(template);
         return Response.ok(Map.of(
             "id", template.id,
             "status", template.status
@@ -369,7 +371,7 @@ public class TemplateResource {
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
-        elasticsearchIndexService.delete(template.id);
+        elasticsearchIndexService.deleteAfterCommit(template.id);
         template.delete();
         return Response.noContent().build();
     }
@@ -410,7 +412,8 @@ public class TemplateResource {
         }
 
         template.persist();
-        elasticsearchIndexService.updateStatus(template.id, template.status.name());
+        // nach dem Commit: scheitert das Deploy unten (503), bleibt der Index beim alten Status
+        elasticsearchIndexService.indexAfterCommit(template);
 
         // TI-2: Auto-deploy to production when transitioning to APPROVED
         if (request.newStatus() == TemplateStatus.APPROVED) {
@@ -452,13 +455,8 @@ public class TemplateResource {
             }
         }
 
-        // UC-12: RETIRED — remove from Elasticsearch and production DB
+        // UC-12: RETIRED — remove from production DB; im Suchindex bleibt sie mit Status RETIRED
         if (request.newStatus() == TemplateStatus.RETIRED) {
-            try {
-                elasticsearchIndexService.delete(template.id);
-            } catch (Exception e) {
-                log.warn("Could not remove template '{}' from Elasticsearch: {}", template.name, e.getMessage());
-            }
             removeFromProduction(template.name);
         }
 
@@ -553,6 +551,7 @@ public class TemplateResource {
         duplicate.validationResult = validationResult;
 
         duplicate.persist();
+        elasticsearchIndexService.indexAfterCommit(duplicate);
 
         return Response.status(Response.Status.CREATED)
             .entity(Map.of(
@@ -590,6 +589,7 @@ public class TemplateResource {
         template.content = content;
         template.validationResult = validationResult;
         template.persist();
+        elasticsearchIndexService.indexAfterCommit(template);
 
         return Response.ok(Map.of(
             "id", template.id,
@@ -942,6 +942,7 @@ public class TemplateResource {
         draft.validFrom = LocalDateTime.now();
         draft.ignoredPatterns = current.ignoredPatterns != null ? new java.util.ArrayList<>(current.ignoredPatterns) : new java.util.ArrayList<>();
         draft.persist();
+        elasticsearchIndexService.indexAfterCommit(draft);
 
         // Copy all TestDataSets (including expectedPdf) to the new draft
         List<TestDataSet> existingTds = TestDataSet.list("template.id", current.id);

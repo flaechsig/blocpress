@@ -54,6 +54,18 @@ public class SearchResource {
         return parseResponse(rawResponse);
     }
 
+    /**
+     * Baut den Suchindex aus der Datenbank neu auf (US-0043), etwa nach einer Änderung der
+     * Indexstruktur. Ein fehlender Index wird auch ohne diesen Aufruf neu aufgebaut.
+     *
+     * @return Zahl der indizierten Vorlagen und Bausteine
+     */
+    @POST
+    @Path("reindex")
+    public Map<String, Integer> reindex() {
+        return Map.of("indexed", indexService.rebuild());
+    }
+
     private SearchResult parseResponse(String json) {
         try {
             JsonNode root = objectMapper.readTree(json);

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Suchindex vollständig** (US-0043): Die Workbench führt den Index nach jeder Änderung nach (auch Inhalt ersetzen, Kopie, neuer Entwurf, Einreichen, Ablehnen), schreibt erst nach dem Commit und behält ausgemusterte Vorlagen mit Status `RETIRED`. Überschriften sowie Kopf- und Fußzeilen sind durchsuchbar. Fehlt der Index oder ist ein Schreiben gescheitert, baut die Workbench ihn aus der Datenbank neu auf; `POST /api/workbench/search/reindex` baut ihn sofort neu auf.
 - **Quickstart-Image betriebstauglich** (US-0046): PostgreSQL 18 unter supervisord (Neustart nach Absturz), Volume `/data` für Datenbank und Suchindex (`docker run … -v blocpress-data:/data`), Healthcheck über studio, render und workbench. Port 9200 ist nicht mehr freigegeben; Elasticsearch bleibt intern. Hibernate `update` entfällt auch hier, das Schema kommt von Liquibase.
 - **WebDAV über das Studio** (REQ-0029): Der Studio-Proxy leitet OPTIONS, HEAD, PROPFIND, LOCK und UNLOCK samt WebDAV-Headern an die Workbench weiter; LibreOffice kann Vorlagen unter `/api/webdav` direkt über das Studio öffnen und speichern.
 - **PostgreSQL 18** auch im Kubernetes-Beispiel zur Bemessung und im Lasttest.

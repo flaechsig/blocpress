@@ -110,4 +110,6 @@ die UNO-API eines `LibreOfficeProcessor`. Einen `StorageService` gibt es nicht; 
 liegt an der Vorlage. Die Antwort ist kein Template-DTO, sondern die oben genannten Felder.
 Die Workbench prüft kein JWT ([Studio](../05-building-blocks/studio.md)).
 
-- UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?
+Seit [US-0043](../01-goals/stories/US-0043.md) (2026-10-06) führen auch „Aktualisieren“, „Als
+Kopie“ und new-draft den Suchindex nach, und eine nicht lesbare Datei wird mit Name und
+Status indiziert ([REQ-0030](../01-goals/requirements/REQ-0030.md)).
