@@ -31,4 +31,5 @@ späteres Verschärfen.
 - [US-0040](../stories/US-0040.md) — Fällige Reviews aktiv melden
 - [US-0042](../stories/US-0042.md) — Ausmustern und Zurückziehen zuverlässig machen
 - [US-0050](../stories/US-0050.md) — Freigabe nur mit bestandenen Regressionstests
+- [US-0053](../stories/US-0053.md) — Diff-PDF aus der Oberfläche abrufen
 <!-- /generated -->
