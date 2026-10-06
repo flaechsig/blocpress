@@ -38,7 +38,8 @@ sequenceDiagram
 4. `RenderEngine.mergeTemplate` mischt Vorlage und Daten mit der eingestellten Standard-Locale,
    `LibreOfficePool.convert` erzeugt das Zielformat (siehe
    [blocpress-core](../05-building-blocks/core.md)). Gleichzeitige Konvertierungen begrenzt
-   ein Semaphor auf `BLOCPRESS_LO_WORKERS` (Standard 2), gemeinsam mit den asynchronen Aufträgen.
+   ein Semaphor auf die Zahl der Worker (CPU-Limit abgerundet, höchstens `BLOCPRESS_LO_WORKERS`,
+   [REQ-0027](../01-goals/requirements/REQ-0027.md)), gemeinsam mit den asynchronen Aufträgen.
 5. Jeder Aufruf, erfolgreich oder nicht, wird in einer eigenen Transaktion als `RenderJob`
    mit Status `DONE` oder `FAILED` festgehalten, ohne Ergebnis-Bytes. Ein Fehler dabei
    ändert die Antwort nicht.

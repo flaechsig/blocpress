@@ -30,4 +30,5 @@ späteres Verschärfen.
 - [US-0019](../stories/US-0019.md) — Vorlagen periodisch überprüfen (Compliance-Review)
 - [US-0040](../stories/US-0040.md) — Fällige Reviews aktiv melden
 - [US-0042](../stories/US-0042.md) — Ausmustern und Zurückziehen zuverlässig machen
+- [US-0050](../stories/US-0050.md) — Freigabe nur mit bestandenen Regressionstests
 <!-- /generated -->

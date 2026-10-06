@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **render leitet die Zahl der LibreOffice-Worker aus dem CPU-Limit ab** (`cpu.max` der cgroup, abgerundet, mindestens 1; ohne Limit die Prozessorzahl). `BLOCPRESS_LO_WORKERS` ist nur noch eine Obergrenze: Es kann die Zahl senken, etwa bei knappem Speicher, aber nicht über die Kerne heben. Bisher galt fest 2, und wer das CPU-Limit senkte, musste die Worker von Hand anpassen (US-0037).
+- **Validierung beim Hochladen:** Ein Syntaxfehler in einer Bedingung ergibt genau einen Fehler `INVALID_CONDITION`, der die Bedingung nennt; die zusätzliche Warnung `INVALID_CONDITION_SYNTAX` entfällt (REQ-0026).
+
+### Removed
+
+- **docker-compose** (`docker-compose.yml`, `docker-compose.native.yml`, `docker/01-init.sql`, `docker/02-init-production.sh`). Die Init-Skripte waren veraltet, render startete damit nicht. Lieferwege sind das Quickstart-Image und Kubernetes (ADR-0014).
+
 ## [2.7.0] - 2026-10-03
 
 ### Changed

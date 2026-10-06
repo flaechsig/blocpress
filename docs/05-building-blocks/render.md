@@ -73,7 +73,7 @@ derived_from: arc42.adoc:661-728 legacy (git history))_
 
 `RenderJobWorker` arbeitet die Tabelle `render_job` ab
 ([ADR-0012](../09-decisions/ADR-0012.md)): `dispatch` startet im Takt
-`BLOCPRESS_ASYNC_POLL_INTERVAL` (Standard 2 s) bis zu `BLOCPRESS_LO_WORKERS` Schleifen in einem
+`BLOCPRESS_ASYNC_POLL_INTERVAL` (Standard 2 s) so viele Schleifen, wie es Worker gibt, in einem
 festen Thread-Pool dieser Größe, jede holt Aufträge mit `FOR UPDATE SKIP LOCKED`, bis keiner
 mehr wartet. Minütlich setzt `requeueStaleJobs` hängende Aufträge zurück
 (`BLOCPRESS_ASYNC_STALE_AFTER`, Standard 10 Minuten), stündlich räumt `cleanupJobs` auf
@@ -82,7 +82,10 @@ Außerdem protokolliert `recordSync` jeden synchronen Aufruf als `RenderJob` ohn
 Den Ablauf im Einzelnen beschreibt der [asynchrone Render-Auftrag](../06-runtime/async-render-job.md).
 
 `LibreOfficePool` ist kein Prozess-Pool, sondern ein faires Semaphor mit
-`BLOCPRESS_LO_WORKERS` Plätzen (Standard 2) vor `LibreOfficeProcessor.refreshAndTransform`.
+so vielen Plätzen, wie es Worker gibt, vor `LibreOfficeProcessor.refreshAndTransform`. Die
+Zahl bestimmt `WorkerCount`: das CPU-Limit aus `cpu.max`, abgerundet und mindestens 1, ohne
+Limit die Prozessorzahl; `BLOCPRESS_LO_WORKERS` ist eine Obergrenze
+([REQ-0027](../01-goals/requirements/REQ-0027.md)).
 Synchrone Aufrufe und Auftragsschleifen teilen sich diese Plätze.
 
 _(confidence: verified — RenderJobWorker.java, RenderJob.java (`claimNextPending`),
@@ -152,4 +155,5 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0012](../01-goals/requirements/REQ-0012.md) WHERE PDF or RTF output is requested, the render engine shall convert the merged document to that format with a headless LibreOffice process provided by the core library.
 - [REQ-0014](../01-goals/requirements/REQ-0014.md) WHEN a reviewer approves a submitted template, the workbench shall transfer the unchanged template content to the production store of the render service exactly once.
 - [REQ-0022](../01-goals/requirements/REQ-0022.md) IF the expiry date of a template has passed, THEN the render service shall not render it by name and answer with status 404.
+- [REQ-0027](../01-goals/requirements/REQ-0027.md) The render service shall run as many LibreOffice conversions in parallel as the CPU quota of its container allows in whole cores, at least one, and no more than the configured worker limit where one is set.
 <!-- /generated -->

@@ -87,7 +87,7 @@ Die Workbench prüft serverseitig kein Token ([ADR-0003](09-decisions/ADR-0003.m
 _(confidence: verified — Pfade aus RenderResource.java, AsyncRenderResource.java,
 TemplateImportResource.java, WebhookSender.java, WebDavResource.java, WorkbenchApiProxy.java,
 bp-token-input.js, LibreOfficeProcessor.java; Datenbanken, Elasticsearch und Ports aus den
-application.properties von workbench und render und aus docker-compose.yml;
+application.properties von workbench und render und aus docker/studio/supervisord.conf;
 derived_from: arc42.adoc:253-326 legacy (git history),
 System_Design_Concept.adoc:97-105 legacy (git history),
 Element_Design_Concept.adoc:771-845 legacy (git history),

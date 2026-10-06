@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *   mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 \
  *       -Dload.cpus=0.5,1,2 -Dload.workers=2,4 -Dload.levels=1,2,4,8,16
  *
- *   # laufende Instanz (docker-compose), cgroup + Neustart ueber den Containernamen
+ *   # laufende Instanz (z.B. docker run), cgroup + Neustart ueber den Containernamen
  *   mvn verify -pl blocpress-e2e -Pload -Dload.mode=external -Dload.url=http://localhost:8080 \
  *       -Dload.docker.container=blocpress-render
  *

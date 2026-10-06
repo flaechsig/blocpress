@@ -103,7 +103,7 @@ angelegter Entwurf lässt sich erst einreichen, nachdem sein Inhalt ersetzt wurd
 |---|---|
 | Datei lässt sich nicht als ODT laden | Fehler `INVALID_ODT_STRUCTURE` |
 | Feldname folgt nicht der Punkt-Notation (`^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)*$`) | Warnung `INVALID_FIELD_NAME` |
-| Bedingung lässt sich nicht als JEXL übersetzen oder ohne Daten nicht auswerten | Fehler `INVALID_CONDITION` und zusätzlich Warnung `INVALID_CONDITION_SYNTAX` zur selben Bedingung |
+| Bedingung lässt sich nicht als JEXL übersetzen oder ohne Daten nicht auswerten | Fehler `INVALID_CONDITION`, der die Bedingung nennt |
 | Bedingung verweist auf ein Feld, das nicht als Benutzerfeld vorkommt | kein Fehler: der Pfad wird ins JSON-Schema aufgenommen |
 
 Die Felder kommen bevorzugt aus den Deklarationen (`text:user-field-decl`), sonst aus den
@@ -120,10 +120,11 @@ derived_from: Element_Design_Concept.adoc:548-592 legacy (git history))_
 Gegenüber dem Altbestand korrigiert: Der Validator liegt in der Workbench, nicht in
 blocpress-core. Ein Feld in einer Bedingung, das es nicht gibt, ist kein Fehler; der
 Validator nimmt es ins Schema auf, damit Testdaten es füllen können. Ein Syntaxfehler in
-einer Bedingung erzeugt einen Fehler und eine Warnung. Das Ergebnis enthält statt
+einer Bedingung erzeugt genau einen Fehler (bis 2026-10-06 zusätzlich eine Warnung). Das Ergebnis enthält statt
 `userFields` das JSON-Schema.
 
-- UNKNOWN — offene Frage: Soll ein Feld, das nur in einer Bedingung vorkommt, gemeldet werden (Warnung), weil es auf einen Tippfehler hindeuten kann, oder ist die Aufnahme ins Schema gewollt?
+Entschieden (2026-10-06): Die Aufnahme ins Schema ist gewollt. Ein Feld, das nur in einer
+Bedingung vorkommt (etwa ein Schalter wie `isPremium`), wird nicht als Warnung gemeldet.
 
 ## Suchindex
 
@@ -191,4 +192,5 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0021](../01-goals/requirements/REQ-0021.md) WHEN templates due for review are requested, the workbench shall list every approved template whose expiry date lies within the configured lead time (default 60 days) and no other.
 - [REQ-0023](../01-goals/requirements/REQ-0023.md) WHEN a reviewer retires an approved template, the workbench shall set it to RETIRED and remove it from production.
 - [REQ-0024](../01-goals/requirements/REQ-0024.md) WHEN the designer submits a template in DRAFT, the workbench shall set it to SUBMITTED and deploy nothing to production.
+- [REQ-0026](../01-goals/requirements/REQ-0026.md) IF an uploaded template cannot be read as ODT, contains a user field name that does not follow dot notation, or contains a condition with a syntax error, THEN the workbench shall return a validation message that names the affected field or condition and the kind of error.
 <!-- /generated -->

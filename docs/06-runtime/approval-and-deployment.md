@@ -102,7 +102,9 @@ TemplateImportResource.java (`removeTemplate`); derived_from:
 arc42.adoc:1261-1269 legacy (git history))_
 
 Ein Wechsel von `APPROVED` zurück nach `SUBMITTED` ruft render nicht auf; die Vorlage bleibt
-in `production` gültig.
+in `production` gültig. Entschieden (2026-10-06): Der Wechsel wird verboten; eine
+freigegebene Version wird nicht zurückgestuft. Änderungen laufen über einen neuen Entwurf,
+das Zurückziehen über `RETIRED` ([US-0042](../01-goals/stories/US-0042.md)).
 
 _(confidence: verified — TemplateResource.java (`updateStatus`, `isValidTransition`))_
 
@@ -114,4 +116,4 @@ Ablehnung prüft der Endpunkt selbst, eine Rollenprüfung gibt es nicht
 ([US-0021](../01-goals/stories/US-0021.md)).
 
 - UNKNOWN — offene Frage: Soll das Zurückziehen wie die Freigabe fehlschlagen (503), wenn render die Vorlage nicht entfernen kann, und soll es nur die zurückgezogene Version statt aller Versionen des Namens entfernen?
-- UNKNOWN — offene Frage: Soll der Wechsel APPROVED → SUBMITTED die Vorlage aus production nehmen?
+

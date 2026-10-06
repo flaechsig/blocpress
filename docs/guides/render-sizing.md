@@ -3,8 +3,9 @@
 > **Kurz:** Ein Render braucht rund **0,5 CPU-Sekunden**. Plane **1 Worker je CPU-Kern**
 > (mindestens 1), **~150 MiB Speicher je Worker** plus Grundbedarf, und skaliere bei mehr
 > Last über **Replicas**, nicht über Worker. Der Engpass ist fast immer das **CPU-Limit**.
-> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod — passend zum
-> Default `BLOCPRESS_LO_WORKERS=2`. **Wer weniger CPU gibt, muss die Worker senken.**
+> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod. Die Worker-Zahl
+> leitet render ab 2.8.0 selbst aus dem CPU-Limit ab (abgerundet, mindestens 1);
+> `BLOCPRESS_LO_WORKERS` kann sie nur noch senken, etwa bei knappem Speicher.
 
 Diese Anleitung erklärt, wie du die Ressourcen für `blocpress-render` **misst statt rätst**.
 Sie stützt sich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
@@ -28,7 +29,7 @@ Aus dem Betrieb bei einem Nutzer (tarifnova, Kubernetes):
 
 | Begriff | Bedeutung für blocpress-render |
 |---|---|
-| **Worker** (`BLOCPRESS_LO_WORKERS`, Default 2) | Wie viele `soffice`-Konvertierungen gleichzeitig laufen. Eine Semaphore im `LibreOfficePool` lässt weitere Anfragen **warten**. Jeder laufende Worker ist ein eigener LibreOffice-Prozess (~150 MiB). |
+| **Worker** (CPU-Limit abgerundet, mindestens 1; `BLOCPRESS_LO_WORKERS` als Obergrenze) | Wie viele `soffice`-Konvertierungen gleichzeitig laufen. Eine Semaphore im `LibreOfficePool` lässt weitere Anfragen **warten**. Jeder laufende Worker ist ein eigener LibreOffice-Prozess (~150 MiB). |
 | **CPU-Request** | Was der Scheduler dem Pod **zusichert**. Bestimmt die Platzierung, begrenzt nichts. |
 | **CPU-Limit** | Obergrenze als cgroup-Kontingent `cpu.max`, z.B. `50000 100000` = 50 ms je 100 ms = 0,5 CPU. |
 | **CFS-Throttling** | Ist das Kontingent im 100-ms-Fenster verbraucht, **hält der Kernel den ganzen Container an** bis zum nächsten Fenster — auch wenn der Host frei ist. Sichtbar in `cpu.stat` (`nr_throttled`, `throttled_usec`). |
@@ -49,7 +50,7 @@ nicht am HTTP-Status (2.4.2: leere PDFs, 2.5.0: `500,000 EUR` statt `500.000 EUR
 mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 \
     -Dload.cpus=0.5,1,2 -Dload.workers=1,2 -Dload.levels=1,2,4,8,16
 
-# laufende Instanz (z.B. docker-compose) — cgroup-Werte und Neustart über den Containernamen
+# laufende Instanz (z.B. docker run --name blocpress-render) — cgroup-Werte und Neustart über den Containernamen
 mvn verify -pl blocpress-e2e -Pload -Dload.mode=external \
     -Dload.url=http://localhost:8080 -Dload.docker.container=blocpress-render
 
@@ -132,17 +133,20 @@ Was man daran sieht:
 
 | Größe | CPU (Request = Limit) | Worker | Speicher native / JVM (Request = Limit) | ≈ Durchsatz je Pod |
 |---|---|---|---|---|
-| **Standard** | **2** | **2** (Default) | **640Mi** / 768Mi | 3,7/s |
-| sparsam (Test/Staging, geringe Last) | 1 | **1** — Worker senken! | 384Mi / — | 2/s |
+| **Standard** | **2** | **2** (abgeleitet) | **640Mi** / 768Mi | 3,7/s |
+| sparsam (Test/Staging, geringe Last) | 1 | **1** (abgeleitet) | 384Mi / — | 2/s |
 | mehr Last | Replicas der Standardgröße | 2 je Pod | 640Mi je Pod | 3,7/s × Replicas |
 
-- **Standard = Default.** blocpress startet mit `BLOCPRESS_LO_WORKERS=2`; mit 2 CPU passt das.
-  Bekommt der Pod weniger CPU, stimmt der Default nicht mehr: **Worker = CPU-Limit abgerundet,
-  mindestens 1** (bei 500m mit 2 Workern: 18 % weniger Durchsatz, doppelter Speicher).
+- **Worker = CPU-Limit abgerundet, mindestens 1.** Das leitet render ab 2.8.0 selbst aus
+  `cpu.max` der cgroup ab ([REQ-0027](../01-goals/requirements/REQ-0027.md)); bis 2.7.0 galt
+  fest 2, und bei 500m kosteten 2 Worker 18 % Durchsatz und doppelten Speicher.
+  `BLOCPRESS_LO_WORKERS` ist nur noch eine Obergrenze, etwa wenn das Speicher-Limit weniger
+  Worker trägt. **Ohne CPU-Limit** nimmt render alle Kerne des Knotens — dann ein Limit setzen
+  oder die Worker über `BLOCPRESS_LO_WORKERS` begrenzen.
 - Die sparsame Größe ist je Kern sogar etwas effizienter (2,04 statt 1,85 Renders/s), reserviert
   aber weniger Reserve für Lastspitzen und keine Redundanz — für Produktion lieber zwei
   Standard-Pods als einen großen.
-- **JVM-Image** (`Dockerfile`, z.B. `docker-compose.yml`): gleicher Durchsatz, aber mehr
+- **JVM-Image** (`Dockerfile`): gleicher Durchsatz, aber mehr
   Speicher — gemessen 585Mi Spitze bei 2 CPU / 2 Worker, daher 768Mi.
 
 - **Request = Limit** bei CPU *und* Speicher macht den Pod zur QoS-Klasse *Guaranteed* und
@@ -152,8 +156,6 @@ Was man daran sieht:
   Antwortzeit verdoppelt sich schon ohne Last.
 - **Client-Timeout** mindestens 30 s, besser die Parallelität am Client begrenzen.
 - Vollständiges Beispiel (Standardgröße): [`examples/blocpress-render-k8s.yaml`](examples/blocpress-render-k8s.yaml).
-  `docker-compose.yml` setzt am render-Service `cpus: "2"`, `mem_limit: 768m` (JVM) bzw.
-  `docker-compose.native.yml` `640m` (native).
 
 > **Mit eigenen Vorlagen nachmessen.** Große Vorlagen (viele Seiten, Bilder, lange Tabellen)
 > brauchen mehr als 0,5 CPU-s und mehr Speicher je Render. Die Werte oben sind ein Start,

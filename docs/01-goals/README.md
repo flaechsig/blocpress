@@ -6,9 +6,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · 🟡 in Arbeit 2 · ✅ verifiziert 30 · ⛔ abgelöst 1 |
-| Requirements | vorgeschlagen 2 · umgesetzt 23 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 12 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 33 · ⛔ abgelöst 2 |
+| Requirements | umgesetzt 26 · abgelöst 1 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 13 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -31,9 +31,10 @@ Status: 🟡 in Arbeit
 | [US-0027](stories/US-0027.md) | In Minuten ausprobieren (Quickstart) | ✅ verifiziert |
 | [US-0028](stories/US-0028.md) | Native Images für schnellen Start | ✅ verifiziert |
 | [US-0034](stories/US-0034.md) | render für die eigene Last richtig bemessen | ✅ verifiziert |
-| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ⚪ offen |
-| [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⚪ offen |
+| [US-0037](stories/US-0037.md) | Worker-Zahl aus dem CPU-Kontingent ableiten | ✅ verifiziert |
+| [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⛔ abgelöst |
 | [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ⚪ offen |
+| [US-0051](stories/US-0051.md) | blocpress in Kubernetes betreiben (Tutorial und Manifeste) | ⚪ offen |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
 
@@ -55,6 +56,7 @@ Status: 🟡 in Arbeit
 | [US-0019](stories/US-0019.md) | Vorlagen periodisch überprüfen (Compliance-Review) | ✅ verifiziert |
 | [US-0040](stories/US-0040.md) | Fällige Reviews aktiv melden | ⚪ offen |
 | [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ⚪ offen |
+| [US-0050](stories/US-0050.md) | Freigabe nur mit bestandenen Regressionstests | ⚪ offen |
 
 ## [E-PERSISTENZ](epics/E-PERSISTENZ.md) — Template-Speicherung (workbench / production)
 
@@ -96,7 +98,7 @@ Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
-| [US-0001](stories/US-0001.md) | Platzhalter automatisch aus JSON füllen | 🟡 in Arbeit |
+| [US-0001](stories/US-0001.md) | Platzhalter automatisch aus JSON füllen | ✅ verifiziert |
 | [US-0002](stories/US-0002.md) | Bedingungen und Listen in einer Vorlage | ✅ verifiziert |
 | [US-0032](stories/US-0032.md) | Gemeinsame Textbausteine einbinden | ✅ verifiziert |
 | [US-0033](stories/US-0033.md) | Zahlen und Daten im Sprachformat der Vorlage | ✅ verifiziert |
@@ -119,7 +121,7 @@ Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
-| [US-0009](stories/US-0009.md) | Vorlage hochladen und sofort Feedback erhalten | 🟡 in Arbeit |
+| [US-0009](stories/US-0009.md) | Vorlage hochladen und sofort Feedback erhalten | ✅ verifiziert |
 | [US-0010](stories/US-0010.md) | Vorlagen im Dashboard überblicken | ✅ verifiziert |
 | [US-0011](stories/US-0011.md) | Mit Testdaten ausprobieren | ✅ verifiziert |
 | [US-0012](stories/US-0012.md) | Sehen, welche Fälle meine Testdaten abdecken | ✅ verifiziert |
@@ -133,31 +135,18 @@ Status: 🟡 in Arbeit
 
 - [01-goals/epics/E-WORKBENCH.md](epics/E-WORKBENCH.md): UNKNOWN — offene Frage: Die Stories dieses Epics und von E-PERSISTENZ sind über Tests belegt, haben aber keine Requirements. Sollen sie wie E-FREIGABE Requirements bekommen? Dafür bekämen die Tests einen Anzeigenamen mit der Requirement-ID.
 - [01-goals/stories/US-0040.md](stories/US-0040.md): UNKNOWN — offene Frage: Über welchen Weg soll gemeldet werden (E-Mail, Webhook, Anzeige in der Workbench), und an wen?
-- [02-constraints.md](../02-constraints.md): UNKNOWN — offene Frage: Der Altbestand nennt auch OTT (Dokumentvorlage) als Eingabeformat; der Code prüft beim Hochladen kein Format ausdrücklich. Soll OTT unterstützt werden, und ist es getestet?
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Lädt render zur Laufzeit Textbausteine über die WebDAV-Adresse der Workbench nach, wenn eine freigegebene Vorlage auf sie verweist? Der Altbestand sagt ja; im Code löst blocpress-core ohne gesetzte System-Property blocpress.mode den Verweis (xlink:href) aus der Vorlage selbst auf, die Abhängigkeit render → workbench entstünde also nur über den Inhalt der Vorlage.
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Wie kommt ein Benutzer in einer produktiven Installation an sein Token? Das Studio kennt nur das Eingabefeld, keinen Anmeldeablauf gegen den Identity-Provider.
 - [04-strategy.md](../04-strategy.md): UNKNOWN — offene Frage: Gelten die Zielwerte des Altbestands noch (Dokument bis 20 Seiten in unter 5 s, Suche über 1.000 Vorlagen in unter 2 s)? Gemessen ist bisher nur der Durchsatz von render (docs/guides/render-sizing.md), nicht die Suche.
 - [05-building-blocks/studio.md](../05-building-blocks/studio.md): UNKNOWN — offene Frage: Soll das Studio das Token bei allen Aufrufen der Workbench mitsenden, solange die Workbench es nicht prüft, oder entfällt das Eingabefeld, bis eine Anmeldung gegen den Identity-Provider existiert?
-- [05-building-blocks/workbench.md](../05-building-blocks/workbench.md): UNKNOWN — offene Frage: Soll ein Feld, das nur in einer Bedingung vorkommt, gemeldet werden (Warnung), weil es auf einen Tippfehler hindeuten kann, oder ist die Aufnahme ins Schema gewollt?
 - [06-runtime/approval-and-deployment.md](../06-runtime/approval-and-deployment.md): UNKNOWN — offene Frage: Soll das Zurückziehen wie die Freigabe fehlschlagen (503), wenn render die Vorlage nicht entfernen kann, und soll es nur die zurückgezogene Version statt aller Versionen des Namens entfernen?
-- [06-runtime/approval-and-deployment.md](../06-runtime/approval-and-deployment.md): UNKNOWN — offene Frage: Soll der Wechsel APPROVED → SUBMITTED die Vorlage aus production nehmen?
-- [06-runtime/async-render-job.md](../06-runtime/async-render-job.md): UNKNOWN — offene Frage: Welchen HTTP-Status liefert der Ergebnisabruf, nachdem die Ergebnis-Bytes gelöscht wurden (200 mit leerem Inhalt oder 204), und sollte er stattdessen 410 melden?
-- [06-runtime/compliance-review.md](../06-runtime/compliance-review.md): UNKNOWN — offene Frage: Soll eine abgelaufene Vorlage in der Workbench automatisch ihren Status ändern (etwa nach RETIRED), oder bleibt sie bewusst APPROVED?
 - [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
-- [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Soll das Löschen auf DRAFT und REJECTED beschränkt sein, wie es die Oberfläche anbietet?
-- [06-runtime/regression-test.md](../06-runtime/regression-test.md): UNKNOWN — offene Frage: Soll eine Freigabe voraussetzen, dass alle Regressionstests bestanden sind, und sollen die Ergebnisse gespeichert werden?
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
-- [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Soll ein Syntaxfehler in einer Bedingung nur eine Meldung erzeugen, und zwar einen Fehler, der die Bedingung nennt?
 - [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?
-- [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Soll Elasticsearch im Quickstart von außen erreichbar sein? Port 9200 ist freigegeben und im Startbefehl des Dockerfiles gemappt, `network.host: 127.0.0.1` lässt aber nur Verbindungen aus dem Container selbst zu.
 - [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Kann LibreOffice im Quickstart per WebDAV mit der Workbench arbeiten? Port 8082 ist nicht freigegeben, und der Studio-Proxy leitet nur GET, POST, PUT und DELETE weiter, kein PROPFIND.
-- [07-deployment.md](../07-deployment.md): UNKNOWN — offene Frage: Erscheint die neue Version auf der Website nach einem Release? Der Release ändert `site/index.html` und pusht mit dem Standard-Token des Workflows; Pushes mit diesem Token starten nach GitHub-Regeln keine weiteren Workflows, `pages.yml` liefe dann erst beim nächsten Push unter `site/` oder manuell.
-- [08-concepts/domaenenmodell.md](../08-concepts/domaenenmodell.md): UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev), und die SQL-Skripte unter docker/ für docker-compose.yml enthalten weder valid_until, review_cycle_years, ignored_patterns noch die Tabelle render_job; vollständig ist nur docker/studio/init-studio.sql.
+- [08-concepts/domaenenmodell.md](../08-concepts/domaenenmodell.md): UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation (Kubernetes, [ADR-0014](../09-decisions/ADR-0014.md)) an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev); vollständig ist nur docker/studio/init-studio.sql im Quickstart-Image, das Kubernetes-Beispiel weicht auf update aus. Zu klären in US-0051.
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
-- [09-decisions/ADR-0006.md](../09-decisions/ADR-0006.md): UNKNOWN — offene Frage: Gilt die Grenze von 5.000 Dokumenten noch, und wurde sie je gemessen?
-- [09-decisions/ADR-0007.md](../09-decisions/ADR-0007.md): UNKNOWN — offene Frage: Die Startzeiten aus dem Altbestand (unter 1 s gegenüber 5–10 s) sind nicht gemessen; gibt es Messwerte?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
-- [09-decisions/ADR-0012.md](../09-decisions/ADR-0012.md): UNKNOWN — offene Frage: Die Init-Skripte für docker-compose legen render_job nicht an (nur das Quickstart-Skript docker/studio/init-studio.sql); wie entsteht die Tabelle dort, wenn Hibernate nur validiert?
 
 ## Offene Entscheidungen
 
@@ -165,7 +154,7 @@ Status: 🟡 in Arbeit
 
 ## Widersprüche
 
-- [02-constraints.md](../02-constraints.md): Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16 und 17, Anhebung in US-0039. (contradiction)
+- [02-constraints.md](../02-constraints.md): Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16, Anhebung in US-0046. (contradiction)
 
 ## Kapitel ohne Inhalt
 

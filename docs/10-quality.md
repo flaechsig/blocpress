@@ -4,5 +4,5 @@
 
 | REQ | Statement | Status | Prüfung |
 |---|---|---|---|
-| [REQ-0025](01-goals/requirements/REQ-0025.md) | WHEN the same template version is rendered again with identical JSON data, output format and default locale, the render engine shall produce a document with identical content. | vorgeschlagen | — |
-| [REQ-0026](01-goals/requirements/REQ-0026.md) | IF an uploaded template cannot be read as ODT, contains a user field name that does not follow dot notation, or contains a condition with a syntax error, THEN the workbench shall return a validation message that names the affected field or condition and the kind of error. | vorgeschlagen | — |
+| [REQ-0025](01-goals/requirements/REQ-0025.md) | WHEN the same template version is rendered again with identical JSON data, output format and default locale, the render engine shall produce a document with identical content. | umgesetzt | — |
+| [REQ-0026](01-goals/requirements/REQ-0026.md) | IF an uploaded template cannot be read as ODT, contains a user field name that does not follow dot notation, or contains a condition with a syntax error, THEN the workbench shall return a validation message that names the affected field or condition and the kind of error. | umgesetzt | — |

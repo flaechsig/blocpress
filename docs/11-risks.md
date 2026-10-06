@@ -5,7 +5,7 @@
 | ID | Risiko | Folge | Maßnahme heute | Quelle |
 |---|---|---|---|---|
 | R-1 | **Speicher und CPU von `soffice`.** Jede Konvertierung startet einen eigenen LibreOffice-Prozess mit rund 150 MiB; zu knappe Limits führen zu Drosselung oder zum Abbruch des Containers (OOMKilled). | Langsame oder abgebrochene Renders | Worker-Zahl über `BLOCPRESS_LO_WORKERS` begrenzen, nach Messung bemessen ([render bemessen](guides/render-sizing.md)); die Worker-Zahl aus dem CPU-Kontingent abzuleiten ist offen ([US-0037](01-goals/stories/US-0037.md)) | [ADR-0010](09-decisions/ADR-0010.md) |
-| R-2 | **`bytea` bei wachsendem Bestand.** Vorlagen und Soll-PDFs liegen in PostgreSQL; bei deutlich mehr als 5.000 Dokumenten können Abfragen und Backups langsam werden. | Langsamere Abfragen, große Backups | keine; Entscheidung bei Wachstum neu prüfen | [ADR-0006](09-decisions/ADR-0006.md) |
+| R-2 | **`bytea` bei wachsendem Bestand.** Vorlagen und Soll-PDFs liegen in PostgreSQL; bei stark wachsendem Bestand können Abfragen und Backups langsam werden. | Langsamere Abfragen, große Backups | keine; Entscheidung bei Wachstum neu prüfen | [ADR-0006](09-decisions/ADR-0006.md) |
 | R-3 | **LibreOffice-Version nicht gepinnt.** Sie kommt aus den Paketen von Ubuntu 24.04; ein neues Basis-Image kann Umbruch und Layout ändern. Gleiches gilt für poppler-utils, auf denen der Regressionsvergleich beruht. | Regressionstests schlagen ohne Änderung an der Vorlage fehl; Ausgabe in Produktion ändert sich unbemerkt | Regressionstests je Vorlage ([US-0018](01-goals/stories/US-0018.md)); Determinismus als Anforderung [REQ-0025](01-goals/requirements/REQ-0025.md) (vorgeschlagen) | [ADR-0010](09-decisions/ADR-0010.md) |
 | R-4 | **Kein Zeitlimit für `soffice`.** render wartet ohne Timeout auf den Prozess, und der Platz im `LibreOfficePool` wird ohne Timeout belegt. Ein hängender Prozess blockiert einen Worker dauerhaft; synchrone und asynchrone Aufrufe teilen sich die Plätze. | Bei hängenden Prozessen steht render still | nur die Workbench bricht ihre Aufrufe an render nach 60 s ab | [ADR-0008](09-decisions/ADR-0008.md) |
 | R-5 | **Suchindex verzögert und nicht wiederherstellbar.** Ein neuer Stand ist erst nach dem nächsten Index-Refresh auffindbar. Was bei ausgefallenem Elasticsearch gespeichert wurde, fehlt dauerhaft in der Suche, weil es keinen Neuaufbau des Index gibt. | Gestalter finden Vorlagen nicht | keine | [ADR-0009](09-decisions/ADR-0009.md) |
@@ -34,15 +34,15 @@ gebaut ist nur die Liste mit 60 Tagen Vorlauf. Entfallen ist R-7 des Altbestands
 
 | ID | Schuld | Folge | Quelle |
 |---|---|---|---|
-| TD-1 | Die SQL-Skripte für `docker-compose.yml` (`docker/01-init.sql`, `docker/02-init-production.sh`) sind veraltet: Es fehlen Spalten und die Tabelle `render_job`. Vollständig ist nur `docker/studio/init-studio.sql`. | render und workbench scheitern mit docker-compose an der Schemaprüfung | [US-0039](01-goals/stories/US-0039.md), [ADR-0012](09-decisions/ADR-0012.md) |
+| TD-1 | Wer in einer produktiven Installation die Tabellen anlegt, ist nicht geregelt: Beide Dienste prüfen das Schema nur (Hibernate `validate`). Vollständig ist nur `docker/studio/init-studio.sql` im Quickstart-Image; das Kubernetes-Beispiel weicht auf `update` aus. | render und workbench starten ohne passendes Schema nicht | [US-0051](01-goals/stories/US-0051.md), [ADR-0014](09-decisions/ADR-0014.md) |
 | TD-2 | Die aus `openapi.yml` erzeugten Interfaces von render werden nicht genutzt. | Spezifikation und Umsetzung der REST-API können auseinanderlaufen | [ADR-0013](09-decisions/ADR-0013.md) |
 | TD-3 | Workbench und render wählen unter einem Vorlagennamen verschiedene Versionen (höchste Version gegenüber jüngstem `validFrom`). | Vorschau und Produktion können verschiedene Stände zeigen | [Versionierung](08-concepts/versionierung.md) |
 | TD-4 | Die Prüfung der Vorlagen beim Hochladen liegt in der Workbench (`TemplateValidator`), nicht in `blocpress-core`. | Nutzer der Bibliothek können Vorlagen nicht vorab prüfen | [US-0009](01-goals/stories/US-0009.md) |
 | TD-5 | Native-Builds brauchen gepflegte Reflection-Registrierung und Build-Argumente. | Neue Abhängigkeiten können das Native-Image brechen | [ADR-0007](09-decisions/ADR-0007.md) |
 | TD-6 | Kein Batch-Endpunkt: Viele Dokumente bedeuten viele Aufrufe oder viele Jobs. | Mehr Aufrufe und mehr Verwaltungsaufwand beim Aufrufer | Altbestand TD-2 |
 
-_(confidence: verified — docker/01-init.sql, docker/02-init-production.sh,
-docker/studio/init-studio.sql, blocpress-workbench/…/service/TemplateValidator.java,
+_(confidence: verified — docker/studio/init-studio.sql,
+docs/guides/examples/blocpress-render-k8s.yaml, blocpress-workbench/…/service/TemplateValidator.java,
 blocpress-render/…/RenderResource.java und AsyncRenderResource.java (kein Batch-Endpunkt);
 derived_from: arc42.adoc:2686-2740 legacy (git history))_
 

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -17,7 +18,8 @@ import java.util.concurrent.Semaphore;
  * ({@link LibreOfficeProcessor}), der pro Aufruf ein eigenes LibreOffice-Profil nutzt
  * und damit nebenläufigkeitssicher ist. Diese Klasse drosselt die Zahl gleichzeitig
  * laufender Konvertierungen über eine {@link Semaphore} auf
- * {@code blocpress.libreoffice.workers}, um Speicher/CPU zu begrenzen.</p>
+ * die Zahl aus {@link WorkerCount}: das CPU-Kontingent, höchstens
+ * {@code blocpress.libreoffice.workers}.</p>
  *
  * <p>Der frühere JodConverter/UNO-In-Process-Pool wurde entfernt: Die OpenOffice-UNO-Jars
  * sind versiegelt und nicht mit GraalVM-Native-Image kompatibel. Der CLI-Pfad erlaubt den
@@ -27,10 +29,10 @@ import java.util.concurrent.Semaphore;
 public class LibreOfficePool {
 
     private static final Logger LOG = LoggerFactory.getLogger(LibreOfficePool.class);
-    private static final int DEFAULT_WORKERS = 2;
 
-    @ConfigProperty(name = "blocpress.libreoffice.workers", defaultValue = "2")
-    int workers;
+    /** Obergrenze ({@code BLOCPRESS_LO_WORKERS}); leer, wenn nicht gesetzt. */
+    @ConfigProperty(name = "blocpress.libreoffice.workers")
+    Optional<Integer> maxWorkers = Optional.empty();
 
     private volatile Semaphore slots;
 
@@ -41,14 +43,20 @@ public class LibreOfficePool {
             synchronized (this) {
                 s = slots;
                 if (s == null) {
-                    int permits = workers > 0 ? workers : DEFAULT_WORKERS;
+                    int permits = workers();
                     s = new Semaphore(permits, true);
                     slots = s;
-                    LOG.info("LibreOffice CLI throttle initialised: {} parallel conversion(s)", permits);
+                    LOG.info("LibreOffice CLI throttle initialised: {} parallel conversion(s) (limit {})",
+                            permits, maxWorkers.map(String::valueOf).orElse("none"));
                 }
             }
         }
         return s;
+    }
+
+    /** Zahl gleichzeitiger Konvertierungen, siehe {@link WorkerCount}. */
+    public int workers() {
+        return WorkerCount.resolve(maxWorkers);
     }
 
     /**
