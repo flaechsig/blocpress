@@ -169,4 +169,9 @@ ComplianceReview, TestCase, Testpool, Benutzer und AuditLog ([ADR-0003](../09-de
 die Entität „Dokumentengenerierung“ (E-3) mit Template-ID, Version und Anforderer — an ihrer
 Stelle steht RenderJob, der nur den Vorlagennamen kennt.
 
-- UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation (Kubernetes, [ADR-0014](../09-decisions/ADR-0014.md)) an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev); vollständig ist nur docker/studio/init-studio.sql im Quickstart-Image, das Kubernetes-Beispiel weicht auf update aus. Zu klären in US-0051.
+Die Tabellen legen die Dienste selbst an: Beide führen beim Start ihren Liquibase-Changelog
+(`db/changeLog.xml`) aus, danach prüft Hibernate das Schema
+([ADR-0015](../09-decisions/ADR-0015.md), [REQ-0028](../01-goals/requirements/REQ-0028.md)).
+
+_(confidence: verified — db/changeLog.xml und db/changelog/001-initial-schema.sql in
+blocpress-render und blocpress-workbench, application.properties, LiquibaseMigrationTest)_

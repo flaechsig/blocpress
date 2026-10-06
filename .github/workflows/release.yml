@@ -54,6 +54,12 @@ jobs:
           sed -i "s/\"softwareVersion\": \"${OLD}\"/\"softwareVersion\": \"${{ inputs.version }}\"/g" site/index.html
           sed -i "s/>v${OLD}</>v${{ inputs.version }}</g" site/index.html
 
+      - name: Kubernetes-Manifeste und Sysadmin-Tutorial auf die Version setzen
+        run: |
+          sed -i -E "s/(name: flaechsig\/blocpress-(render|workbench|studio), newTag: )\"[^\"]+\"/\1\"${{ inputs.version }}\"/" deploy/k8s/app/kustomization.yaml
+          sed -i -E "s/deploy\/k8s\?ref=v[0-9.]+/deploy\/k8s?ref=v${{ inputs.version }}/g" site/tutorial-sysadmin.html
+          grep -c "newTag: \"${{ inputs.version }}\"" deploy/k8s/app/kustomization.yaml | grep -qx 3
+
       - name: Version committen
         run: |
           git add -A

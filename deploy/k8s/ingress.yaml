@@ -1,0 +1,14 @@
+# Studio unter / ueber den Ingress-Controller des Clusters (in k3d/k3s: Traefik).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blocpress-studio
+  labels: {app.kubernetes.io/part-of: blocpress}
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: blocpress-studio, port: {number: 8082}}

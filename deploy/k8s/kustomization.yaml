@@ -1,0 +1,14 @@
+# blocpress vollstaendig zum Ausprobieren, etwa in k3d: alle Dienste, PostgreSQL im Cluster und
+# ein Ingress fuer das Studio. Vorher das Secret anlegen:
+#   kubectl create namespace blocpress
+#   kubectl -n blocpress create secret generic blocpress-db \
+#     --from-literal=username=blocpress --from-literal=password=<geheim>
+#   kubectl apply -k deploy/k8s
+# Anleitung: site/tutorial-sysadmin.html
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: blocpress
+resources:
+  - app
+  - postgres
+  - ingress.yaml

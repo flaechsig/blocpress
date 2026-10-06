@@ -1,0 +1,35 @@
+# studio: Portal im Browser, einziger oeffentlicher Einstieg; leitet /api und /proxy an die
+# Workbench weiter.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-studio
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: blocpress-studio}
+  template:
+    metadata:
+      labels: {app: blocpress-studio}
+    spec:
+      containers:
+        - name: studio
+          image: flaechsig/blocpress-studio
+          env:
+            - {name: WORKBENCH_URL, value: "http://blocpress-workbench:8081"}
+          ports: [{containerPort: 8082}]
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 256Mi}
+          readinessProbe:
+            httpGet: {path: /q/health/ready, port: 8082}
+          livenessProbe:
+            httpGet: {path: /q/health/live, port: 8082}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-studio
+spec:
+  selector: {app: blocpress-studio}
+  ports: [{port: 8082}]
