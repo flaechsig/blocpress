@@ -6,7 +6,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 13 · ✅ verifiziert 37 · ⛔ abgelöst 2 |
+| Stories | ⚪ offen 14 · ✅ verifiziert 37 · ⛔ abgelöst 2 |
 | Requirements | umgesetzt 31 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
 
@@ -57,6 +57,7 @@ Status: 🟡 in Arbeit
 | [US-0040](stories/US-0040.md) | Fällige Reviews aktiv melden | ⚪ offen |
 | [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ⚪ offen |
 | [US-0050](stories/US-0050.md) | Freigabe nur mit bestandenen Regressionstests | ⚪ offen |
+| [US-0053](stories/US-0053.md) | Diff-PDF aus der Oberfläche abrufen | ⚪ offen |
 
 ## [E-PERSISTENZ](epics/E-PERSISTENZ.md) — Template-Speicherung (workbench / production)
 
