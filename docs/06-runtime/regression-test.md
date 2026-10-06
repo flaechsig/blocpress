@@ -106,4 +106,6 @@ _(confidence: verified — TemplateResource.java (`updateStatus` ohne Prüfung v
 Regressionsergebnissen), TestDataSet.java; derived_from:
 arc42.adoc:1083-1129 legacy (git history))_
 
-- UNKNOWN — offene Frage: Soll eine Freigabe voraussetzen, dass alle Regressionstests bestanden sind, und sollen die Ergebnisse gespeichert werden?
+Entschieden (2026-10-06): Die Freigabe soll voraussetzen, dass alle Regressionstests
+bestanden sind; die Ergebnisse werden nicht gespeichert
+([US-0050](../01-goals/stories/US-0050.md)).

@@ -62,4 +62,5 @@ _(confidence: verified — blocpress-core/…/OutputFormat.java, WebDavResource.
 (`application/vnd.oasis.opendocument.text`); derived_from:
 arc42.adoc:117-146 legacy (git history))_
 
-- UNKNOWN — offene Frage: Der Altbestand nennt auch OTT (Dokumentvorlage) als Eingabeformat; der Code prüft beim Hochladen kein Format ausdrücklich. Soll OTT unterstützt werden, und ist es getestet?
+Entschieden (2026-10-06): OTT (Dokumentvorlage), das der Altbestand nannte, wird nicht
+unterstützt; Eingabeformat ist ODT. Der Code prüft das Format beim Hochladen nicht ausdrücklich.

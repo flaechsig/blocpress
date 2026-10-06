@@ -123,7 +123,8 @@ Validator nimmt es ins Schema auf, damit Testdaten es füllen können. Ein Synta
 einer Bedingung erzeugt einen Fehler und eine Warnung. Das Ergebnis enthält statt
 `userFields` das JSON-Schema.
 
-- UNKNOWN — offene Frage: Soll ein Feld, das nur in einer Bedingung vorkommt, gemeldet werden (Warnung), weil es auf einen Tippfehler hindeuten kann, oder ist die Aufnahme ins Schema gewollt?
+Entschieden (2026-10-06): Die Aufnahme ins Schema ist gewollt. Ein Feld, das nur in einer
+Bedingung vorkommt (etwa ein Schalter wie `isPremium`), wird nicht als Warnung gemeldet.
 
 ## Suchindex
 

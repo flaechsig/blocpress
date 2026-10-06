@@ -122,4 +122,6 @@ Quellnamen unterscheidet. Benutzer- und Rechteverwaltung gibt es nicht
 ([US-0021](../01-goals/stories/US-0021.md)).
 
 - UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
-- UNKNOWN — offene Frage: Soll das Löschen auf DRAFT und REJECTED beschränkt sein, wie es die Oberfläche anbietet?
+Entschieden (2026-10-06): Auch das Backend soll das Löschen auf `DRAFT` und `REJECTED`
+beschränken und sonst mit 409 antworten; umgesetzt wird das in
+[US-0048](../01-goals/stories/US-0048.md).

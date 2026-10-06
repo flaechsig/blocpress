@@ -137,7 +137,9 @@ enthält auch Elasticsearch, und PostgreSQL startet über `entrypoint.sh`, nicht
 supervisord. `RENDER_URL` ist eine Variable der Workbench, nicht des Studios. Die
 JWT-Variablen wirken nicht allgemein, sondern nur in render bei eingeschalteter Absicherung.
 
-- UNKNOWN — offene Frage: Soll Elasticsearch im Quickstart von außen erreichbar sein? Port 9200 ist freigegeben und im Startbefehl des Dockerfiles gemappt, `network.host: 127.0.0.1` lässt aber nur Verbindungen aus dem Container selbst zu.
+Entschieden (2026-10-06): Elasticsearch bleibt im Quickstart intern. Port 9200 wird aus
+`EXPOSE` und den Startbefehlen entfernt ([US-0046](01-goals/stories/US-0046.md)).
+
 - UNKNOWN — offene Frage: Kann LibreOffice im Quickstart per WebDAV mit der Workbench arbeiten? Port 8082 ist nicht freigegeben, und der Studio-Proxy leitet nur GET, POST, PUT und DELETE weiter, kein PROPFIND.
 
 ## docker-compose
@@ -313,4 +315,10 @@ Veröffentlicht `site/` auf GitHub Pages, bei Pushes auf `main`, die Dateien unt
 
 _(confidence: verified — .github/workflows/pages.yml)_
 
-- UNKNOWN — offene Frage: Erscheint die neue Version auf der Website nach einem Release? Der Release ändert `site/index.html` und pusht mit dem Standard-Token des Workflows; Pushes mit diesem Token starten nach GitHub-Regeln keine weiteren Workflows, `pages.yml` liefe dann erst beim nächsten Push unter `site/` oder manuell.
+Nach einem Release erscheint die neue Version nicht auf der Website: Der Release pusht mit
+dem Standard-Token des Workflows, und solche Pushes starten keine weiteren Workflows. Nach den
+Releases 2.6.0 und 2.7.0 (2.–3.10.2026) lief `pages.yml` erst beim Merge am 5.10.2026.
+Entschieden (2026-10-06): `pages.yml` startet zusätzlich per `workflow_run`, wenn `release.yml`
+erfolgreich endet ([US-0047](01-goals/stories/US-0047.md)).
+
+_(confidence: verified — `gh run list` für release.yml und pages.yml)_

@@ -72,4 +72,6 @@ Gegenüber dem Altbestand korrigiert: Der Worker holt nicht einen Job je Takt, s
 mehrere Schleifen, die die Warteschlange leeren. Der Webhook geht auch bei `FAILED` hinaus.
 Die Konvertierung läuft über `LibreOfficePool.convert`.
 
-- UNKNOWN — offene Frage: Welchen HTTP-Status liefert der Ergebnisabruf, nachdem die Ergebnis-Bytes gelöscht wurden (200 mit leerem Inhalt oder 204), und sollte er stattdessen 410 melden?
+Der Ergebnisabruf antwortet dann mit 204 (`Response.ok(null)`). Entschieden (2026-10-06):
+Er soll stattdessen 410 Gone melden; umgesetzt wird das in
+[US-0045](../01-goals/stories/US-0045.md).

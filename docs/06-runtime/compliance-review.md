@@ -61,4 +61,6 @@ nicht direkt aus dem Repository. „Neu freigeben“ ist kein eigener Schritt, s
 über `SUBMITTED`. Der Altbestand nennt `TF-7` als „Compliance-Reviews überwachen“; tatsächlich
 wird nur geloggt.
 
-- UNKNOWN — offene Frage: Soll eine abgelaufene Vorlage in der Workbench automatisch ihren Status ändern (etwa nach RETIRED), oder bleibt sie bewusst APPROVED?
+Entschieden (2026-10-06): Eine abgelaufene Vorlage bleibt in der Workbench `APPROVED`; der
+Ablauf ist ein Datum, kein Status. render sperrt sie ([US-0041](../01-goals/stories/US-0041.md)),
+das Dashboard kennzeichnet sie ([US-0048](../01-goals/stories/US-0048.md)).
