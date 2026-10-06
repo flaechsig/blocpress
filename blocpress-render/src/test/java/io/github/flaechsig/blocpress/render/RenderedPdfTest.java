@@ -3,6 +3,7 @@ package io.github.flaechsig.blocpress.render;
 import org.junit.jupiter.api.DisplayName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,13 +12,15 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Nachweise auf Ebene des fertigen PDFs (REQ-0001/0002/0003).
+ * Nachweise auf Ebene des fertigen PDFs (REQ-0001/0002/0003/0006/0025).
  *
  * <p>Die core-Tests pruefen content.xml. Dass ein Inhalt dort steht, heisst nicht, dass er im
  * PDF ankommt — so fehlten bis 2.6.0 alle bedingten Bereiche im PDF, obwohl die core-Tests gruen
@@ -97,19 +100,54 @@ class RenderedPdfTest {
         }
     }
 
+    @Test
+    @DisplayName("REQ-0025: sameInputGivesSameTextAtSamePositionsInPdf")
+    void sameInputGivesSameTextAtSamePositionsInPdf() throws Exception {
+        Path invoice = Path.of("../site/samples/quickstart/invoice.odt");
+        String first = renderWithPositions(invoice, INVOICE_DATA);
+        String second = renderWithPositions(invoice, INVOICE_DATA);
+
+        assertTrue(first.contains("Erika"), first);
+        assertEquals(first, second);
+    }
+
+    /**
+     * Rendert zu PDF und liefert jeden Textabschnitt mit Seite und Position. Verglichen wird so
+     * der Inhalt, nicht die Bytes: Das PDF traegt ein Erzeugungsdatum, das sich bei jedem Lauf aendert.
+     */
+    static String renderWithPositions(Path template, String json) throws Exception {
+        File pdf = renderToFile(template, json);
+        var out = new StringBuilder();
+        try (PDDocument doc = PDDocument.load(pdf)) {
+            new PDFTextStripper() {
+                @Override
+                protected void writeString(String text, List<TextPosition> positions) {
+                    TextPosition start = positions.get(0);
+                    out.append(getCurrentPageNo()).append(' ')
+                            .append(String.format(Locale.ROOT, "%.2f %.2f", start.getXDirAdj(), start.getYDirAdj()))
+                            .append(' ').append(text).append('\n');
+                }
+            }.getText(doc);
+        }
+        return out.toString();
+    }
+
+    private static File renderToFile(Path template, String json) throws Exception {
+        RenderResource resource = new RenderResource();
+        set(resource, "libreOfficePool", new LibreOfficePool());
+        set(resource, "localeConfig", RenderLocaleConfig.of("de-DE"));
+        try (InputStream in = Files.newInputStream(template)) {
+            return resource.renderDocumentMultipart("application/pdf", in, json);
+        }
+    }
+
     /** Rendert eine Vorlage aus den core-Testressourcen zu PDF und liefert den Text (Whitespace normalisiert). */
     static String render(String template, String json) throws Exception {
         return render(CORE_RESOURCES.resolve(template), json);
     }
 
     static String render(Path template, String json) throws Exception {
-        RenderResource resource = new RenderResource();
-        set(resource, "libreOfficePool", new LibreOfficePool());
-        set(resource, "localeConfig", RenderLocaleConfig.of("de-DE"));
-        File pdf;
-        try (InputStream in = Files.newInputStream(template)) {
-            pdf = resource.renderDocumentMultipart("application/pdf", in, json);
-        }
+        File pdf = renderToFile(template, json);
         try (PDDocument doc = PDDocument.load(pdf)) {
             return new PDFTextStripper().getText(doc).replace(' ', ' ').replaceAll("\\s+", " ").trim();
         }

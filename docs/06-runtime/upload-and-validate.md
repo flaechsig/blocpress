@@ -57,9 +57,9 @@ derived_from: arc42.adoc:800-841 legacy (git history))_
    dem Feldnamen.
 3. Wiederholungsgruppen werden aus der Struktur erkannt: Liegen alle Felder eines Abschnitts
    oder einer Tabellenzeile unter demselben obersten Präfix, ist dieses Präfix ein Array.
-4. Jede Bedingung wird auf ihre JEXL-Syntax geprüft. Ein Syntaxfehler ergibt den Fehler
-   `INVALID_CONDITION` und zusätzlich die Warnung `INVALID_CONDITION_SYNTAX`; nur die Warnung
-   nennt die Bedingung ([REQ-0026](../01-goals/requirements/REQ-0026.md)). Feldpfade aus
+4. Jede Bedingung wird auf ihre JEXL-Syntax geprüft. Ein Syntaxfehler ergibt genau einen
+   Fehler `INVALID_CONDITION`, der die Bedingung und den Fehler des Parsers nennt
+   ([REQ-0026](../01-goals/requirements/REQ-0026.md)). Feldpfade aus
    Bedingungen werden in das Schema aufgenommen.
 5. `JsonSchemaGenerator` baut aus Feldnamen und Arrays ein verschachteltes JSON-Schema; der
    Feldtyp folgt dem ODF-Werttyp (`number`, `boolean`, sonst `string`).
@@ -110,5 +110,4 @@ die UNO-API eines `LibreOfficeProcessor`. Einen `StorageService` gibt es nicht; 
 liegt an der Vorlage. Die Antwort ist kein Template-DTO, sondern die oben genannten Felder.
 Die Workbench prüft kein JWT ([Studio](../05-building-blocks/studio.md)).
 
-- UNKNOWN — offene Frage: Soll ein Syntaxfehler in einer Bedingung nur eine Meldung erzeugen, und zwar einen Fehler, der die Bedingung nennt?
 - UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?

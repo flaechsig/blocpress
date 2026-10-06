@@ -134,30 +134,19 @@ public class TemplateValidator {
                         ? odtEl.getCondition()
                         : element.getName();
                 if (elementName == null || elementName.isBlank()) continue;
-                boolean syntaxValid = true;
-                String errorMessage = null;
-
                 // Try to validate condition syntax
                 try {
                     JexlConditionEvaluator.evaluate(elementName);
                     conditionExpressions.add(elementName);
                 } catch (IllegalArgumentException e) {
-                    syntaxValid = false;
-                    errorMessage = e.getMessage();
+                    String detail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
                     errors.add(new ValidationResult.ValidationMessage(
                         "INVALID_CONDITION",
-                        "Condition syntax error: " + e.getMessage()
+                        "Condition '" + elementName + "' has a syntax error: " + detail
                     ));
                 } catch (Exception e) {
                     // Ignore other exceptions (they might be context-related)
                     conditionExpressions.add(elementName);
-                }
-
-                if (!syntaxValid) {
-                    warnings.add(new ValidationResult.ValidationMessage(
-                        "INVALID_CONDITION_SYNTAX",
-                        "Condition '" + elementName + "' has syntax error: " + errorMessage
-                    ));
                 }
 
                 // Extract field paths referenced in condition expressions so they appear in the schema.

@@ -10,6 +10,7 @@ import io.github.flaechsig.blocpress.workbench.entity.Template;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -108,10 +109,52 @@ class TemplateValidatorIntegrationTest {
     }
 
     @Test
+    @DisplayName("REQ-0026: Nicht lesbare Vorlage wird als Fehler mit Art des Fehlers gemeldet")
+    void unreadableTemplateIsReportedAsError() {
+        ValidationResult result = validator.validate("This is not an ODT file".getBytes());
+
+        assertFalse(result.isValid());
+        assertEquals(1, result.errors().size(), result.errors().toString());
+        assertEquals("INVALID_ODT_STRUCTURE", result.errors().get(0).code());
+        assertTrue(result.errors().get(0).message().startsWith("Could not load ODT file"),
+                result.errors().get(0).message());
+    }
+
+    @Test
+    @DisplayName("REQ-0026: Syntaxfehler in einer Bedingung ergibt genau einen Fehler, der die Bedingung nennt")
+    void conditionSyntaxErrorNamesCondition() throws Exception {
+        // Kopie von IfCondition.odt, deren Bedingung ein doppeltes == enthaelt
+        byte[] odt = replaceInXml(Files.readAllBytes(Paths.get("../blocpress-core/src/test/resources/IfCondition.odt")),
+                "kunde.anrede == &quot;FRAU&quot;", "kunde.anrede == == &quot;FRAU&quot;");
+        ValidationResult result = validator.validate(odt);
+
+        assertFalse(result.isValid());
+        assertEquals(1, result.errors().size(), result.errors().toString());
+        assertEquals("INVALID_CONDITION", result.errors().get(0).code());
+        assertTrue(result.errors().get(0).message().contains("kunde.anrede == == \"FRAU\""),
+                result.errors().get(0).message());
+        assertTrue(result.warnings().stream().noneMatch(w -> w.code().startsWith("INVALID_CONDITION")),
+                "Bedingung doppelt gemeldet: " + result.warnings());
+    }
+
+    @Test
+    void validatorDetectsRepetitionGroupInTableRow() throws Exception {
+        // loop_table.odt: Tabellenzeile mit produkte.name, produkte.menge, produkte.preis
+        ValidationResult result = validator.validate(
+                Files.readAllBytes(Paths.get("../blocpress-core/src/test/resources/loop_table.odt")));
+
+        assertTrue(result.isValid(), result.errors().toString());
+        assertEquals(java.util.List.of("produkte"), result.repetitionGroups());
+        assertEquals("array", result.schema().path("properties").path("produkte").path("type").asText(),
+                result.schema().toString());
+    }
+
+    @Test
+    @DisplayName("REQ-0026: Ungueltiger Feldname wird mit dem Namen des Feldes gemeldet")
     void testValidatorDetectsInvalidFieldNames() throws Exception {
         // Kopie von header_footer.odt, in der das Feld "offer.reference" in "offer reference" umbenannt ist
-        byte[] odt = renameField(Files.readAllBytes(Paths.get("../blocpress-core/src/test/resources/header_footer.odt")),
-                "offer.reference", "offer reference");
+        byte[] odt = replaceInXml(Files.readAllBytes(Paths.get("../blocpress-core/src/test/resources/header_footer.odt")),
+                "text:name=\"offer.reference\"", "text:name=\"offer reference\"");
         ValidationResult result = validator.validate(odt);
 
         assertTrue(result.warnings().stream().anyMatch(w -> "INVALID_FIELD_NAME".equals(w.code())
@@ -119,8 +162,8 @@ class TemplateValidatorIntegrationTest {
                 "ungueltiger Feldname nicht gemeldet: " + result.warnings());
     }
 
-    /** Benennt ein Feld in content.xml und styles.xml einer ODT-Kopie um. */
-    private static byte[] renameField(byte[] odt, String from, String to) throws Exception {
+    /** Ersetzt Text in content.xml und styles.xml einer ODT-Kopie. */
+    private static byte[] replaceInXml(byte[] odt, String from, String to) throws Exception {
         var out = new java.io.ByteArrayOutputStream();
         try (var in = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(odt));
              var zip = new java.util.zip.ZipOutputStream(out)) {
@@ -128,7 +171,7 @@ class TemplateValidatorIntegrationTest {
                 byte[] data = in.readAllBytes();
                 if (e.getName().equals("content.xml") || e.getName().equals("styles.xml")) {
                     data = new String(data, java.nio.charset.StandardCharsets.UTF_8)
-                            .replace("text:name=\"" + from + "\"", "text:name=\"" + to + "\"")
+                            .replace(from, to)
                             .getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 }
                 var copy = new java.util.zip.ZipEntry(e.getName());
