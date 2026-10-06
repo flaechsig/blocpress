@@ -5,19 +5,19 @@
 #   - blocpress-studio    (Studio landing + router, port 8080)
 #   - blocpress-render    (Render API, port 8081)
 #   - blocpress-workbench (Workbench UI, internal port 8082)
-#   - PostgreSQL 16       (internal, not exposed)
-#   - Elasticsearch 8.11  (internal, port 9200 exposed for dev access)
+#   - PostgreSQL 18       (internal, not exposed)
+#   - Elasticsearch 8.11  (internal, not exposed)
 #
 # Build from project root:
 #   mvn clean package -DskipTests
 #   docker build -f docker/studio/Dockerfile -t flaechsig/blocpress-studio-quickstart:latest .
 #
 # Run:
-#   docker run -d -p 8080:8080 -p 8081:8081 -p 9200:9200 --name blocpress flaechsig/blocpress-studio-quickstart:latest
+#   docker run -d -p 8080:8080 -p 8081:8081 -v blocpress-data:/data --name blocpress flaechsig/blocpress-studio-quickstart:latest
 #
 # Workbench UI:  http://localhost:8080
 # Render API:    http://localhost:8081
-# Elasticsearch: http://localhost:9200
+# Data (PostgreSQL, Elasticsearch): volume /data
 # Dev JWT token: docs/samples/quickstart/token.txt
 # =============================================================================
 
@@ -49,10 +49,12 @@ RUN set -eux; \
       # PDF diff (for workbench regression tests)
       poppler-utils \
       imagemagick \
-      # Database
-      postgresql \
+      # Database: PostgreSQL 18 from the PGDG repository (installed below)
+      postgresql-common \
       # Process manager
       supervisor; \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y; \
+    apt-get install -y --no-install-recommends postgresql-18; \
     rm -rf /var/lib/apt/lists/*; \
     # Allow ImageMagick to read/write PDF files
     sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
@@ -77,17 +79,26 @@ node.name: quickstart\n\
 discovery.type: single-node\n\
 xpack.security.enabled: false\n\
 network.host: 127.0.0.1\n\
-path.data: /opt/elasticsearch/data\n\
+path.data: /data/elasticsearch\n\
 path.logs: /opt/elasticsearch/logs\n' \
     > /opt/elasticsearch/config/elasticsearch.yml
 
 # ---------------------------------------------------------------------------
 # PostgreSQL: trust-based local auth (dev only — no passwords needed)
 # ---------------------------------------------------------------------------
-RUN echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/16/main/pg_hba.conf && \
-    echo "local all all trust"              >> /etc/postgresql/16/main/pg_hba.conf && \
+RUN echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/18/main/pg_hba.conf && \
+    echo "local all all trust"              >> /etc/postgresql/18/main/pg_hba.conf && \
     sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" \
-        /etc/postgresql/16/main/postgresql.conf
+        /etc/postgresql/18/main/postgresql.conf && \
+    sed -i "s|^data_directory = .*|data_directory = '/data/postgresql'|" \
+        /etc/postgresql/18/main/postgresql.conf && \
+    grep -q "^data_directory = '/data/postgresql'" /etc/postgresql/18/main/postgresql.conf
+
+# ---------------------------------------------------------------------------
+# Data volume: /data/postgresql and /data/elasticsearch, created by entrypoint.sh
+# when empty. Without a volume the data is lost with the container.
+# ---------------------------------------------------------------------------
+VOLUME /data
 
 # ---------------------------------------------------------------------------
 # Application JARs (built with mvn clean package -DskipTests)
@@ -115,9 +126,13 @@ ENV MP_JWT_VERIFY_PUBLICKEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsKU92I7
 ENV MP_JWT_VERIFY_ISSUER="https://blocpress.dev"
 ENV HOME=/tmp
 
-EXPOSE 8080 8081 9200
+EXPOSE 8080 8081
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=60s \
-  CMD curl -sf http://localhost:8080/q/health/ready || exit 1
+# Healthy only when studio, render and workbench are ready; the readiness of render and
+# workbench includes the database, that of workbench also Elasticsearch.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=90s \
+  CMD curl -sf http://localhost:8080/q/health/ready \
+   && curl -sf http://localhost:8081/q/health/ready \
+   && curl -sf http://localhost:8082/q/health/ready || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Quickstart-Image betriebstauglich** (US-0046): PostgreSQL 18 unter supervisord (Neustart nach Absturz), Volume `/data` für Datenbank und Suchindex (`docker run … -v blocpress-data:/data`), Healthcheck über studio, render und workbench. Port 9200 ist nicht mehr freigegeben; Elasticsearch bleibt intern. Hibernate `update` entfällt auch hier, das Schema kommt von Liquibase.
+- **WebDAV über das Studio** (REQ-0029): Der Studio-Proxy leitet OPTIONS, HEAD, PROPFIND, LOCK und UNLOCK samt WebDAV-Headern an die Workbench weiter; LibreOffice kann Vorlagen unter `/api/webdav` direkt über das Studio öffnen und speichern.
+- **PostgreSQL 18** auch im Kubernetes-Beispiel zur Bemessung und im Lasttest.
 - **Kubernetes-Manifeste unter `deploy/k8s`** (Kustomize): render, workbench, studio, Elasticsearch und optional PostgreSQL 18, Ingress für das Studio. Installation mit `kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v<Version>"`; das Sysadmin-Tutorial der Website beschreibt den Weg, lokal mit k3d (US-0051).
 - **Datenbankschema per Liquibase:** render und workbench legen ihre Tabellen beim Start selbst an und migrieren sie (`db/changeLog.xml`); bestehende Datenbanken werden ohne Datenverlust übernommen. Hibernate prüft nur noch, auch die Workbench (bisher `update`). Das Quickstart-Skript legt nur noch Benutzer und Datenbanken an (US-0052, ADR-0015).
 

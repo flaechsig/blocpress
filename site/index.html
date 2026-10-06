@@ -336,7 +336,7 @@
     <p><strong>1. Run the container</strong></p>
     <div class="code-block">
         <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-        <pre class="bg-white p-3 rounded shadow-sm">docker run -d -p 8080:8080 -p 8081:8081 --name blocpress flaechsig/blocpress-studio-quickstart:latest</pre>
+        <pre class="bg-white p-3 rounded shadow-sm">docker run -d -p 8080:8080 -p 8081:8081 -v blocpress-data:/data --name blocpress flaechsig/blocpress-studio-quickstart:latest</pre>
     </div>
     <p class="text-muted small mt-2">
         The Quickstart image bundles <strong>Studio</strong> (workbench UI on port 8080),

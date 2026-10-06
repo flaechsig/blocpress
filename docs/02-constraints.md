@@ -37,16 +37,8 @@ Element_Design_Concept.adoc:1277-1283 legacy (git history),
 Element_Design_Concept.adoc:1293-1299 legacy (git history),
 Element_Design_Concept.adoc:1337-1342 legacy (git history))_
 
-PostgreSQL 18 ist seit 2026-10-05 entschieden; der Altbestand nannte die Grenze schon, die
-Images folgen ihr noch nicht:
-
-> [!CAUTION]
-> Das Quickstart-Image
-> (`docker/studio/Dockerfile`, `Dockerfile.native`) installiert PostgreSQL 16, das
-> Kubernetes-Beispiel (`docs/guides/examples/blocpress-render-k8s.yaml`) und der Lasttest
-> (`blocpress-e2e/…/load/RenderTarget.java`) nutzen `postgres:16`. Die Anhebung ist Teil von
-> [US-0046](01-goals/stories/US-0046.md).
-> Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16, Anhebung in US-0046. (contradiction)
+PostgreSQL 18 ist seit 2026-10-05 entschieden; seit [US-0046](01-goals/stories/US-0046.md)
+nutzen es alle Images, Manifeste und Tests.
 
 Der Altbestand verlangte Elasticsearch „7.x oder höher“. Eingesetzt und getestet wird nur
 8.11.0; 7.x ist hier deshalb nicht übernommen.

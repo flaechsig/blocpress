@@ -57,9 +57,13 @@ versucht es bis zu fünfmal im Abstand von 1,5 s und verwirft Antworten, die mit
 mit JavaScript, das einen lesbaren Fehler wirft, weil der Browser sonst nur „error loading
 dynamically imported module“ meldet. Same-Origin vermeidet CORS für den Modul-Import.
 
-**API-Proxy.** `WorkbenchApiProxy` leitet `GET`, `POST`, `PUT` und `DELETE` auf `/api/*` samt
-Query an `<WORKBENCH_URL>/api/*` weiter. Mitgegeben werden nur `Content-Type` und
-`Authorization`, zurück kommen Status, Inhalt, `Content-Type` und `Content-Disposition`.
+**API-Proxy.** `WorkbenchApiProxy` leitet `GET`, `POST`, `PUT`, `DELETE` und die für WebDAV
+nötigen `OPTIONS`, `HEAD`, `PROPFIND`, `LOCK` und `UNLOCK` auf `/api/*` samt Query an
+`<WORKBENCH_URL>/api/*` weiter ([REQ-0029](../01-goals/requirements/REQ-0029.md)). Mitgegeben
+werden `Content-Type`, `Authorization`, `Accept` und die WebDAV-Header `Depth`, `Destination`,
+`Overwrite`, `If`, `Lock-Token`, `Timeout`, `If-Match`, `If-None-Match`. Zurück kommen Status,
+Inhalt und alle Header außer den hop-by-hop-Headern und `Content-Length`; eine `Location`, die
+auf die Workbench zeigt, wird serverrelativ.
 Verbindungsaufbau höchstens 10 s, Antwort höchstens 120 s. `bp-workbench` bekommt als
 `api-base-url` einen leeren Wert und ruft damit dieselbe Origin; früher gespeicherte absolute
 Adressen (`bp-workbench-url` im `localStorage`) werden verworfen.
@@ -67,9 +71,8 @@ Adressen (`bp-workbench-url` im `localStorage`) werden verworfen.
 _(confidence: verified — index.html, components/bp-app.js, bp-router.js, bp-nav.js,
 WorkbenchProxyResource.java, WorkbenchApiProxy.java)_
 
-Andere Methoden (`PROPFIND`, `LOCK`) und weitere Kopfzeilen (etwa `Location`, `ETag`,
-`Accept`) gehen nicht durch den Proxy; WebDAV-Clients müssen die Workbench daher direkt
-erreichen. Die Standardadresse im Code unterscheidet sich zwischen den beiden Proxy-Klassen
+WebDAV-Clients wie LibreOffice arbeiten deshalb über das Studio
+(`<Studio>/api/webdav/…`), die Workbench muss nicht erreichbar sein. Die Standardadresse im Code unterscheidet sich zwischen den beiden Proxy-Klassen
 (8082 und 8081); wirksam ist der Wert aus `application.properties`.
 
 _(confidence: verified — WorkbenchApiProxy.java, WorkbenchProxyResource.java,
@@ -98,5 +101,5 @@ von proof oder admin.
 ## Umgesetzte Requirements
 
 <!-- generated:realized -->
-_keine_
+- [REQ-0029](../01-goals/requirements/REQ-0029.md) WHEN a client sends a WebDAV request (OPTIONS, HEAD, PROPFIND, LOCK, UNLOCK, GET, PUT) to the studio below /api/webdav, the studio shall forward it with its body and WebDAV headers to the workbench and return the workbench response with its status and headers, making a Location that points to the workbench server-relative.
 <!-- /generated -->

@@ -31,8 +31,11 @@ blocpress-studio/, docker/studio/Dockerfile und Dockerfile.native, .github/workf
 Start:
 
 ```bash
-docker run -d -p 8080:8080 -p 8081:8081 --name blocpress flaechsig/blocpress-studio-quickstart:latest
+docker run -d -p 8080:8080 -p 8081:8081 -v blocpress-data:/data --name blocpress flaechsig/blocpress-studio-quickstart:latest
 ```
+
+Ohne `-v` legt Docker ein anonymes Volume an; die Daten bleiben dann nur, solange der
+Container nicht gelöscht wird.
 
 ```mermaid
 flowchart TD
@@ -42,7 +45,8 @@ flowchart TD
     subgraph C["Container quickstart"]
         EP["entrypoint.sh"]
         SUP["supervisord"]
-        PG[("PostgreSQL 16")]
+        PG[("PostgreSQL 18")]
+        VOL[("Volume /data")]
         ES["Elasticsearch 8.11"]
         ST["studio :8080"]
         WB["workbench :8082"]
@@ -51,9 +55,12 @@ flowchart TD
 
     Browser --> ST
     App --> RD
-    EP --> PG
+    EP -->|initdb, Init-Skript| PG
     EP --> SUP
+    SUP --> PG
     SUP --> ES
+    PG --> VOL
+    ES --> VOL
     SUP --> ST
     SUP --> WB
     SUP --> RD
@@ -66,34 +73,38 @@ flowchart TD
 
 **Start im Container.**
 
-1. `entrypoint.sh` startet PostgreSQL 16 mit `pg_ctlcluster 16 main start`. PostgreSQL läuft
-   damit außerhalb von supervisord und wird nicht neu gestartet, wenn es abbricht.
-2. Danach legt `init-studio.sql` idempotent den Benutzer `blocpress` und die leeren
-   Datenbanken `workbench` und `production` an; die Tabellen legen die Dienste beim Start
-   selbst an ([ADR-0015](09-decisions/ADR-0015.md)). Angemeldet wird
-   lokal ohne Passwort (`trust` für `local` und `127.0.0.1`).
+1. `entrypoint.sh` legt im Volume `/data` die Verzeichnisse `postgresql` und
+   `elasticsearch` an und, wenn `postgresql` noch keinen Cluster enthält, mit `initdb` einen
+   neuen (PostgreSQL 18 aus dem PGDG-Repository).
+2. Es startet PostgreSQL kurz mit `pg_ctl`; `init-studio.sql` legt idempotent den Benutzer
+   `blocpress` und die leeren Datenbanken `workbench` und `production` an. Die Tabellen legen
+   die Dienste beim Start selbst an ([ADR-0015](09-decisions/ADR-0015.md)). Angemeldet wird
+   lokal ohne Passwort (`trust` für `local` und `127.0.0.1`). Danach stoppt es PostgreSQL
+   wieder.
 3. Zuletzt setzt das Skript `BLOCPRESS_LO_WORKERS` auf 1, falls nicht gesetzt, und übergibt
    an supervisord.
 
 | Prozess (supervisord) | Port | Besonderheit |
 |---|---|---|
-| `elasticsearch` | 9200, nur `127.0.0.1` | startet zuerst (`priority=5`) als eigener Benutzer, Single-Node, ohne Security, Heap 256 MB |
+| `postgresql` | 5432, nur `localhost` | startet zuerst (`priority=1`) als Benutzer `postgres`, Daten in `/data/postgresql` |
+| `elasticsearch` | 9200, nur `127.0.0.1` | `priority=5`, eigener Benutzer, Single-Node, ohne Security, Heap 256 MB, Daten in `/data/elasticsearch` |
 | `studio` | 8080, öffentlich | `WORKBENCH_URL=http://localhost:8082` |
-| `workbench` | 8082, nur intern | wartet, bis Elasticsearch auf `/_cluster/health` antwortet; Datenbank `workbench`, `RENDER_URL=http://localhost:8081`, `ELASTICSEARCH_HOSTS=localhost:9200` |
-| `render` | 8081, öffentlich | Datenbank `production`, `blocpress.libreoffice.workers` aus `BLOCPRESS_LO_WORKERS` (Obergrenze) |
+| `workbench` | 8082, nur intern | wartet, bis PostgreSQL (`pg_isready`) und Elasticsearch auf `/_cluster/health` antwortet; Datenbank `workbench`, `RENDER_URL=http://localhost:8081`, `ELASTICSEARCH_HOSTS=localhost:9200` |
+| `render` | 8081, öffentlich | wartet auf PostgreSQL; Datenbank `production`, `blocpress.libreoffice.workers` aus `BLOCPRESS_LO_WORKERS` (Obergrenze) |
 
-Alle vier laufen mit `autorestart` und schreiben nach `/var/log/supervisor/<name>.log`.
-workbench und render setzen `QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=update` und
-weichen damit von ihrem Standard `validate` ab. Der Healthcheck des Images prüft nur das
-Studio (`/q/health/ready` auf 8080), nicht workbench oder render. Das Image deklariert kein
-Volume; Vorlagen, Aufträge und Suchindex gehen mit dem Container verloren.
+Alle fünf laufen mit `autorestart` und schreiben nach `/var/log/supervisor/<name>.log`;
+bricht PostgreSQL ab, startet supervisord es neu. Der Healthcheck des Images ist erst grün,
+wenn studio (8080), render (8081) und workbench (8082) auf `/q/health/ready` antworten; die
+Readiness von render und workbench schließt die Datenbank ein, die der Workbench auch
+Elasticsearch. Vorlagen, Aufträge und Suchindex liegen im Volume `/data` und überstehen das
+Löschen des Containers.
 
 | Port | Dienst |
 |---|---|
-| 8080 | Studio: Oberfläche, `/api/*` als Proxy zur Workbench, `/proxy/bp-workbench.js` |
+| 8080 | Studio: Oberfläche, `/api/*` als Proxy zur Workbench (auch WebDAV unter `/api/webdav`), `/proxy/bp-workbench.js` |
 | 8081 | render: REST-API, Swagger UI unter `/q/swagger-ui` |
-| 9200 | im Image freigegeben (`EXPOSE`), Elasticsearch lauscht aber nur auf `127.0.0.1` |
 | 8082 | Workbench, nur im Container |
+| 5432, 9200 | PostgreSQL und Elasticsearch, nur im Container |
 
 | Variable | Voreinstellung | Wirkung |
 |---|---|---|
@@ -134,14 +145,17 @@ Workflows)_
 
 Gegenüber dem Altbestand korrigiert: Das All-in-one-Image heißt
 `flaechsig/blocpress-studio-quickstart`, `flaechsig/blocpress-studio` ist nur das Studio. Es
-enthält auch Elasticsearch, und PostgreSQL startet über `entrypoint.sh`, nicht über
-supervisord. `RENDER_URL` ist eine Variable der Workbench, nicht des Studios. Die
+enthält auch Elasticsearch. `RENDER_URL` ist eine Variable der Workbench, nicht des Studios. Die
 JWT-Variablen wirken nicht allgemein, sondern nur in render bei eingeschalteter Absicherung.
 
-Entschieden (2026-10-06): Elasticsearch bleibt im Quickstart intern. Port 9200 wird aus
-`EXPOSE` und den Startbefehlen entfernt ([US-0046](01-goals/stories/US-0046.md)).
+Seit [US-0046](01-goals/stories/US-0046.md) (2026-10-06): Elasticsearch bleibt intern, Port
+9200 ist nicht mehr freigegeben. LibreOffice arbeitet per WebDAV über das Studio
+(`http://localhost:8080/api/webdav/templates/<name>.odt`): Der Proxy leitet OPTIONS, HEAD,
+PROPFIND, LOCK und UNLOCK samt WebDAV-Headern weiter und macht eine `Location` der Workbench
+serverrelativ ([REQ-0029](01-goals/requirements/REQ-0029.md)).
 
-- UNKNOWN — offene Frage: Kann LibreOffice im Quickstart per WebDAV mit der Workbench arbeiten? Port 8082 ist nicht freigegeben, und der Studio-Proxy leitet nur GET, POST, PUT und DELETE weiter, kein PROPFIND.
+_(confidence: verified — im JVM-Image ausprobiert: PROPFIND, PUT mit `Location`, GET über
+Port 8080; LibreOffice öffnete die Vorlage über `vnd.sun.star.webdav://` und exportierte sie)_
 
 ## docker-compose
 
@@ -153,14 +167,13 @@ beschreibt seit [US-0051](01-goals/stories/US-0051.md) den Betrieb in Kubernetes
 
 ## PostgreSQL-Version
 
-> [!NOTE]
-> Festgelegt ist PostgreSQL 18 oder neuer (Entscheidung 2026-10-05, siehe
-> [Randbedingungen](02-constraints.md) und [US-0046](01-goals/stories/US-0046.md)). Tatsächlich laufen: im Quickstart-Image
-> PostgreSQL 16 (Paket `postgresql` aus Ubuntu 24.04, `pg_ctlcluster 16`), im Kubernetes-Beispiel und im Lasttest
-> (`RenderTarget`) `postgres:16`. Der Widerspruch ist in den Randbedingungen vermerkt.
+Alle Lieferwege nutzen PostgreSQL 18 ([Randbedingungen](02-constraints.md)): das
+Quickstart-Image (Paket `postgresql-18` aus dem PGDG-Repository), die Manifeste unter
+`deploy/k8s`, das Kubernetes-Beispiel zur Bemessung und der Lasttest (`RenderTarget`), seit
+[US-0046](01-goals/stories/US-0046.md).
 
-_(confidence: contradicted — docker/studio/Dockerfile, entrypoint.sh,
-docs/guides/examples/blocpress-render-k8s.yaml,
+_(confidence: verified — docker/studio/Dockerfile, Dockerfile.native,
+deploy/k8s/postgres/postgres.yaml, docs/guides/examples/blocpress-render-k8s.yaml,
 blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/load/RenderTarget.java)_
 
 ## Kubernetes
