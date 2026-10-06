@@ -1,0 +1,45 @@
+# Elasticsearch fuer die Volltextsuche der Workbench: ein Knoten, ohne Security, nur intern.
+# Der Index laesst sich aus der Datenbank neu aufbauen; fuer groessere Bestaende Speicher anheben.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: blocpress-elasticsearch
+spec:
+  serviceName: blocpress-elasticsearch
+  replicas: 1
+  selector:
+    matchLabels: {app: blocpress-elasticsearch}
+  template:
+    metadata:
+      labels: {app: blocpress-elasticsearch}
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+          env:
+            - {name: discovery.type, value: single-node}
+            - {name: xpack.security.enabled, value: "false"}
+            - {name: node.store.allow_mmap, value: "false"}
+            - {name: ES_JAVA_OPTS, value: "-Xms256m -Xmx256m"}
+          ports: [{containerPort: 9200}]
+          resources:
+            requests: {cpu: 250m, memory: 768Mi}
+            limits: {memory: 768Mi}
+          readinessProbe:
+            httpGet: {path: /_cluster/health, port: 9200}
+            periodSeconds: 10
+          volumeMounts:
+            - {name: data, mountPath: /usr/share/elasticsearch/data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-elasticsearch
+spec:
+  selector: {app: blocpress-elasticsearch}
+  ports: [{port: 9200}]

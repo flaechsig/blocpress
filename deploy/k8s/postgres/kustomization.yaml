@@ -1,0 +1,12 @@
+# PostgreSQL 18 im Cluster, fuer Ausprobieren und kleine Installationen. Wer eine eigene
+# Datenbank betreibt, laesst diesen Teil weg und legt dort die Datenbanken "workbench" und
+# "production" mit dem Benutzer aus dem Secret "blocpress-db" als Besitzer an.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs: {app.kubernetes.io/part-of: blocpress}
+resources:
+  - postgres.yaml
+configMapGenerator:
+  - name: blocpress-db-init
+    files: [init-databases.sh]

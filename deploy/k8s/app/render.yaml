@@ -1,0 +1,54 @@
+# render: Dokumente erzeugen. Standardgroesse nach docs/guides/render-sizing.md (2 CPU, 640Mi);
+# die Zahl der LibreOffice-Worker leitet render aus dem CPU-Limit ab. Mehr Last: mehr Replicas.
+# /api/render/templates/import ist ohne Anmeldung und nur fuer die Workbench gedacht —
+# render deshalb nicht ungefiltert nach aussen freigeben.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-render
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: blocpress-render}
+  template:
+    metadata:
+      labels: {app: blocpress-render}
+    spec:
+      initContainers:
+        # wartet, bis die Datenbank Verbindungen annimmt; sonst bricht Liquibase beim Start ab
+        - name: wait-for-db
+          image: postgres:18
+          command: [sh, -c, 'until pg_isready -h blocpress-db -p 5432; do sleep 2; done']
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 32Mi}
+      containers:
+        - name: render
+          image: flaechsig/blocpress-render
+          env:
+            - {name: QUARKUS_DATASOURCE_JDBC_URL, value: "jdbc:postgresql://blocpress-db:5432/production"}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom: {secretKeyRef: {name: blocpress-db, key: username}}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom: {secretKeyRef: {name: blocpress-db, key: password}}
+            - {name: BLOCPRESS_DEFAULT_LOCALE, value: de-DE}
+          ports: [{containerPort: 8080}]
+          resources:
+            requests: {cpu: "2", memory: 640Mi}
+            limits: {cpu: "2", memory: 640Mi}
+          startupProbe:
+            httpGet: {path: /q/health/started, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /q/health/ready, port: 8080}
+          livenessProbe:
+            httpGet: {path: /q/health/live, port: 8080}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-render
+spec:
+  selector: {app: blocpress-render}
+  ports: [{port: 8080}]

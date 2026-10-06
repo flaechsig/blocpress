@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Sysadmin Tutorial – Blocpress</title>
-    <meta name="description" content="10-minute tutorial for sysadmins: deploy Blocpress with Docker Compose, configure PostgreSQL and JWT, and approve your first template.">
+    <meta name="description" content="10-minute tutorial for sysadmins: run Blocpress on Kubernetes (locally with k3d), configure the database and JWT, and approve your first template.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="canonical" href="https://flaechsig.github.io/blocpress/tutorial-sysadmin.html">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -197,12 +197,12 @@
                     Tutorial: Sysadmin
                 </h1>
                 <p class="mt-3" style="color: rgba(255,255,255,0.85); font-size: 1.05rem;">
-                    Deploy Blocpress in 10 minutes with Docker Compose —
-                    Render API, Workbench, and PostgreSQL.
+                    Run Blocpress on Kubernetes — Studio, Workbench, Render API,
+                    Elasticsearch and PostgreSQL. Try it locally with k3d in about 10 minutes.
                 </p>
                 <div class="d-flex gap-3 flex-wrap mt-4">
                     <span class="badge bg-light text-dark px-3 py-2">&#128337; ~10 minutes</span>
-                    <span class="badge bg-light text-dark px-3 py-2">&#128051; Docker Compose</span>
+                    <span class="badge bg-light text-dark px-3 py-2">&#9784; Kubernetes / k3d</span>
                     <span class="badge bg-light text-dark px-3 py-2">&#128274; JWT auth</span>
                 </div>
             </div>
@@ -212,18 +212,19 @@
                         <span class="dot red"></span>
                         <span class="dot yellow"></span>
                         <span class="dot green"></span>
-                        <span class="title">docker compose up -d</span>
+                        <span class="title">kubectl apply -k</span>
                     </div>
-                    <pre class="terminal-body"><span class="t-prompt">$</span> docker compose up -d
-<span class="t-comment">✓ Container blocpress-db        Started</span>
-<span class="t-comment">✓ Container blocpress-render    Started</span>
-<span class="t-comment">✓ Container blocpress-workbench Started</span>
+                    <pre class="terminal-body"><span class="t-prompt">$</span> kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.8.0"
+<span class="t-comment">deployment.apps/blocpress-render created</span>
+<span class="t-comment">deployment.apps/blocpress-workbench created</span>
+<span class="t-comment">deployment.apps/blocpress-studio created</span>
+<span class="t-comment">statefulset.apps/blocpress-db created</span>
+<span class="t-comment">statefulset.apps/blocpress-elasticsearch created</span>
 
-<span class="t-prompt">$</span> curl http://localhost:8080/q/health
-<span class="t-success">{ "status": "UP" }</span>
-
-<span class="t-prompt">$</span> curl http://localhost:8081/q/health
-<span class="t-success">{ "status": "UP" }</span></pre>
+<span class="t-prompt">$</span> kubectl -n blocpress wait --for=condition=Available deployment --all
+<span class="t-success">deployment.apps/blocpress-render condition met</span>
+<span class="t-success">deployment.apps/blocpress-studio condition met</span>
+<span class="t-success">deployment.apps/blocpress-workbench condition met</span></pre>
                 </div>
             </div>
         </div>
@@ -231,11 +232,12 @@
 
     <div class="badge-strip">
         <span>Step 1: Prerequisites</span>
-        <span>Step 2: docker-compose.yml</span>
-        <span>Step 3: Configure JWT</span>
-        <span>Step 4: Start &amp; verify</span>
-        <span>Step 5: Approve first template</span>
-        <span>Step 6: Production</span>
+        <span>Step 2: Database secret</span>
+        <span>Step 3: Install</span>
+        <span>Step 4: Open &amp; verify</span>
+        <span>Step 5: First template</span>
+        <span>Step 6: JWT (optional)</span>
+        <span>Step 7: Production</span>
     </div>
 
     <div class="col-lg-8 mx-auto">
@@ -245,32 +247,33 @@
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="card feature-card p-3 h-100 text-center">
-                    <div style="font-size: 2rem;">&#128209;</div>
-                    <strong>blocpress-render</strong>
-                    <p class="small text-muted mb-0 mt-1">Port 8080 — Render API (ODT→PDF/RTF), JWT-secured name-based endpoints</p>
+                    <div style="font-size: 2rem;">&#127760;</div>
+                    <strong>blocpress-studio</strong>
+                    <p class="small text-muted mb-0 mt-1">Port 8082 — browser portal, the only public entry; forwards to the Workbench</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card feature-card p-3 h-100 text-center">
                     <div style="font-size: 2rem;">&#128736;</div>
                     <strong>blocpress-workbench</strong>
-                    <p class="small text-muted mb-0 mt-1">Port 8081 — Workbench UI for template designers, validation, approval workflow</p>
+                    <p class="small text-muted mb-0 mt-1">Port 8081, internal — develop, test and approve templates; search via Elasticsearch</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card feature-card p-3 h-100 text-center">
-                    <div style="font-size: 2rem;">&#128451;</div>
-                    <strong>PostgreSQL</strong>
-                    <p class="small text-muted mb-0 mt-1">Two schemas: <code>workbench</code> (development) and <code>production</code> (approved templates)</p>
+                    <div style="font-size: 2rem;">&#128209;</div>
+                    <strong>blocpress-render</strong>
+                    <p class="small text-muted mb-0 mt-1">Port 8080 — Render API (ODT→PDF/RTF) for your applications</p>
                 </div>
             </div>
         </div>
 
         <div class="tip-box mb-5">
             <strong>Deployment principle:</strong> Templates are developed in the Workbench
-            and automatically copied via HTTP into the <code>production</code> schema on
-            approval (<em>APPROVED</em>). The Render API reads exclusively from
-            <code>production</code> — a clean separation between development and production.
+            (database <code>workbench</code>) and copied into the database <code>production</code>
+            on approval (<em>APPROVED</em>). The Render API reads exclusively from
+            <code>production</code>. Both services create and migrate their tables themselves on
+            start (Liquibase) — you only provide the two empty databases.
         </div>
 
         <!-- STEP 1 -->
@@ -281,15 +284,20 @@
             </div>
 
             <ul>
-                <li>Docker Engine ≥ 24 and Docker Compose v2 (<code>docker compose version</code>)</li>
-                <li>Free ports: <strong>5432</strong> (PostgreSQL), <strong>8080</strong> (render), <strong>8081</strong> (workbench)</li>
-                <li>Internet access for the initial Docker pull (offline-capable afterwards)</li>
+                <li>A Kubernetes cluster with an ingress controller and a default storage class,
+                    about <strong>4 CPU and 4 GiB</strong> free</li>
+                <li><code>kubectl</code> 1.27 or newer (Kustomize is built in)</li>
+                <li>Internet access for pulling the images</li>
             </ul>
+
+            <p>No cluster at hand? <a href="https://k3d.io">k3d</a> runs k3s in Docker and brings
+                Traefik as ingress controller and a local storage class. This creates a cluster
+                whose ingress is reachable on <code>localhost:8088</code>:</p>
 
             <div class="code-block mt-3">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker --version        # Docker version 24.x or newer
-docker compose version  # Docker Compose version v2.x or newer</pre>
+                <pre class="bg-white p-3 rounded shadow-sm">k3d cluster create blocpress -p "8088:80@loadbalancer" --wait
+kubectl get nodes</pre>
             </div>
         </div>
 
@@ -297,83 +305,24 @@ docker compose version  # Docker Compose version v2.x or newer</pre>
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">2</span>
-                <h2>Create docker-compose.yml</h2>
+                <h2>Create namespace and database secret</h2>
             </div>
 
-            <p>
-                Create a new directory <code>blocpress/</code> and place the following
-                <code>docker-compose.yml</code> inside:
-            </p>
+            <p>The manifests install everything into the namespace <code>blocpress</code> and read
+                the database credentials from the secret <code>blocpress-db</code>. Choose your own
+                password:</p>
 
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm" style="font-size: 0.8rem; overflow-x: auto;">services:
-
-  db:
-    image: postgres:16
-    container_name: blocpress-db
-    environment:
-      POSTGRES_DB: blocpress
-      POSTGRES_USER: blocpress
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-      - ./init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U blocpress"]
-      interval: 5s
-      retries: 10
-
-  render:
-    image: flaechsig/blocpress-render:latest
-    container_name: blocpress-render
-    ports:
-      - "8080:8080"
-    environment:
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/blocpress?currentSchema=production
-      QUARKUS_DATASOURCE_USERNAME: blocpress
-      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
-      # JWT is off by default — set to "true" to require a Bearer token (step 3)
-      BLOCPRESS_AUTH_ENABLED: ${AUTH_ENABLED:-false}
-      MP_JWT_VERIFY_PUBLICKEY: ${JWT_PUBLIC_KEY}
-      MP_JWT_VERIFY_ISSUER: ${JWT_ISSUER}
-    depends_on:
-      db:
-        condition: service_healthy
-
-  workbench:
-    image: flaechsig/blocpress-workbench:latest
-    container_name: blocpress-workbench
-    ports:
-      - "8081:8081"
-    environment:
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/blocpress?currentSchema=workbench
-      QUARKUS_DATASOURCE_USERNAME: blocpress
-      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme}
-      RENDER_URL: http://render:8080
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  pg_data:</pre>
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl create namespace blocpress
+kubectl -n blocpress create secret generic blocpress-db \
+  --from-literal=username=blocpress \
+  --from-literal=password='your-secure-password'</pre>
             </div>
 
-            <p class="mt-3">
-                Also create a <code>.env</code> file in the same directory
-                (see step 3 for JWT values):
-            </p>
-
-            <div class="code-block">
-                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">DB_PASSWORD=your-secure-password-here
-JWT_PUBLIC_KEY=...
-JWT_ISSUER=https://your-idp.example.com</pre>
-            </div>
-
-            <div class="warn-box">
-                <strong>Security:</strong> The <code>.env</code> file contains secrets — never
-                commit it to Git! Add <code>.env</code> to your <code>.gitignore</code>.
+            <div class="tip-box">
+                <strong>Security:</strong> keep the password out of Git. In production, create the
+                secret from your secret store (e.g. Sealed Secrets or External Secrets).
             </div>
         </div>
 
@@ -381,147 +330,75 @@ JWT_ISSUER=https://your-idp.example.com</pre>
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">3</span>
-                <h2>Configure JWT authentication (optional)</h2>
+                <h2>Install Blocpress</h2>
             </div>
 
-            <p>
-                JWT authentication of the Render API is <strong>off by default</strong>, so existing
-                integrations keep working. Turn it on with <code>AUTH_ENABLED=true</code> in your
-                <code>.env</code> (sets <code>BLOCPRESS_AUTH_ENABLED</code>): every endpoint below
-                <code>/api/render/</code> — rendering, jobs, dashboard — then requires a valid Bearer
-                token, otherwise HTTP 401. Blocpress validates the token with a public key (RS256);
-                without a key the service refuses to start.
-                You can either use your existing Identity Provider (Keycloak, Okta,
-                Azure AD, …) or generate a local key pair for testing.
-            </p>
-
-            <div class="tip-box">
-                <strong>What stays open:</strong> the internal template import
-                (<code>/api/render/templates/import</code>, called by the Workbench on approval) and
-                <code>/q/health</code>. If the Render API is reachable from outside, block the import
-                path at your reverse proxy. The Workbench does not validate tokens on the server
-                side yet — protect it via your network or reverse proxy.
-            </div>
-
-            <h3 class="h6 mt-3">Option A: Existing Identity Provider</h3>
-            <p>
-                Enter the PEM-encoded public key of your IdP as <code>JWT_PUBLIC_KEY</code>
-                and set <code>JWT_ISSUER</code> to the issuer value from the token claims.
-            </p>
+            <p>The manifests live in the repository under
+                <a href="https://github.com/flaechsig/blocpress/tree/main/deploy/k8s"><code>deploy/k8s</code></a>.
+                Apply them for a release tag:</p>
 
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...
-JWT_ISSUER=https://auth.example.com/realms/myrealm</pre>
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v2.8.0"
+kubectl -n blocpress wait --for=condition=Available deployment --all --timeout=300s</pre>
             </div>
 
-            <h3 class="h6 mt-4">Option B: Generate a test key pair</h3>
-            <p>
-                For development and initial testing you can generate an RSA key pair yourself:
-            </p>
-
-            <div class="code-block">
-                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm"># Generate private key
-openssl genrsa -out private.pem 2048
-
-# Extract public key (→ use as JWT_PUBLIC_KEY)
-openssl rsa -in private.pem -pubout -out public.pem
-
-# Write public.pem content into .env:
-JWT_PUBLIC_KEY=$(cat public.pem | tr -d '\n' | sed 's/-----BEGIN PUBLIC KEY-----/-----BEGIN PUBLIC KEY-----\\n/' | sed 's/-----END PUBLIC KEY-----/\\n-----END PUBLIC KEY-----/')
-JWT_ISSUER=https://dev.local</pre>
-            </div>
-
-            <h3 class="h6 mt-4">Reference: All environment variables</h3>
-            <table class="table table-sm env-table mt-2">
+            <table class="table table-sm env-table mt-3">
                 <thead>
-                    <tr>
-                        <th>Variable</th>
-                        <th>Description</th>
-                        <th>Default</th>
-                    </tr>
+                    <tr><th>Part</th><th>Contains</th></tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>DB_PASSWORD</td>
-                        <td>PostgreSQL password</td>
-                        <td><code>changeme</code></td>
-                    </tr>
-                    <tr>
-                        <td>AUTH_ENABLED</td>
-                        <td>Require a JWT Bearer token for the Render API (<code>BLOCPRESS_AUTH_ENABLED</code>)</td>
-                        <td><code>false</code></td>
-                    </tr>
-                    <tr>
-                        <td>JWT_PUBLIC_KEY</td>
-                        <td>RSA public key (PEM, newlines escaped as \n) — required when <code>AUTH_ENABLED=true</code></td>
-                        <td>—</td>
-                    </tr>
-                    <tr>
-                        <td>JWT_ISSUER</td>
-                        <td>Allowed JWT issuer value</td>
-                        <td>—</td>
-                    </tr>
-                    <tr>
-                        <td>RENDER_URL</td>
-                        <td>Internal URL of the Render API (Workbench only)</td>
-                        <td><code>http://render:8080</code></td>
-                    </tr>
-                    <tr>
-                        <td>QUARKUS_PROFILE</td>
-                        <td><code>prod</code> enforces DDL validate instead of update</td>
-                        <td><code>dev</code></td>
-                    </tr>
+                    <tr><td><code>deploy/k8s/app</code></td><td>render, workbench, studio, Elasticsearch (single node)</td></tr>
+                    <tr><td><code>deploy/k8s/postgres</code></td><td>PostgreSQL 18 in the cluster; creates the databases <code>workbench</code> and <code>production</code></td></tr>
+                    <tr><td><code>deploy/k8s</code></td><td>both of the above plus an Ingress for the Studio at <code>/</code></td></tr>
                 </tbody>
             </table>
+
+            <div class="tip-box">
+                <strong>First start takes longer:</strong> the images are pulled once. render and
+                workbench wait for the database, then create their tables (Liquibase) — watch it
+                with <code>kubectl -n blocpress get pods -w</code>.
+            </div>
         </div>
 
         <!-- STEP 4 -->
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">4</span>
-                <h2>Start &amp; health check</h2>
+                <h2>Open the Studio and verify</h2>
             </div>
 
-            <div class="code-block">
-                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker compose up -d</pre>
-            </div>
-
-            <p class="mt-3">Verify both services are healthy:</p>
+            <p>Open the Studio through the ingress — with the k3d cluster from step 1 at
+                <a href="http://localhost:8088">http://localhost:8088</a>. The Render API stays
+                inside the cluster; for a first test, forward its port:</p>
 
             <div class="terminal mt-3">
                 <div class="terminal-bar">
                     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
                     <span class="title">Health checks</span>
                 </div>
-                <pre class="terminal-body"><span class="t-comment"># Render API</span>
-<span class="t-prompt">$</span> curl http://localhost:8080/q/health
-<span class="t-success">{"status":"UP","checks":[{"name":"Database connections health check","status":"UP"}]}</span>
+                <pre class="terminal-body"><span class="t-prompt">$</span> kubectl -n blocpress get pods
+<span class="t-comment">blocpress-db-0                 1/1   Running</span>
+<span class="t-comment">blocpress-elasticsearch-0      1/1   Running</span>
+<span class="t-comment">blocpress-render-…             1/1   Running</span>
+<span class="t-comment">blocpress-studio-…             1/1   Running</span>
+<span class="t-comment">blocpress-workbench-…          1/1   Running</span>
 
-<span class="t-comment"># Workbench API</span>
-<span class="t-prompt">$</span> curl http://localhost:8081/q/health
-<span class="t-success">{"status":"UP","checks":[{"name":"Database connections health check","status":"UP"}]}</span>
+<span class="t-comment"># Render API on localhost:8080 (keep running in a second terminal)</span>
+<span class="t-prompt">$</span> kubectl -n blocpress port-forward svc/blocpress-render 8080:8080
+
+<span class="t-prompt">$</span> curl http://localhost:8080/q/health/ready
+<span class="t-success">{"status":"UP", …}</span>
 
 <span class="t-comment"># Swagger UI for the Render API</span>
-<span class="t-prompt">$</span> open http://localhost:8080/q/swagger-ui
-
-<span class="t-comment"># Workbench UI (open in browser)</span>
-<span class="t-prompt">$</span> open http://localhost:8081</pre>
+<span class="t-prompt">$</span> open http://localhost:8080/q/swagger-ui</pre>
             </div>
 
             <h3 class="h6 mt-4">View logs</h3>
-
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker compose logs -f render workbench</pre>
-            </div>
-
-            <div class="tip-box">
-                <strong>First start takes longer:</strong> Docker images are pulled from the
-                registry once. LibreOffice in the render container needs a moment for font
-                initialization on startup — this is normal.
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl -n blocpress logs -f deploy/blocpress-render
+kubectl -n blocpress logs -f deploy/blocpress-workbench</pre>
             </div>
         </div>
 
@@ -529,27 +406,35 @@ JWT_ISSUER=https://dev.local</pre>
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">5</span>
-                <h2>Approve your first template (Reviewer role)</h2>
+                <h2>Approve your first template and render it</h2>
             </div>
 
-            <p>
-                Once a template designer has submitted a template for approval
-                (status <code>SUBMITTED</code>), it appears in the Workbench UI under
-                <strong>"Pending approval"</strong>. As a reviewer:
-            </p>
+            <p>In the Studio, a template designer uploads an ODT template and submits it
+                (status <code>SUBMITTED</code>). As a reviewer:</p>
 
             <ol>
                 <li>Select the template and review the details</li>
-                <li>Check the test data previews</li>
-                <li>Run the regression test (<strong>"Run all"</strong>)</li>
+                <li>Check the test data previews and run the regression test (<strong>"Run all"</strong>)</li>
                 <li>If there are concerns: <strong>"Reject"</strong> with a reason</li>
                 <li>To approve: <strong>"Approve"</strong> → status changes to <code>APPROVED</code></li>
             </ol>
 
+            <p>The same steps through the API, with the
+                <a href="samples/quickstart/invoice.odt">sample invoice template</a> and
+                <a href="samples/quickstart/invoice.json">its data</a>:</p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">STUDIO=http://localhost:8088
+ID=$(curl -s -F name=invoice -F file=@invoice.odt $STUDIO/api/workbench/templates | jq -r .id)
+curl -X POST $STUDIO/api/workbench/templates/$ID/submit
+curl -X PUT -H "Content-Type: application/json" -d '{"newStatus":"APPROVED"}' \
+  $STUDIO/api/workbench/templates/$ID/status</pre>
+            </div>
+
             <div class="tip-box">
-                <strong>Automatic deploy:</strong> Approval automatically triggers an HTTP
-                call from the Workbench to the Render API. The template is physically copied
-                into the <code>production</code> schema and immediately available under
+                <strong>Automatic deploy:</strong> approval copies the template from the Workbench
+                into the database <code>production</code>. It is immediately available under
                 <code>POST /api/render/{name}</code> — no manual step required.
             </div>
 
@@ -560,16 +445,15 @@ JWT_ISSUER=https://dev.local</pre>
                     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
                     <span class="title">Name-based rendering</span>
                 </div>
-                <pre class="terminal-body"><span class="t-comment"># Authorization header only needed with AUTH_ENABLED=true</span>
+                <pre class="terminal-body"><span class="t-comment"># Authorization header only needed with BLOCPRESS_AUTH_ENABLED=true (step 6)</span>
 <span class="t-prompt">$</span> <span class="t-method">curl</span> -X POST \
     <span class="t-value">http://localhost:8080/api/render/invoice</span> \
     <span class="t-flag">-H</span> <span class="t-value">"Authorization: Bearer $JWT_TOKEN"</span> \
-    <span class="t-flag">-H</span> <span class="t-value">"Accept: application/pdf"</span> \
     <span class="t-flag">-H</span> <span class="t-value">"Content-Type: application/json"</span> \
-    <span class="t-flag">-d</span> <span class="t-value">'{"customer":{"name":"Acme Corp"},"lineItems":[]}'</span> \
+    <span class="t-flag">-d</span> <span class="t-value">"{\"outputType\":\"pdf\",\"data\":$(cat invoice.json)}"</span> \
     <span class="t-flag">-o</span> <span class="t-value">invoice.pdf</span>
 
-<span class="t-success">✓  invoice.pdf  (89 KB)  200 OK</span></pre>
+<span class="t-success">✓  invoice.pdf  (57 KB)  200 OK</span></pre>
             </div>
         </div>
 
@@ -577,65 +461,104 @@ JWT_ISSUER=https://dev.local</pre>
         <div class="step-block">
             <div class="step-header">
                 <span class="step-number">6</span>
+                <h2>Configure JWT authentication (optional)</h2>
+            </div>
+
+            <p>
+                JWT authentication of the Render API is <strong>off by default</strong>. When it is
+                on, every endpoint below <code>/api/render/</code> — rendering, jobs, dashboard —
+                requires a valid Bearer token, otherwise HTTP 401. Blocpress validates the token
+                with a public key (RS256); without a key the service refuses to start. Use the key
+                of your Identity Provider (Keycloak, Okta, Azure AD, …) or generate a test key pair
+                with <code>openssl genrsa -out private.pem 2048 &amp;&amp; openssl rsa -in private.pem -pubout -out public.pem</code>.
+            </p>
+
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm"># the secret key becomes the environment variable of the same name
+kubectl -n blocpress create secret generic blocpress-jwt \
+  --from-file=MP_JWT_VERIFY_PUBLICKEY=public.pem
+kubectl -n blocpress set env deploy/blocpress-render --from=secret/blocpress-jwt \
+  BLOCPRESS_AUTH_ENABLED=true \
+  MP_JWT_VERIFY_ISSUER=https://auth.example.com/realms/myrealm
+kubectl -n blocpress rollout status deploy/blocpress-render</pre>
+            </div>
+
+            <div class="tip-box">
+                <strong>What stays open:</strong> the internal template import
+                (<code>/api/render/templates/import</code>, called by the Workbench on approval) and
+                <code>/q/health</code>. Never expose the Render API to the outside without blocking
+                the import path. The Workbench does not validate tokens on the server side yet —
+                protect the Studio via your network or ingress (e.g. OAuth2 proxy).
+            </div>
+
+            <h3 class="h6 mt-4">Reference: render environment variables</h3>
+            <table class="table table-sm env-table mt-2">
+                <thead>
+                    <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>BLOCPRESS_AUTH_ENABLED</td><td>Require a JWT Bearer token for the Render API</td><td><code>false</code></td></tr>
+                    <tr><td>MP_JWT_VERIFY_PUBLICKEY</td><td>RSA public key (PEM) — required when auth is enabled</td><td>—</td></tr>
+                    <tr><td>MP_JWT_VERIFY_ISSUER</td><td>Allowed JWT issuer value</td><td>—</td></tr>
+                    <tr><td>BLOCPRESS_LO_WORKERS</td><td>Upper limit for parallel conversions; without it render uses the CPU limit</td><td>CPU limit</td></tr>
+                    <tr><td>BLOCPRESS_DEFAULT_LOCALE</td><td>Fallback locale for number and date formats</td><td><code>de-DE</code></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- STEP 7 -->
+        <div class="step-block">
+            <div class="step-header">
+                <span class="step-number">7</span>
                 <h2>Production operation</h2>
             </div>
 
-            <h3 class="h6 mb-2">Apply updates</h3>
+            <h3 class="h6 mb-2">Use your own PostgreSQL</h3>
+            <p class="small">
+                Install only <code>deploy/k8s/app</code> and provide PostgreSQL 18 yourself: create
+                the empty databases <code>workbench</code> and <code>production</code> owned by the
+                user from the secret <code>blocpress-db</code>, and point the service name
+                <code>blocpress-db</code> at your server. The services create their tables on start.
+            </p>
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker compose pull
-docker compose up -d</pre>
+                <pre class="bg-white p-3 rounded shadow-sm" style="font-size: 0.8rem;"># kustomization.yaml of your own overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: blocpress
+resources:
+  - github.com/flaechsig/blocpress/deploy/k8s/app?ref=v2.8.0
+  - db-service.yaml        # Service "blocpress-db" of type ExternalName → your DB host
+  - ingress.yaml           # your ingress with TLS for blocpress-studio:8082</pre>
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">Apply updates</h3>
+            <p class="small">Change the <code>ref</code> to the new release tag and apply again.
+                Schema changes are migrated automatically when the new pods start.</p>
+            <div class="code-block">
+                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=vX.Y.Z"</pre>
             </div>
 
             <h3 class="h6 mt-4 mb-2">Back up PostgreSQL data</h3>
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker exec blocpress-db pg_dump -U blocpress blocpress > backup_$(date +%Y%m%d).sql</pre>
+                <pre class="bg-white p-3 rounded shadow-sm">for db in workbench production; do
+  kubectl -n blocpress exec blocpress-db-0 -- pg_dump -U blocpress $db > ${db}_$(date +%Y%m%d).sql
+done</pre>
             </div>
 
-            <h3 class="h6 mt-4 mb-2">Reverse proxy (nginx)</h3>
-            <p class="small">
-                Recommended for production: nginx as a reverse proxy in front of both services.
-                Workbench at <code>/workbench/</code>, Render API at <code>/</code> or
-                its own subdomain.
-            </p>
-
-            <div class="code-block">
-                <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm" style="font-size: 0.8rem;">server {
-    listen 443 ssl;
-    server_name blocpress.example.com;
-
-    # Render API
-    location /api/render/ {
-        proxy_pass http://localhost:8080/api/render/;
-        proxy_set_header Host $host;
-    }
-
-    # Workbench
-    location /workbench/ {
-        proxy_pass http://localhost:8081/;
-        proxy_set_header Host $host;
-    }
-}</pre>
-            </div>
-
-            <h3 class="h6 mt-4 mb-2">Scaling</h3>
+            <h3 class="h6 mt-4 mb-2">Sizing and scaling</h3>
             <p>
-                The Render API is stateless — multiple instances can run in parallel.
-                The Workbench requires a single instance (state stored in PostgreSQL).
+                render is stateless: for more load add replicas instead of workers. Each pod uses
+                as many LibreOffice workers as its CPU limit allows (standard size: 2 CPU, 640 MiB,
+                ≈ 3.7 renders/s). Run a single Workbench instance.
+                Details: <a href="https://github.com/flaechsig/blocpress/blob/main/docs/guides/render-sizing.md">render sizing guide</a>.
             </p>
-
             <div class="code-block">
                 <button class="btn btn-outline-secondary btn-copy" onclick="copyCode(this)">Copy</button>
-                <pre class="bg-white p-3 rounded shadow-sm">docker compose up -d --scale render=3</pre>
-            </div>
-
-            <div class="warn-box">
-                <strong>Important:</strong> Set <code>QUARKUS_PROFILE=prod</code> in production
-                so Hibernate does not auto-migrate the schema (<code>validate</code>
-                instead of <code>update</code>). Schema updates are then only applied via
-                <code>init-schemas.sql</code>.
+                <pre class="bg-white p-3 rounded shadow-sm">kubectl -n blocpress scale deploy/blocpress-render --replicas=3</pre>
             </div>
         </div>
 
@@ -643,11 +566,11 @@ docker compose up -d</pre>
         <div class="card feature-card p-4 mb-5" style="background: #eef3ff; border: none;">
             <h2 class="h5 accent mb-3">&#9989; Summary</h2>
             <ol class="mb-0">
-                <li>Docker Engine and Docker Compose v2 installed</li>
-                <li><code>docker-compose.yml</code> with three services: db, render, workbench</li>
-                <li><code>.env</code> with DB password and JWT configuration created</li>
-                <li><code>docker compose up -d</code> started, health checks green</li>
-                <li>As reviewer: approve submitted templates in the Workbench</li>
+                <li>Kubernetes cluster ready (locally: k3d)</li>
+                <li>Namespace <code>blocpress</code> and secret <code>blocpress-db</code> created</li>
+                <li><code>kubectl apply -k …/deploy/k8s</code> installed all services; tables created automatically</li>
+                <li>Studio opened through the ingress, Render API checked</li>
+                <li>As reviewer: approve submitted templates in the Studio</li>
                 <li>Approved templates immediately available via <code>/api/render/{name}</code></li>
             </ol>
         </div>
@@ -664,22 +587,22 @@ docker compose up -d</pre>
             </div>
             <div class="col-md-6">
                 <div class="card feature-card p-3 h-100">
-                    <strong>&#128218; Swagger UI</strong>
-                    <p class="small text-muted mb-2 mt-1">Interactive API documentation after startup at <code>/q/swagger-ui</code></p>
-                    <a href="https://github.com/flaechsig/blocpress" class="btn btn-outline-primary btn-sm">Open GitHub</a>
+                    <strong>&#9784; Manifests</strong>
+                    <p class="small text-muted mb-2 mt-1">Kustomize manifests for all services under <code>deploy/k8s</code></p>
+                    <a href="https://github.com/flaechsig/blocpress/tree/main/deploy/k8s" class="btn btn-outline-primary btn-sm">Open GitHub</a>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card feature-card p-3 h-100">
                     <strong>&#128230; Docker Hub</strong>
-                    <p class="small text-muted mb-2 mt-1">Latest images: <code>flaechsig/blocpress-render</code> and <code>flaechsig/blocpress-workbench</code></p>
+                    <p class="small text-muted mb-2 mt-1">Images: <code>flaechsig/blocpress-render</code>, <code>-workbench</code> and <code>-studio</code></p>
                     <a href="https://hub.docker.com/u/flaechsig" class="btn btn-outline-primary btn-sm">Docker Hub</a>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card feature-card p-3 h-100">
                     <strong>&#128196; Quickstart</strong>
-                    <p class="small text-muted mb-2 mt-1">Test the stateless Render API — no JWT, no database setup required</p>
+                    <p class="small text-muted mb-2 mt-1">Just trying it out? One container with everything — no cluster needed</p>
                     <a href="index.html" class="btn btn-outline-primary btn-sm">Home</a>
                 </div>
             </div>

@@ -68,8 +68,9 @@ flowchart TD
 
 1. `entrypoint.sh` startet PostgreSQL 16 mit `pg_ctlcluster 16 main start`. PostgreSQL läuft
    damit außerhalb von supervisord und wird nicht neu gestartet, wenn es abbricht.
-2. Danach legt `init-studio.sql` idempotent den Benutzer `blocpress` und die Datenbanken
-   `workbench` und `production` mit allen Tabellen an, auch `render_job`. Angemeldet wird
+2. Danach legt `init-studio.sql` idempotent den Benutzer `blocpress` und die leeren
+   Datenbanken `workbench` und `production` an; die Tabellen legen die Dienste beim Start
+   selbst an ([ADR-0015](09-decisions/ADR-0015.md)). Angemeldet wird
    lokal ohne Passwort (`trust` für `local` und `127.0.0.1`).
 3. Zuletzt setzt das Skript `BLOCPRESS_LO_WORKERS` auf 1, falls nicht gesetzt, und übergibt
    an supervisord.
@@ -148,8 +149,7 @@ Entfernt am 2026-10-06 ([ADR-0014](09-decisions/ADR-0014.md)): `docker-compose.y
 `docker-compose.native.yml` und die Init-Skripte `docker/01-init.sql` und
 `docker/02-init-production.sh`. Die Skripte waren veraltet, render scheiterte damit an der
 Schemaprüfung ([US-0039](01-goals/stories/US-0039.md)). Das Sysadmin-Tutorial der Website
-beschreibt noch einen Compose-Weg; es wird auf Kubernetes umgeschrieben
-([US-0051](01-goals/stories/US-0051.md)).
+beschreibt seit [US-0051](01-goals/stories/US-0051.md) den Betrieb in Kubernetes.
 
 ## PostgreSQL-Version
 
@@ -163,17 +163,55 @@ _(confidence: contradicted — docker/studio/Dockerfile, entrypoint.sh,
 docs/guides/examples/blocpress-render-k8s.yaml,
 blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/load/RenderTarget.java)_
 
-## Bemessung und Kubernetes
+## Kubernetes
 
-Siehe [render bemessen](guides/render-sizing.md). Die Kubernetes-Topologie des Altbestands
-(Deployments für proof und admin, drei render-Replicas, PostgreSQL mit Replica,
-Elasticsearch mit zwei Knoten, Ingress, ein gemeinsames PVC für vier Schemata,
-OpenTelemetry) ist nicht übernommen: Außer dem render-Beispiel gibt es im Repository keine
-Manifeste dafür.
+Für den Betrieb liefert blocpress Kustomize-Manifeste unter `deploy/k8s`
+([ADR-0014](09-decisions/ADR-0014.md), [US-0051](01-goals/stories/US-0051.md)); die Anleitung
+ist das Sysadmin-Tutorial der Website (`site/tutorial-sysadmin.html`). Installiert wird mit
+`kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v<Version>"` in den Namespace
+`blocpress`, nachdem dort das Secret `blocpress-db` (Schlüssel `username`, `password`)
+angelegt ist.
 
-_(confidence: verified — einziges Manifest im Repository ist
-docs/guides/examples/blocpress-render-k8s.yaml; derived_from:
-arc42.adoc:1586-1732 legacy (git history))_
+```mermaid
+flowchart TD
+    IN["Ingress /"]
+    ST["blocpress-studio<br/>8082"]
+    WB["blocpress-workbench<br/>8081"]
+    RD["blocpress-render<br/>8080"]
+    ES["blocpress-elasticsearch<br/>9200, StatefulSet"]
+    DB[("blocpress-db<br/>postgres:18, StatefulSet")]
+
+    IN --> ST
+    ST --> WB
+    WB --> RD
+    WB --> ES
+    WB --> DB
+    RD --> DB
+```
+
+| Teil | Inhalt |
+|---|---|
+| `deploy/k8s/app` | render (2 CPU, 640Mi), workbench (768Mi), studio (256Mi), Elasticsearch 8.11.0 (ein Knoten, ohne Security, 1Gi Volume); render und workbench warten in einem Init-Container auf `blocpress-db:5432` |
+| `deploy/k8s/postgres` | PostgreSQL 18 mit 2Gi Volume; ein Init-Skript legt die leeren Datenbanken `workbench` und `production` an |
+| `deploy/k8s` | beide Teile plus Ingress für das Studio unter `/` |
+
+Die Tabellen legen render und workbench beim Start selbst an
+([ADR-0015](09-decisions/ADR-0015.md)). Wer eine eigene Datenbank betreibt, nimmt nur
+`deploy/k8s/app` und lässt den Dienstnamen `blocpress-db` auf seinen Server zeigen. Die
+Image-Tags in `deploy/k8s/app/kustomization.yaml` und die Version im Tutorial setzt der
+Release-Workflow. render ist nicht über den Ingress erreichbar: Sein Import-Endpunkt ist ohne
+Anmeldung und nur für die Workbench gedacht.
+
+_(confidence: verified — deploy/k8s; am 2026-10-06 in k3d v5.8.3 (k3s v1.31.5) mit lokal
+gebauten Images durchgespielt, siehe [US-0051](01-goals/stories/US-0051.md))_
+
+Zur Bemessung von render siehe [render bemessen](guides/render-sizing.md); das Beispiel
+`docs/guides/examples/blocpress-render-k8s.yaml` dort dient der Lastmessung. Die
+Kubernetes-Topologie des Altbestands (Deployments für proof und admin, PostgreSQL mit Replica,
+Elasticsearch mit zwei Knoten, ein gemeinsames PVC für vier Schemata, OpenTelemetry) ist nicht
+übernommen.
+
+_(confidence: verified — derived_from: arc42.adoc:1586-1732 legacy (git history))_
 
 ## Build- und Release-Pipeline
 

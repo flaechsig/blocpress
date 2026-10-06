@@ -1,0 +1,53 @@
+# workbench: Vorlagen entwickeln, pruefen, freigeben. Nur intern erreichbar; die Oberflaeche
+# und die API kommen ueber das Studio.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blocpress-workbench
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: blocpress-workbench}
+  template:
+    metadata:
+      labels: {app: blocpress-workbench}
+    spec:
+      initContainers:
+        # wartet, bis die Datenbank Verbindungen annimmt; sonst bricht Liquibase beim Start ab
+        - name: wait-for-db
+          image: postgres:18
+          command: [sh, -c, 'until pg_isready -h blocpress-db -p 5432; do sleep 2; done']
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 32Mi}
+      containers:
+        - name: workbench
+          image: flaechsig/blocpress-workbench
+          env:
+            - {name: QUARKUS_DATASOURCE_JDBC_URL, value: "jdbc:postgresql://blocpress-db:5432/workbench"}
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom: {secretKeyRef: {name: blocpress-db, key: username}}
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom: {secretKeyRef: {name: blocpress-db, key: password}}
+            - {name: RENDER_URL, value: "http://blocpress-render:8080"}
+            - {name: ELASTICSEARCH_HOSTS, value: "blocpress-elasticsearch:9200"}
+          ports: [{containerPort: 8081}]
+          resources:
+            requests: {cpu: 500m, memory: 768Mi}
+            limits: {memory: 768Mi}
+          startupProbe:
+            httpGet: {path: /q/health/started, port: 8081}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /q/health/ready, port: 8081}
+          livenessProbe:
+            httpGet: {path: /q/health/live, port: 8081}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blocpress-workbench
+spec:
+  selector: {app: blocpress-workbench}
+  ports: [{port: 8081}]

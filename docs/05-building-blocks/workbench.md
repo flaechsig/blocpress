@@ -193,4 +193,5 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0023](../01-goals/requirements/REQ-0023.md) WHEN a reviewer retires an approved template, the workbench shall set it to RETIRED and remove it from production.
 - [REQ-0024](../01-goals/requirements/REQ-0024.md) WHEN the designer submits a template in DRAFT, the workbench shall set it to SUBMITTED and deploy nothing to production.
 - [REQ-0026](../01-goals/requirements/REQ-0026.md) IF an uploaded template cannot be read as ODT, contains a user field name that does not follow dot notation, or contains a condition with a syntax error, THEN the workbench shall return a validation message that names the affected field or condition and the kind of error.
+- [REQ-0028](../01-goals/requirements/REQ-0028.md) WHEN workbench or render starts against a PostgreSQL database that is empty or was created before schema migrations existed, the service shall bring the schema to the state its entities expect before it accepts requests, without losing existing data.
 <!-- /generated -->
