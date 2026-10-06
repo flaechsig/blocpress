@@ -6,8 +6,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 14 · ✅ verifiziert 36 · ⛔ abgelöst 2 |
-| Requirements | umgesetzt 28 · abgelöst 1 |
+| Stories | ⚪ offen 13 · ✅ verifiziert 37 · ⛔ abgelöst 2 |
+| Requirements | umgesetzt 31 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -129,7 +129,7 @@ Status: 🟡 in Arbeit
 | [US-0013](stories/US-0013.md) | Textbausteine wie Vorlagen verwalten | ✅ verifiziert |
 | [US-0014](stories/US-0014.md) | Vorlagen direkt in LibreOffice öffnen und speichern | ✅ verifiziert |
 | [US-0015](stories/US-0015.md) | Vorlagen und Bausteine durchsuchen | ✅ verifiziert |
-| [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ⚪ offen |
+| [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ✅ verifiziert |
 | [US-0048](stories/US-0048.md) | Workbench-Abläufe konsistent machen | ⚪ offen |
 
 ## Offene Fragen
@@ -143,7 +143,6 @@ Status: 🟡 in Arbeit
 - [06-runtime/approval-and-deployment.md](../06-runtime/approval-and-deployment.md): UNKNOWN — offene Frage: Soll das Zurückziehen wie die Freigabe fehlschlagen (503), wenn render die Vorlage nicht entfernen kann, und soll es nur die zurückgezogene Version statt aller Versionen des Namens entfernen?
 - [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
-- [06-runtime/upload-and-validate.md](../06-runtime/upload-and-validate.md): UNKNOWN — offene Frage: Sollen „Aktualisieren“, „Als Kopie“ und new-draft den Suchindex aktualisieren, und soll eine nicht lesbare Datei wenigstens mit Name und Status indiziert werden?
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
 

@@ -42,4 +42,5 @@ Reihenfolge der Schritte übernommen aus der bisherigen `CLAUDE.md`)_
 - [REQ-0011](../01-goals/requirements/REQ-0011.md) WHEN a template contains a section linked to an external ODT document (text:section-source), the render engine shall inline that document's content before conditions, loops and fields are resolved, and shall fill the text block's fields from the JSON paths mapped in the section name.
 - [REQ-0012](../01-goals/requirements/REQ-0012.md) WHERE PDF or RTF output is requested, the render engine shall convert the merged document to that format with a headless LibreOffice process provided by the core library.
 - [REQ-0025](../01-goals/requirements/REQ-0025.md) WHEN the same template version is rendered again with identical JSON data, output format and default locale, the render engine shall produce a document with identical content.
+- [REQ-0031](../01-goals/requirements/REQ-0031.md) The workbench shall make the text of paragraphs, headings, headers and footers of templates and text blocks searchable.
 <!-- /generated -->

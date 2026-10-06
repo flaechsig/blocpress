@@ -131,30 +131,29 @@ Bedingung vorkommt (etwa ein Schalter wie `isPremium`), wird nicht als Warnung g
 `ElasticsearchIndexService` pflegt den Index `blocpress-templates` (deutscher Analyzer für
 Name und Text). Ein Dokument je Vorlagenversion enthält Name, Typ, Status, Version, die
 Feldnamen der obersten Ebene des Schemas, die Bedingungen und den Text, den
-`OdtTextExtractor` aus blocpress-core aus allen `text:p` in `content.xml` zieht. Die Suche
-kombiniert eine unscharfe Suche über Name, Felder, Bedingungen und Text mit einer
-Präfixsuche und liefert Treffer mit Hervorhebung.
+`OdtTextExtractor` aus blocpress-core aus allen Absätzen und Überschriften (`text:p`,
+`text:h`) von `content.xml` und `styles.xml` (Kopf- und Fußzeilen) zieht
+([REQ-0031](../01-goals/requirements/REQ-0031.md)). Lässt sich kein Text lesen, wird die
+Vorlage ohne Text indiziert. Die Suche kombiniert eine unscharfe Suche über Name, Felder,
+Bedingungen und Text mit einer Präfixsuche und liefert Treffer mit Hervorhebung.
+
+Jede Änderung einer Vorlage führt den Index nach ([REQ-0030](../01-goals/requirements/REQ-0030.md)):
+Hochladen, WebDAV-`PUT`, Inhalt ersetzen, Kopieren, neuer Entwurf, Einreichen, Ablehnen und
+jeder Statuswechsel schreiben das ganze Dokument neu, Löschen entfernt es. Ausgemusterte
+Vorlagen bleiben mit Status `RETIRED` auffindbar. Das Dokument entsteht in der Transaktion
+(der Inhalt wird lazy geladen), geschrieben wird es erst nach dem Commit; bei einem Rollback,
+etwa einer Freigabe, deren Deploy mit 503 scheitert, bleibt der Index unverändert.
 
 Alle Zugriffe sind best effort: Ist Elasticsearch nicht erreichbar, wird gewarnt, die
-Datenbank-Transaktion läuft weiter, und die Suche liefert ein leeres Ergebnis.
-
-| Auslöser | Index |
-|---|---|
-| Hochladen (`POST …/templates`), WebDAV-`PUT` | Dokument anlegen oder ersetzen |
-| Statuswechsel über `PUT …/{id}/status` | nur `status` aktualisieren |
-| Löschen, Zurückziehen (`RETIRED`) | Dokument entfernen |
-
-Nicht nachgeführt wird der Index beim Ersetzen des Inhalts (`PUT …/{id}/content`), beim
-Duplizieren, bei `POST …/{id}/new-draft` und bei den Statuswechseln über
-`POST …/{id}/submit` und `POST …/{id}/reject`. Danach findet die Suche alte Inhalte, keine
-Kopien und einen veralteten Status. Zurückgezogene Vorlagen sind nicht mehr auffindbar.
-Text aus Überschriften (`text:h`) sowie aus Kopf- und Fußzeilen (`styles.xml`) wird nicht
-indiziert.
+Datenbank-Transaktion läuft weiter, und die Suche liefert ein leeres Ergebnis. Fehlt der
+Index oder ist ein Schreiben gescheitert, baut ihn `checkIndex` aus der Datenbank neu auf,
+kurz nach dem Start und dann alle `blocpress.search.index-check` (Standard 60 s);
+`POST /api/workbench/search/reindex` baut ihn sofort neu auf
+([REQ-0032](../01-goals/requirements/REQ-0032.md)).
 
 _(confidence: verified — service/ElasticsearchIndexService.java, OdtTextExtractor.java,
-TemplateResource.java (`upload`, `updateStatus`, `delete`, `updateContent`, `duplicate`,
-`createNewDraft`, `submitForApproval`, `reject`), WebDavResource.java (`putDraft`);
-derived_from: System_Design_Concept.adoc:229-239 legacy (git history))_
+SearchResource.java, TemplateResource.java, WebDavResource.java; SearchIndexIT,
+OdtTextExtractorTest; derived_from: System_Design_Concept.adoc:229-239 legacy (git history))_
 
 Gegenüber dem Altbestand korrigiert: Nicht Elasticsearch extrahiert den Text, sondern die
 Workbench vor dem Senden. Eine Beziehung zwischen Baustein und Vorlage wird nicht indiziert.
@@ -194,4 +193,6 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0024](../01-goals/requirements/REQ-0024.md) WHEN the designer submits a template in DRAFT, the workbench shall set it to SUBMITTED and deploy nothing to production.
 - [REQ-0026](../01-goals/requirements/REQ-0026.md) IF an uploaded template cannot be read as ODT, contains a user field name that does not follow dot notation, or contains a condition with a syntax error, THEN the workbench shall return a validation message that names the affected field or condition and the kind of error.
 - [REQ-0028](../01-goals/requirements/REQ-0028.md) WHEN workbench or render starts against a PostgreSQL database that is empty or was created before schema migrations existed, the service shall bring the schema to the state its entities expect before it accepts requests, without losing existing data.
+- [REQ-0030](../01-goals/requirements/REQ-0030.md) WHEN a template or text block is uploaded, saved via WebDAV, given new content, copied, given a new draft, deleted or changes its status, the workbench shall update the search index after the change has been committed, so that a search finds its current content and status; a retired template shall remain findable with status RETIRED, and a file whose text cannot be read shall be findable by name and status.
+- [REQ-0032](../01-goals/requirements/REQ-0032.md) IF the search index is missing or a change could not be written to it, THEN the workbench shall create the index and rebuild it from the database, and the workbench shall rebuild the index on request.
 <!-- /generated -->
