@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.7.1] - 2026-10-06
 
 ### Changed
 
@@ -21,8 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Kubernetes-Manifeste unter `deploy/k8s`** (Kustomize): render, workbench, studio, Elasticsearch und optional PostgreSQL 18, Ingress für das Studio. Installation mit `kubectl apply -k "github.com/flaechsig/blocpress/deploy/k8s?ref=v<Version>"`; das Sysadmin-Tutorial der Website beschreibt den Weg, lokal mit k3d (US-0051).
 - **Datenbankschema per Liquibase:** render und workbench legen ihre Tabellen beim Start selbst an und migrieren sie (`db/changeLog.xml`); bestehende Datenbanken werden ohne Datenverlust übernommen. Hibernate prüft nur noch, auch die Workbench (bisher `update`). Das Quickstart-Skript legt nur noch Benutzer und Datenbanken an (US-0052, ADR-0015).
 
+### Fixed
+
+- **Release veröffentlicht Maven Central zuletzt** (US-0047): Bisher ging blocpress-core vor Docker Hub und Tag nach Central; scheiterte danach ein Schritt, war core veröffentlicht ohne Tag und Images. Jetzt folgt Central erst nach Images und Tag.
+- **Website nach dem Release:** `pages.yml` startet nach jedem erfolgreichen Release, damit die neue Version auf der Website erscheint (US-0047).
+- **Docker-Hub-Texte:** Das Quickstart-Image hat eine eigene Beschreibung; die bisherige (render) wird jetzt beim render-Image veröffentlicht (US-0047).
+
 ### Removed
 
+- **Ungenutzter Code** (US-0049): `RenderImportClient`, `TemplateCache.getTemplateContent(UUID)`, der nie erreichte 403-Zweig beim Rendern per Name sowie `docker/studio/nginx.conf` und `studio.html`.
 - **docker-compose** (`docker-compose.yml`, `docker-compose.native.yml`, `docker/01-init.sql`, `docker/02-init-production.sh`). Die Init-Skripte waren veraltet, render startete damit nicht. Lieferwege sind das Quickstart-Image und Kubernetes (ADR-0014).
 
 ## [2.7.0] - 2026-10-03

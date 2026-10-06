@@ -91,7 +91,8 @@ Guide and load test: [render-sizing.md](https://github.com/flaechsig/blocpress/b
 | Tag | Description |
 |-----|-------------|
 | `latest` | Latest stable release |
-| `2.7.0` | Current stable release (GraalVM native) — async jobs ~7× faster, date-time formats, WebDAV validation, several fixes |
+| `2.7.1` | Current stable release (GraalVM native) — workers derived from the CPU limit, schema via Liquibase, Kubernetes manifests |
+| `2.7.0` | Async jobs ~7× faster, date-time formats, WebDAV validation, several fixes |
 | `2.6.1` | Placeholders/conditions in headers and footers, conditional sections in PDF fixed |
 | `2.6.0` | Optional JWT, async jobs fixed in native image |
 | `2.5.1` | Fixes number/date formatting in the native image (locale data) |
