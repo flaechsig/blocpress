@@ -169,4 +169,4 @@ ComplianceReview, TestCase, Testpool, Benutzer und AuditLog ([ADR-0003](../09-de
 die Entität „Dokumentengenerierung“ (E-3) mit Template-ID, Version und Anforderer — an ihrer
 Stelle steht RenderJob, der nur den Vorlagennamen kennt.
 
-- UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev), und die SQL-Skripte unter docker/ für docker-compose.yml enthalten weder valid_until, review_cycle_years, ignored_patterns noch die Tabelle render_job; vollständig ist nur docker/studio/init-studio.sql.
+- UNKNOWN — offene Frage: Wer legt die Tabellen in einer produktiven Installation (Kubernetes, [ADR-0014](../09-decisions/ADR-0014.md)) an? Beide Dienste prüfen das Schema nur (Hibernate validate, die Workbench ergänzt im Profil dev); vollständig ist nur docker/studio/init-studio.sql im Quickstart-Image, das Kubernetes-Beispiel weicht auf update aus. Zu klären in US-0051.

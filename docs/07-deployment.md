@@ -1,8 +1,8 @@
 # Verteilungssicht
 
 blocpress wird als Container-Images ausgeliefert: ein All-in-one-Image für den schnellen
-Einstieg und je ein Image für render, workbench und studio. Dazu kommen zwei
-docker-compose-Dateien für den lokalen Betrieb aus dem Quellcode. Wie viel CPU und Speicher
+Einstieg und je ein Image für render, workbench und studio für den Betrieb in Kubernetes
+([ADR-0014](09-decisions/ADR-0014.md)). Wie viel CPU und Speicher
 render braucht und wie es in Kubernetes läuft, steht in der Anleitung
 [render bemessen](guides/render-sizing.md) mit dem Beispiel
 [blocpress-render-k8s.yaml](guides/examples/blocpress-render-k8s.yaml); das wird hier nicht
@@ -144,66 +144,22 @@ Entschieden (2026-10-06): Elasticsearch bleibt im Quickstart intern. Port 9200 w
 
 ## docker-compose
 
-`docker-compose.yml` baut die drei Dienste aus ihren JVM-Dockerfiles und startet sie mit
-PostgreSQL und Elasticsearch. `docker-compose.native.yml` ist ein Override, der auf die
-nativen Dockerfiles umstellt und render auf 640 MB begrenzt; die Binaries müssen vorher mit
-`mvn package -Dnative -pl blocpress-render,blocpress-workbench,blocpress-studio -am -DskipTests`
-gebaut sein. Start: `docker compose -f docker-compose.yml -f docker-compose.native.yml up --build`.
-
-```mermaid
-flowchart TD
-    ST["studio<br/>4200 → 8082"]
-    WB["workbench<br/>8081"]
-    RD["render<br/>8080"]
-    PG[("postgres:17-alpine<br/>5432")]
-    ES["elasticsearch 8.11<br/>9200"]
-
-    ST --> WB
-    WB --> RD
-    WB --> PG
-    WB --> ES
-    RD --> PG
-```
-
-| Dienst | Host-Port | Wesentliche Einstellungen |
-|---|---|---|
-| `postgres` | 5432 | Datenbank `workbench`, Benutzer und Passwort `workbench`; `docker/01-init.sql` und `docker/02-init-production.sh` legen Tabellen und die Datenbank `production` an |
-| `elasticsearch` | 9200 | Single-Node, ohne Security, Heap 256 MB, Volume `elasticsearch_data` |
-| `workbench` | 8081 | `QUARKUS_PROFILE=dev`, `RENDER_URL=http://render:8080`, `ELASTICSEARCH_HOSTS=elasticsearch:9200`; startet, wenn PostgreSQL und Elasticsearch gesund sind |
-| `render` | 8080 | `QUARKUS_PROFILE=dev`, Datenbank `production`, `BLOCPRESS_LO_WORKERS=2`, `cpus: "2"`, `mem_limit: 768m` |
-| `studio` | 4200 | `WORKBENCH_URL=http://workbench:8081` |
-
-_(confidence: verified — docker-compose.yml, docker-compose.native.yml,
-docker/01-init.sql, docker/02-init-production.sh; derived_from:
-arc42.adoc:1434-1584 legacy (git history))_
-
-Anders als im Quickstart ist die Workbench hier direkt auf Port 8081 erreichbar, auch für
-WebDAV. Die Variablen `API_WORKBENCH_URL` und `API_RENDER_URL` am Studio liest kein Code.
-
-Die Init-Skripte sind veraltet: Es fehlen unter anderem `valid_until` und die Tabelle
-`render_job`. render prüft das Schema auch im Profil `dev` nur (`validate`) und scheitert
-laut [US-0039](01-goals/stories/US-0039.md) daran. Die Workbench läuft im Profil `dev` mit
-`update` und ergänzt fehlende Spalten selbst.
-
-_(confidence: verified — Init-Skripte gegen docker/studio/init-studio.sql verglichen;
-`quarkus.hibernate-orm.schema-management.strategy` in den application.properties von render
-und workbench; der Startfehler selbst nicht ausprobiert)_
-
-Gegenüber dem Altbestand korrigiert: Es gibt keine Dienste proof und admin, keine Schemata
-einer Datenbank über `currentSchema`, sondern zwei Datenbanken, kein LibreOffice in der
-Workbench, keine OpenTelemetry-Variablen und kein `LIBREOFFICE_HOME`. Ports und Images sind
-die oben genannten.
+Entfernt am 2026-10-06 ([ADR-0014](09-decisions/ADR-0014.md)): `docker-compose.yml`,
+`docker-compose.native.yml` und die Init-Skripte `docker/01-init.sql` und
+`docker/02-init-production.sh`. Die Skripte waren veraltet, render scheiterte damit an der
+Schemaprüfung ([US-0039](01-goals/stories/US-0039.md)). Das Sysadmin-Tutorial der Website
+beschreibt noch einen Compose-Weg; es wird auf Kubernetes umgeschrieben
+([US-0051](01-goals/stories/US-0051.md)).
 
 ## PostgreSQL-Version
 
 > [!NOTE]
 > Festgelegt ist PostgreSQL 18 oder neuer (Entscheidung 2026-10-05, siehe
-> [Randbedingungen](02-constraints.md) und [US-0039](01-goals/stories/US-0039.md)). Tatsächlich laufen: im Quickstart-Image
-> PostgreSQL 16 (Paket `postgresql` aus Ubuntu 24.04, `pg_ctlcluster 16`), in
-> docker-compose `postgres:17-alpine`, im Kubernetes-Beispiel und im Lasttest
+> [Randbedingungen](02-constraints.md) und [US-0046](01-goals/stories/US-0046.md)). Tatsächlich laufen: im Quickstart-Image
+> PostgreSQL 16 (Paket `postgresql` aus Ubuntu 24.04, `pg_ctlcluster 16`), im Kubernetes-Beispiel und im Lasttest
 > (`RenderTarget`) `postgres:16`. Der Widerspruch ist in den Randbedingungen vermerkt.
 
-_(confidence: contradicted — docker/studio/Dockerfile, entrypoint.sh, docker-compose.yml,
+_(confidence: contradicted — docker/studio/Dockerfile, entrypoint.sh,
 docs/guides/examples/blocpress-render-k8s.yaml,
 blocpress-e2e/src/test/java/io/github/flaechsig/blocpress/e2e/load/RenderTarget.java)_
 

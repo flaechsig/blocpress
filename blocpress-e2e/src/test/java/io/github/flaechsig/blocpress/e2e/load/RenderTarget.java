@@ -165,7 +165,7 @@ interface RenderTarget extends AutoCloseable {
         }
     }
 
-    // ---------------------------------------------------------------- external (z.B. docker-compose)
+    // ---------------------------------------------------------------- external (z.B. docker run)
 
     /** Laufende Instanz unter {@code load.url}; cgroup + Neustart ueber {@code docker} (optional). */
     final class External implements RenderTarget {

@@ -34,15 +34,15 @@ gebaut ist nur die Liste mit 60 Tagen Vorlauf. Entfallen ist R-7 des Altbestands
 
 | ID | Schuld | Folge | Quelle |
 |---|---|---|---|
-| TD-1 | Die SQL-Skripte für `docker-compose.yml` (`docker/01-init.sql`, `docker/02-init-production.sh`) sind veraltet: Es fehlen Spalten und die Tabelle `render_job`. Vollständig ist nur `docker/studio/init-studio.sql`. | render und workbench scheitern mit docker-compose an der Schemaprüfung | [US-0039](01-goals/stories/US-0039.md), [ADR-0012](09-decisions/ADR-0012.md) |
+| TD-1 | Wer in einer produktiven Installation die Tabellen anlegt, ist nicht geregelt: Beide Dienste prüfen das Schema nur (Hibernate `validate`). Vollständig ist nur `docker/studio/init-studio.sql` im Quickstart-Image; das Kubernetes-Beispiel weicht auf `update` aus. | render und workbench starten ohne passendes Schema nicht | [US-0051](01-goals/stories/US-0051.md), [ADR-0014](09-decisions/ADR-0014.md) |
 | TD-2 | Die aus `openapi.yml` erzeugten Interfaces von render werden nicht genutzt. | Spezifikation und Umsetzung der REST-API können auseinanderlaufen | [ADR-0013](09-decisions/ADR-0013.md) |
 | TD-3 | Workbench und render wählen unter einem Vorlagennamen verschiedene Versionen (höchste Version gegenüber jüngstem `validFrom`). | Vorschau und Produktion können verschiedene Stände zeigen | [Versionierung](08-concepts/versionierung.md) |
 | TD-4 | Die Prüfung der Vorlagen beim Hochladen liegt in der Workbench (`TemplateValidator`), nicht in `blocpress-core`. | Nutzer der Bibliothek können Vorlagen nicht vorab prüfen | [US-0009](01-goals/stories/US-0009.md) |
 | TD-5 | Native-Builds brauchen gepflegte Reflection-Registrierung und Build-Argumente. | Neue Abhängigkeiten können das Native-Image brechen | [ADR-0007](09-decisions/ADR-0007.md) |
 | TD-6 | Kein Batch-Endpunkt: Viele Dokumente bedeuten viele Aufrufe oder viele Jobs. | Mehr Aufrufe und mehr Verwaltungsaufwand beim Aufrufer | Altbestand TD-2 |
 
-_(confidence: verified — docker/01-init.sql, docker/02-init-production.sh,
-docker/studio/init-studio.sql, blocpress-workbench/…/service/TemplateValidator.java,
+_(confidence: verified — docker/studio/init-studio.sql,
+docs/guides/examples/blocpress-render-k8s.yaml, blocpress-workbench/…/service/TemplateValidator.java,
 blocpress-render/…/RenderResource.java und AsyncRenderResource.java (kein Batch-Endpunkt);
 derived_from: arc42.adoc:2686-2740 legacy (git history))_
 

@@ -28,7 +28,7 @@ REQ-0012, und die Prüfung meldet ihn. Auf solchen Rechnern prüft
 | poppler-utils, ImageMagick | aus Ubuntu 24.04 | Regressionsvergleich der Workbench (`pdftohtml`, `pdftoppm`, `convert`, `montage`) |
 
 _(confidence: verified — Quarkus: blocpress-render/pom.xml, blocpress-workbench/pom.xml,
-blocpress-studio/pom.xml; Elasticsearch: docker-compose.yml, docker/studio/Dockerfile,
+blocpress-studio/pom.xml; Elasticsearch: docker/studio/Dockerfile,
 blocpress-workbench/…/ElasticsearchTestResource.java, blocpress-workbench/pom.xml; Docker:
 blocpress-render/Dockerfile, blocpress-workbench/Dockerfile, blocpress-studio/Dockerfile,
 docker/studio/Dockerfile; poppler-utils und ImageMagick: blocpress-workbench/Dockerfile,
@@ -41,12 +41,12 @@ PostgreSQL 18 ist seit 2026-10-05 entschieden; der Altbestand nannte die Grenze 
 Images folgen ihr noch nicht:
 
 > [!CAUTION]
-> `docker-compose.yml` startet `postgres:17-alpine`, das Quickstart-Image
+> Das Quickstart-Image
 > (`docker/studio/Dockerfile`, `Dockerfile.native`) installiert PostgreSQL 16, das
 > Kubernetes-Beispiel (`docs/guides/examples/blocpress-render-k8s.yaml`) und der Lasttest
 > (`blocpress-e2e/…/load/RenderTarget.java`) nutzen `postgres:16`. Die Anhebung ist Teil von
-> [US-0039](01-goals/stories/US-0039.md).
-> Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16 und 17, Anhebung in US-0039. (contradiction)
+> [US-0046](01-goals/stories/US-0046.md).
+> Randbedingung PostgreSQL 18 oder neuer, Images und Beispiele nutzen 16, Anhebung in US-0046. (contradiction)
 
 Der Altbestand verlangte Elasticsearch „7.x oder höher“. Eingesetzt und getestet wird nur
 8.11.0; 7.x ist hier deshalb nicht übernommen.

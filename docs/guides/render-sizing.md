@@ -50,7 +50,7 @@ nicht am HTTP-Status (2.4.2: leere PDFs, 2.5.0: `500,000 EUR` statt `500.000 EUR
 mvn verify -pl blocpress-e2e -Pload -Dload.image=flaechsig/blocpress-render:2.5.1 \
     -Dload.cpus=0.5,1,2 -Dload.workers=1,2 -Dload.levels=1,2,4,8,16
 
-# laufende Instanz (z.B. docker-compose) — cgroup-Werte und Neustart über den Containernamen
+# laufende Instanz (z.B. docker run --name blocpress-render) — cgroup-Werte und Neustart über den Containernamen
 mvn verify -pl blocpress-e2e -Pload -Dload.mode=external \
     -Dload.url=http://localhost:8080 -Dload.docker.container=blocpress-render
 
@@ -146,7 +146,7 @@ Was man daran sieht:
 - Die sparsame Größe ist je Kern sogar etwas effizienter (2,04 statt 1,85 Renders/s), reserviert
   aber weniger Reserve für Lastspitzen und keine Redundanz — für Produktion lieber zwei
   Standard-Pods als einen großen.
-- **JVM-Image** (`Dockerfile`, z.B. `docker-compose.yml`): gleicher Durchsatz, aber mehr
+- **JVM-Image** (`Dockerfile`): gleicher Durchsatz, aber mehr
   Speicher — gemessen 585Mi Spitze bei 2 CPU / 2 Worker, daher 768Mi.
 
 - **Request = Limit** bei CPU *und* Speicher macht den Pod zur QoS-Klasse *Guaranteed* und
@@ -156,8 +156,6 @@ Was man daran sieht:
   Antwortzeit verdoppelt sich schon ohne Last.
 - **Client-Timeout** mindestens 30 s, besser die Parallelität am Client begrenzen.
 - Vollständiges Beispiel (Standardgröße): [`examples/blocpress-render-k8s.yaml`](examples/blocpress-render-k8s.yaml).
-  `docker-compose.yml` setzt am render-Service `cpus: "2"`, `mem_limit: 768m` (JVM) bzw.
-  `docker-compose.native.yml` `640m` (native).
 
 > **Mit eigenen Vorlagen nachmessen.** Große Vorlagen (viele Seiten, Bilder, lange Tabellen)
 > brauchen mehr als 0,5 CPU-s und mehr Speicher je Render. Die Werte oben sind ein Start,
