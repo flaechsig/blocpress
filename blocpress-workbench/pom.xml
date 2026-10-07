@@ -16,7 +16,7 @@
 
     <properties>
         <it.image>blocpress-workbench:it</it.image>
-        <quarkus.platform.version>3.27.2</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1</quarkus.platform.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <quarkus.container-image.build>false</quarkus.container-image.build>
         <quarkus.container-image.registry>docker.io</quarkus.container-image.registry>
@@ -152,10 +152,18 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- LiquibaseMigrationTest startet Hibernate ohne Quarkus; ab Quarkus 3.40 kommt
+             ByteBuddy nicht mehr transitiv mit hibernate-core -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Testcontainers Elasticsearch for SearchIT -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>elasticsearch</artifactId>
+            <artifactId>testcontainers-elasticsearch</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

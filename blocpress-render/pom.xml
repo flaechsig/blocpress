@@ -18,7 +18,7 @@
         <it.image>blocpress-render:it</it.image>
         <openapi.generator.version>7.7.0</openapi.generator.version>
         <skipITs>true</skipITs>
-        <quarkus.platform.version>3.27.2</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1</quarkus.platform.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <quarkus.container-image.build>false</quarkus.container-image.build>
         <quarkus.container-image.registry>docker.io</quarkus.container-image.registry>
@@ -128,6 +128,13 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- LiquibaseMigrationTest startet Hibernate ohne Quarkus; ab Quarkus 3.40 kommt
+             ByteBuddy nicht mehr transitiv mit hibernate-core -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
