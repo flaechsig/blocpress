@@ -21,9 +21,9 @@ REQ-0012, und die Prüfung meldet ihn. Auf solchen Rechnern prüft
 
 | Was | Version | Wofür |
 |---|---|---|
-| Quarkus | 3.27.2 (`quarkus.platform.version`) | Framework von render, workbench und studio ([ADR-0007](09-decisions/ADR-0007.md)); `blocpress-core` hängt nicht von Quarkus ab |
+| Quarkus | 3.40.1 LTS (`quarkus.platform.version`) | Framework von render, workbench und studio ([ADR-0007](09-decisions/ADR-0007.md)); `blocpress-core` hängt nicht von Quarkus ab |
 | PostgreSQL | 18 oder neuer | Datenbanken `workbench` und `production`, Binärdaten als `bytea` ([ADR-0006](09-decisions/ADR-0006.md)), Job-Warteschlange ([ADR-0012](09-decisions/ADR-0012.md)) |
-| Elasticsearch | 8.x, eingesetzt 8.11.0 | Suche der Workbench über `quarkus-elasticsearch-rest-client` ([ADR-0009](09-decisions/ADR-0009.md)) |
+| Elasticsearch | 8.x, eingesetzt 8.11.0 | Suche der Workbench über `quarkus-elasticsearch-rest-client` (Low-Level-Client `Rest5Client` aus elasticsearch-java 9, spricht HTTP und läuft gegen den 8.x-Server; [ADR-0009](09-decisions/ADR-0009.md)) |
 | Docker | aktuell | Betrieb: jeder Dienst als eigenes Image auf Basis Ubuntu 24.04, dazu ein Quickstart-Image mit allen Diensten, PostgreSQL und Elasticsearch ([US-0026](01-goals/stories/US-0026.md), [US-0027](01-goals/stories/US-0027.md)) |
 | poppler-utils, ImageMagick | aus Ubuntu 24.04 | Regressionsvergleich der Workbench (`pdftohtml`, `pdftoppm`, `convert`, `montage`) |
 
