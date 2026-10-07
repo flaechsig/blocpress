@@ -10,10 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **Quarkus 3.40.1 LTS** statt 3.27.2 (Support von 3.27 endete am 2026-09-24) in render, workbench und studio. Damit sind die von Trivy gemeldeten Lücken in Netty, Vert.x, `quarkus-vertx-http`, pgjdbc und Jackson behoben (u. a. Request Smuggling, Denial of Service, Umgehung pfadbasierter Berechtigungen). In `blocpress-core` bcprov 1.86 (transitiv über odfdom), commons-lang3 3.20.0 und Jackson 2.21.7.
+- **CORS nur noch ausdrücklich:** render und workbench erlaubten Aufrufe aus dem Browser von jeder Origin (`*`). Jetzt gilt same-origin; fremde Origins nennt `BLOCPRESS_CORS_ORIGINS` (kommagetrennt). Das Studio braucht keine, es leitet alle Aufrufe weiter. Wer render oder workbench direkt aus einer anderen Web-Anwendung aufruft, muss deren Origin setzen.
+- **GitHub Actions auf Commit-SHA gepinnt:** Ein umgehängter Tag einer fremden Action kann im Release-Workflow keinen fremden Code mehr mit Signaturschlüssel und Registry-Zugängen ausführen.
 
 ### Changed
 
 - **Suche der Workbench:** Low-Level-Client `Rest5Client` aus elasticsearch-java 9, wie ihn Quarkus 3.40 mitbringt; der Server bleibt Elasticsearch 8.x.
+
+### Fixed
+
+- **Workbench lief im Dev-Profil:** `quarkus.profile=dev` stand fest in der Konfiguration; die ausgelieferte Workbench lief deshalb mit dem kleinen Dev-Verbindungspool (höchstens 5). Jetzt gilt das Produktionsprofil (höchstens 20).
 
 ## [2.7.1] - 2026-10-06
 
