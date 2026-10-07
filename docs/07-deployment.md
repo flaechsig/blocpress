@@ -322,5 +322,4 @@ pusht und solche Pushes keine weiteren Workflows starten. Nach den Releases 2.6.
 (2.–3.10.2026) lief `pages.yml` deshalb erst beim Merge am 5.10.2026
 ([US-0047](01-goals/stories/US-0047.md)).
 
-_(confidence: unverified — pages.yml; der Start nach einem Release ist erst mit dem nächsten
-Release beobachtet)_
+_(confidence: verified — pages.yml; nach Release 2.7.1 per `workflow_run` gelaufen)_
