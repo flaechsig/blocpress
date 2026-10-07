@@ -1,4 +1,4 @@
-<!-- docspine 0.15 · from standard/en/README.md · übersetzt, nicht von Hand editieren -->
+<!-- docspine 0.20 · from standard/en/README.md · übersetzt, nicht von Hand editieren -->
 
 # Dokumentation nach docspine
 
@@ -68,7 +68,7 @@ flowchart LR
 
 ## Arbeitsweise
 
-Die Arbeit läuft als Kreislauf. Jeder Schritt hat einen Skill (`spine-*`), der durch ihn
+Die Arbeit läuft als Kreislauf. Jeder Schritt hat einen Skill (`docspine-*`), der durch ihn
 führt. Die Skills folgen dem offenen Agent-Skills-Standard und funktionieren mit
 verschiedenen KI-Werkzeugen. Ohne Skills geht es genauso, die Regeln stehen in
 `.docspine/STANDARD.md`.
@@ -92,13 +92,13 @@ flowchart TD
 
 | Schritt | Was passiert | Skill |
 |---|---|---|
-| **Start** | Aus einer ersten Beschreibung entstehen Vision, Themen und Randbedingungen. Offenes bleibt als Frage stehen. | `spine-init` |
-| **Anfordern** | Ein Bedürfnis wird zu Story und Requirement: wer, was, warum, woran prüfbar. | `spine-require` |
-| **Wirkung prüfen** | Muss die Architektur etwas berücksichtigen, ändern oder entscheiden? | `spine-impact` |
-| **Entscheiden** | Eine fällige Entscheidung wird mit Alternativen und Begründung festgehalten. | `spine-decide` |
+| **Start** | Aus einer ersten Beschreibung entstehen Vision, Themen und Randbedingungen. Offenes bleibt als Frage stehen. | `docspine-init` |
+| **Anfordern** | Ein Bedürfnis wird zu Story und Requirement: wer, was, warum, woran prüfbar. | `docspine-require` |
+| **Wirkung prüfen** | Muss die Architektur etwas berücksichtigen, ändern oder entscheiden? | `docspine-impact` |
+| **Entscheiden** | Eine fällige Entscheidung wird mit Alternativen und Begründung festgehalten. | `docspine-decide` |
 | **Freigeben** | Ein beschriebenes Requirement wird zum Bau freigegeben (`proposed` → `planned`). Das entscheidet ein Mensch, einzeln oder gesammelt. | — |
-| **Umsetzen** | Code und Test entstehen, der Test trägt die Requirement-ID. Ist er grün, wechselt der Status. | `spine-build` |
-| **Nachweisen** | Prüft der Test wirklich, was das Requirement fordert, oder trägt er nur die ID? | `spine-prove` |
+| **Umsetzen** | Code und Test entstehen, der Test trägt die Requirement-ID. Ist er grün, wechselt der Status. | `docspine-build` |
+| **Nachweisen** | Prüft der Test wirklich, was das Requirement fordert, oder trägt er nur die ID? | `docspine-prove` |
 
 Spezifizieren und Bauen sind getrennt: Die Schritte der Spezifikation schreiben nie
 Code, und gebaut wird erst nach einer Freigabe. Man kann sich erst durch die ganze

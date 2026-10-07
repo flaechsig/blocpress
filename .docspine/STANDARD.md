@@ -1,8 +1,8 @@
-<!-- docspine 0.15 · source: standard/en/STANDARD.md · do not edit in projects -->
+<!-- docspine 0.20 · source: standard/en/STANDARD.md · do not edit in projects -->
 
 # docspine Standard
 
-Version 0.15 (draft)
+Version 0.20 (draft)
 
 This document defines the rules for projects that follow docspine, a way of developing
 in which the documentation is the spine: from vision through requirements and decisions
@@ -95,7 +95,7 @@ resolve.
 | `.docspine/docspine.pyz` | the checker | no, from docspine |
 | `.docspine/README.en.md`, `.docspine/MANIFEST`, `.docspine/CHANGELOG.md` | source of the README, list of delivered files, changes per version | no, from docspine |
 | `AGENTS.md` | entry point for AI agents: where things are, how to check | yes |
-| `.agents/skills/spine-*` | guided workflows for AI agents | no, from docspine |
+| `.agents/skills/docspine-*` | guided workflows for AI agents | no, from docspine |
 | `.agents/skills/<other>` | project-specific workflows | yes |
 | `.claude/` and similar | tool-specific settings; refer to `AGENTS.md` only | yes |
 
@@ -103,11 +103,17 @@ Configuration lives in `.docspine/`; `docs/` contains only documentation. The RE
 mentions the configuration files but does not link to them.
 
 Everything that comes from docspine is overwritten when the standard is updated.
-Changes to it belong in docspine, not in the project.
+Changes to it belong in docspine, not in the project. The prefix `docspine-` is reserved
+for skills from docspine: project skills use other names, because an update overwrites
+the folders `.agents/skills/docspine-*` and removes those docspine no longer delivers.
+Up to version 0.19 the prefix was `spine-`; `docspine-update` removes the folders
+`.agents/skills/spine-*` left from then.
 
 All rules are in files in the repository. Tool-specific files may make them easier to
-use but must not contain rules of their own. Test: deleting a tool-specific folder
-must not lose any rule.
+use but must not contain rules of their own. The same holds for the skills from
+docspine: they describe workflows and refer to this standard for the rules. Test:
+deleting a tool-specific folder or the folders `.agents/skills/docspine-*` must not lose
+any rule.
 
 `AGENTS.md` is written in the project language. In a section on the documentation it
 contains: one sentence on what the project is; where things are (`docs/README.md`,
@@ -172,6 +178,8 @@ The `id` in the front matter must match the file name.
 - **Git.** The project is a Git repository. Decisions are superseded rather than
   rewritten, and the history is part of the proof (section 10).
 - **Python 3.9 or later** for the checker (section 11).
+- **Graphviz or PlantUML**, only to render DOT or PlantUML diagrams with the command
+  `diagram` (section 9).
 
 ### 2.7 Branches and teams
 
@@ -198,7 +206,7 @@ docspine is designed for one person or a small team of up to about five people.
   access is the team's decision. Connecting an existing project: create an empty
   repository at the provider, then `git remote add origin <url>` and
   `git push -u origin <main branch>`, with the name of the project's main branch
-  (`main` for projects set up by `spine-init`).
+  (`main` for projects set up by `docspine-init`).
 
 ## 3 Artifacts
 
@@ -430,7 +438,7 @@ generated into a **generated region** inside a hand-written file:
 | `stories` | epic | its stories with status |
 | `requirements` | story | statements and status of its requirements |
 | `context` | requirement | epic and story it belongs to, ADRs that require it |
-| `realized` | building block | requirements whose evidence lies under its path |
+| `realized` | building block | requirements whose evidence lies under its path, without superseded and rejected ones |
 | `scenarios` | story | runtime scenarios that realise it |
 
 Generated regions must not be edited by hand. A region that differs from what the
@@ -580,8 +588,11 @@ Diagrams are always kept as text source in the repository, never only as images.
 - **No ASCII art with box-drawing characters or arrows:** many fonts draw them wider
   than one character, and the lines slip out of place.
 - **DOT or PlantUML with a committed SVG** under `docs/diagrams/` for large overviews
-  where Mermaid's layout is not enough. The SVG must be produced from the current
-  version of its source.
+  where Mermaid's layout is not enough. The SVG is produced with
+  `python3 .docspine/docspine.pyz diagram`, which renders the source with Graphviz or
+  PlantUML and records a checksum of the source in the SVG. The checker compares it with
+  the source and reports an image that is missing, was produced otherwise, or belongs to
+  an older version of the source (error 12). `docs/legacy/` is not checked.
 - **Images without a source** only where none can exist, such as screenshots.
 
 ## 10 Legacy
@@ -608,6 +619,9 @@ The checker is a command-line tool that runs without a build system, as
 - `check --without-tests` — the same, but skips what needs test results (errors 8, 9
   and 10), for quick checks of the documentation alone.
 - `render` — writes generated regions and views.
+- `diagram [source …]` — renders DOT and PlantUML sources to SVG with their checksum
+  (section 9); without arguments, every image that is not current. Needs Graphviz or
+  PlantUML; the other commands do not.
 
 **Order.** `render` runs any time before `check`; it does not need test results.
 `check` runs after the tests. Without a test run, `check` cannot know what is
@@ -625,7 +639,7 @@ the check cannot be forgotten. Whatever the tool chain, an integration must:
 
 How a particular tool chain meets this contract is described in the docspine
 repository under `integrations/`, one file per tool chain; in a project they are
-installed with the skill `spine-gate` under `.agents/skills/spine-gate/integrations/`.
+installed with the skill `docspine-gate` under `.agents/skills/docspine-gate/integrations/`.
 
 Connecting the build is an architecture decision and is recorded as an ADR (section 3.5).
 
@@ -633,9 +647,13 @@ Connecting the build is an architecture decision and is recorded as an ADR (sect
 first line of `.docspine/STANDARD.md`. `.docspine/CHANGELOG.md` describes what changed.
 
 **Installing and updating.** docspine is installed and updated with the same command,
-which writes only `.docspine/`, `.agents/skills/spine-*` and `.claude/skills`. After an
-update, the skill `spine-update` translates the README again where needed and removes
+which writes only `.docspine/`, `.agents/skills/docspine-*` and `.claude/skills`. After an
+update, the skill `docspine-update` translates the README again where needed and removes
 files that docspine no longer delivers (listed by comparison with `.docspine/MANIFEST`).
+`python3 .docspine/docspine.pyz version` shows whether a newer version exists, with its
+changelog entries and the installation command. It looks online at most once a day
+(cache in the user's cache folder, `--now` looks at once) and does not fail without a
+network. The skills from docspine run it when they start.
 
 **Errors:**
 
@@ -652,7 +670,7 @@ files that docspine no longer delivers (listed by comparison with `.docspine/MAN
 | 9 | requirement `planned` or `proposed`, but a passing test result exists |
 | 10 | test result for a requirement that does not exist, or test results that cannot be read |
 | 11 | generated region differs from what would be generated |
-| 12 | diagram image not produced from the current version of its source (not yet checked) |
+| 12 | diagram image missing, not produced with `diagram`, or produced from an older version of its source |
 | 13 | broken relative link |
 | 14 | `README.md` was translated from a different docspine version than the installed `STANDARD.md` |
 | 15 | an `evidence` path does not exist |

@@ -1,13 +1,13 @@
 ---
-name: spine-init
+name: docspine-init
 description: >-
   Start a project's documentation according to docspine: agree on the project language,
   draft the vision with the user, and write profile, vision, themes, first stories, README
   and AGENTS.md. Use when the user wants to set up docspine, start the documentation of a
-  new project, or calls /spine-init. After an update of docspine, use spine-update instead.
+  new project, or calls /docspine-init. After an update of docspine, use docspine-update instead.
 ---
 
-# spine-init
+# docspine-init
 
 You set up the documentation of a project according to docspine. The rules are in
 `.docspine/STANDARD.md`; read sections 1–3 before you write anything. You work in dialogue:
@@ -66,9 +66,9 @@ language.
 ## Step 2 — Situation
 
 - **`.docspine/PROFILE.md` exists** → the project is already set up. Say so, suggest
-  `spine-update` after an update of docspine, otherwise `spine-require`, and stop.
+  `docspine-update` after an update of docspine, otherwise `docspine-require`, and stop.
 - **The repository already contains code or documentation** (beyond the files from the
-  installation) → say that `spine-adopt` is meant for existing projects. Continue only if
+  installation) → say that `docspine-adopt` is meant for existing projects. Continue only if
   the person explicitly wants to start the documentation fresh.
 - **Otherwise** → new project, continue.
 
@@ -95,7 +95,7 @@ project language, numbered so the person can answer briefly:
    and a one-line description
 8. **First stories** — for each theme one to three stories in the form "As <role> I want
    <goal> so that <benefit>", with a short title. Number them `US-0001`, `US-0002`, …
-   across all themes. Requirements come later with `spine-require`.
+   across all themes. Requirements come later with `docspine-require`.
 9. **Constraints** — technology, platform, norms, budget, time
 10. **Decisions already made** — for example language or platform
 
@@ -143,7 +143,7 @@ check, at the latest before merging and preferably before every commit, in this 
   python3 .docspine/docspine.pyz check
   ```
   As long as the project has no tests yet, write the first line as a placeholder
-  comment, followed by: "Create the build and the first tests with `spine-gate`, so that
+  comment, followed by: "Create the build and the first tests with `docspine-gate`, so that
   they are connected to docspine from the start." `python3 .docspine/docspine.pyz check
   --without-tests` checks the documentation alone.
 
@@ -167,7 +167,7 @@ Summarise in a few lines what was written, list the open questions (they also ap
   remote as its meeting point, and where it lives is the team's decision. If the person has already created an empty repository at a
   provider, offer to run `git remote add origin <url>` and `git push -u origin main`
   with the URL they give. Do not create repositories at a provider.
-- `spine-require` for the most important theme as the next step
-- `spine-gate` before the first build file or test is written, so that the build is
+- `docspine-require` for the most important theme as the next step
+- `docspine-gate` before the first build file or test is written, so that the build is
   connected to docspine from the start
 

@@ -1,8 +1,69 @@
 # Changelog
 
-What changed in what docspine delivers to projects (`.docspine/`, `.agents/skills/spine-*`).
-The newest version comes first. `spine-update` shows the entries between the installed and
+What changed in what docspine delivers to projects (`.docspine/`, `.agents/skills/docspine-*`).
+The newest version comes first. `docspine-update` shows the entries between the installed and
 the new version.
+
+## 0.20
+
+- **Skills are named `docspine-*`** instead of `spine-*` (standard 2.2, ADR-0026), so that
+  skills of several tools of the spine family (docspine, secspine, …) can live side by
+  side in one project. Call `/docspine-init`, `/docspine-require` and so on. After the
+  update, call `/docspine-update`: it removes the old folders `.agents/skills/spine-*`.
+  Project skills named `docspine-*` must be renamed, because the prefix is now reserved.
+
+## 0.19
+
+- **Building blocks show only requirements in force** (standard 4). The generated
+  region `realized` leaves out superseded and rejected requirements; they stay as
+  history in their own files. Run `render` once after the update.
+
+## 0.18
+
+- **Hint on newer versions** (standard 11, ADR-0025). The new command
+  `python3 .docspine/docspine.pyz version` shows whether a newer version exists, with
+  its changelog entries and the installation command. It looks online at most once a
+  day, keeps the answer in the user's cache folder (`--now` looks at once), and does
+  not fail without a network. `spine-require`, `-impact`, `-decide`, `-build`, `-prove`
+  and `-gate` run it when they start and offer to install a newer version.
+- **The prefix `spine-` is reserved** for skills from docspine (standard 2.2). Project
+  skills use other names, because an update overwrites `.agents/skills/spine-*` and
+  removes folders docspine no longer delivers. The test for tool-specific folders now
+  also covers the docspine skills: removing them must not lose any rule.
+- **Four new skills complete the cycle:** `spine-impact` checks what a requirement means
+  for the architecture and gives one verdict; `spine-decide` records a decision as an
+  ADR; `spine-build` builds a released requirement, test first, hands back when the
+  requirement or the architecture has a gap, and changes the status; `spine-prove`
+  explains the check's errors and audits whether tests really prove the requirements.
+
+## 0.17
+
+- **Outdated diagram images are reported** (error 12, standard 9). The new command
+  `python3 .docspine/docspine.pyz diagram` renders DOT and PlantUML sources to SVG with
+  Graphviz or PlantUML and records a checksum of the source in the SVG; the check
+  compares it. Existing SVGs without a checksum are reported until rendered once with
+  `diagram`. Graphviz and PlantUML are needed only for this command.
+- **`spine-adopt` learnt from its second run:** file extensions change in the move
+  commit, so Git keeps the history; links resolve from the old location; relations the
+  standard does not allow are listed in the plan; unchecked content of agent files goes
+  to `docs/legacy/`.
+- **`spine-adopt` learnt from its third run (3dPacMan):** a project may live in a
+  subfolder of a repository; a `.gitignore` higher up that hides the installation is
+  named; requirements written as prose get an EARS statement as a suggestion while the
+  original text stays; an obligation without equivalent (`KANN`, `MAY`) becomes `SHOULD`
+  with a note; a story with several epics keeps the first; features built after the
+  documentation last changed become contradictions; links into build output become
+  plain paths.
+- **`spine-gate` without tests:** for a project without automated tests the check runs
+  as a step of its own without test results, and requirements are proven by hand.
+
+## 0.16
+
+- **New skill `spine-adopt`** brings an existing project with code and documentation under
+  docspine: it takes stock, proposes a target for every part in one plan, and moves the
+  documentation on a branch, file moves before content changes so the history is kept.
+- **`spine-gate` replaces an existing traceability gate** instead of running beside it, and
+  moves requirement references from tags or comments into the test's display name.
 
 ## 0.15
 

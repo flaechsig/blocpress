@@ -11,7 +11,7 @@ contract they fulfil is neutral and lives in `STANDARD.md` section 11 (in a proj
 ## Adding an integration
 
 Copy `maven-junit5.md` and keep its structure, so that people and the skill
-`spine-gate` can rely on it:
+`docspine-gate` can rely on it:
 
 - **Front matter:** `name`, `title`, `detect` (a file that identifies the tool chain),
   `keywords` (words that name the tool chain in a project's constraints, for a project

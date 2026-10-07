@@ -1,4 +1,4 @@
-<!-- docspine 0.15 · source: standard/en/README.md · do not edit in projects -->
+<!-- docspine 0.20 · source: standard/en/README.md · do not edit in projects -->
 
 # Documentation according to docspine
 
@@ -68,7 +68,7 @@ flowchart LR
 
 ## Way of working
 
-Work runs as a cycle. Each step has a skill (`spine-*`) that guides through it. The
+Work runs as a cycle. Each step has a skill (`docspine-*`) that guides through it. The
 skills follow the open Agent Skills standard and work with various AI tools. Without
 skills it works just the same; the rules are in `.docspine/STANDARD.md`.
 
@@ -91,13 +91,13 @@ flowchart TD
 
 | Step | What happens | Skill |
 |---|---|---|
-| **Start** | A first description turns into vision, themes and constraints. Whatever is open stays as a question. | `spine-init` |
-| **Require** | A need becomes a story and a requirement: who, what, why, how to check. | `spine-require` |
-| **Check impact** | Must the architecture take something into account, change or decide something? | `spine-impact` |
-| **Decide** | A due decision is recorded with alternatives and rationale. | `spine-decide` |
+| **Start** | A first description turns into vision, themes and constraints. Whatever is open stays as a question. | `docspine-init` |
+| **Require** | A need becomes a story and a requirement: who, what, why, how to check. | `docspine-require` |
+| **Check impact** | Must the architecture take something into account, change or decide something? | `docspine-impact` |
+| **Decide** | A due decision is recorded with alternatives and rationale. | `docspine-decide` |
 | **Release** | A described requirement is released for building (`proposed` → `planned`). This is a person's decision, for single requirements or in batches. | — |
-| **Build** | Code and test are written for released requirements; the test carries the requirement ID. Once it passes, the status changes. | `spine-build` |
-| **Prove** | Does the test really check what the requirement demands, or does it only carry the ID? | `spine-prove` |
+| **Build** | Code and test are written for released requirements; the test carries the requirement ID. Once it passes, the status changes. | `docspine-build` |
+| **Prove** | Does the test really check what the requirement demands, or does it only carry the ID? | `docspine-prove` |
 
 Specifying and building are separate: the specification steps never write code, and
 building starts only with a release. You can work through the whole specification first

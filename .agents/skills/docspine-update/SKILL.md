@@ -1,15 +1,15 @@
 ---
-name: spine-update
+name: docspine-update
 description: >-
   Finish an update of docspine in a project: translate the README again where its English
   source changed, remove files docspine no longer delivers, and run the checker. Use after
-  running the docspine installation command again, or when the user calls /spine-update.
+  running the docspine installation command again, or when the user calls /docspine-update.
 ---
 
-# spine-update
+# docspine-update
 
 The installation command has just written a new version of docspine into `.docspine/`,
-`.agents/skills/spine-*` and `.claude/skills`. You finish the update. Everything the
+`.agents/skills/docspine-*` and `.claude/skills`. You finish the update. Everything the
 project wrote itself stays untouched, except where a step below says otherwise and the
 person approves.
 
@@ -42,11 +42,15 @@ it after approval. Never write to the main branch.
 2. The README version: first line of `docs/README.md` (`<!-- docspine Y · … -->`).
 3. Files from older versions, found by comparing the repository with
    `.docspine/MANIFEST`:
-   - folders `.agents/skills/spine-*` that are not listed in the manifest
+   - folders `.agents/skills/docspine-*` that are not listed in the manifest
+   - folders `.agents/skills/spine-*` (up to version 0.19 the skills had the prefix
+     `spine-`, STANDARD 2.2)
    - `docs/STANDARD.md` (before version 0.1 of the layout, the standard lived there)
    - `docs/PROFILE.md` (likewise for the profile)
    - `docs/STATUS.md` (before version 0.3; its content is now in `docs/01-goals/README.md`)
 4. A field `docspine:` in the front matter of `.docspine/PROFILE.md` (no longer used).
+5. Diagram sources (DOT, PlantUML) under `docs/` whose SVG carries no checksum yet
+   (error 12 since version 0.17), and whether Graphviz or PlantUML is installed.
 
 ## Step 2 — Propose
 
@@ -60,6 +64,10 @@ are newer than the README's version. Then list what you would do:
 - **Leftover files:** delete the files and skill folders found in step 1.3, except the
   profile.
 - **Profile field:** remove `docspine:` from `.docspine/PROFILE.md` if present.
+- **Diagram images:** render the images found in step 1.5 once with
+  `python3 .docspine/docspine.pyz diagram`, so that they carry the checksum of their
+  source (STANDARD 9). If the tool is missing, name it; the check reports the images
+  until they are rendered.
 
 If there is nothing to do, say "Nothing to do" and continue with step 4.
 
