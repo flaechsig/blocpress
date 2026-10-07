@@ -13,14 +13,14 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Status;
 import jakarta.transaction.Synchronization;
 import jakarta.transaction.TransactionSynchronizationRegistry;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.client.RestClient;
+import co.elastic.clients.transport.rest5_client.low_level.Request;
+import co.elastic.clients.transport.rest5_client.low_level.Response;
+import co.elastic.clients.transport.rest5_client.low_level.ResponseException;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import org.jboss.logging.Logger;
 
 import io.quarkus.panache.common.Sort;
@@ -50,7 +50,7 @@ public class ElasticsearchIndexService {
     private static final Logger LOG = Logger.getLogger(ElasticsearchIndexService.class);
 
     @Inject
-    RestClient restClient;
+    Rest5Client restClient;
 
     @Inject
     ObjectMapper objectMapper;
@@ -82,7 +82,7 @@ public class ElasticsearchIndexService {
             if (indexKnown) return;
             try {
                 Response response = restClient.performRequest(new Request("HEAD", "/" + indexName));
-                if (response.getStatusLine().getStatusCode() == 404) {
+                if (response.getStatusCode() == 404) {
                     createIndex();
                     rebuildNeeded = true;
                 }
@@ -292,7 +292,7 @@ public class ElasticsearchIndexService {
             restClient.performRequest(new Request("DELETE", "/" + indexName + "/_doc/" + templateId));
             LOG.debugf("Deleted template '%s' from index", templateId);
         } catch (ResponseException e) {
-            if (e.getResponse().getStatusLine().getStatusCode() != 404) {  // 404: war nie indiziert
+            if (e.getResponse().getStatusCode() != 404) {  // 404: war nie indiziert
                 LOG.warnf("Failed to delete template '%s' from Elasticsearch, index will be rebuilt: %s",
                         templateId, e.getMessage());
                 rebuildNeeded = true;

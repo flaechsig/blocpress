@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Quarkus 3.40.1 LTS** statt 3.27.2 (Support von 3.27 endete am 2026-09-24) in render, workbench und studio. Damit sind die von Trivy gemeldeten Lücken in Netty, Vert.x, `quarkus-vertx-http`, pgjdbc und Jackson behoben (u. a. Request Smuggling, Denial of Service, Umgehung pfadbasierter Berechtigungen). In `blocpress-core` bcprov 1.86 (transitiv über odfdom), commons-lang3 3.20.0 und Jackson 2.21.7.
+
+### Changed
+
+- **Suche der Workbench:** Low-Level-Client `Rest5Client` aus elasticsearch-java 9, wie ihn Quarkus 3.40 mitbringt; der Server bleibt Elasticsearch 8.x.
+
 ## [2.7.1] - 2026-10-06
 
 ### Changed
