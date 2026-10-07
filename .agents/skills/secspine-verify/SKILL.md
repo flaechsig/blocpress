@@ -43,3 +43,6 @@ die `candidate`-Einträge zeigen, einen vorschlagen.
   einen eigenen Kandidaten (`secspine.py new`), wird aber separat verifiziert.
 - Führt der Fund zu einer Code-Änderung im getesteten Projekt, verweise mit `story:` darauf
   (z. B. eine docspine-US), statt den Fix hier zu beschreiben.
+- Im **Standardlauf** (`secspine-run`) werden Kandidaten automatisch verifiziert, soweit das
+  **schadensfrei aus der Analyse** geht; ein aktiver/eingreifender Nachweis wird nicht blind
+  ausgeführt, sondern als „braucht manuelle Prüfung" markiert und gemeldet.

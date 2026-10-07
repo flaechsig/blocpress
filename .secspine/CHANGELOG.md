@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.7
+
+`secspine-run` arbeitet auf einem eigenen `security/<datum>`-Branch und schließt ihn am Ende
+sichtbarkeits-bewusst: privat/ohne Remote per --no-ff mergen, bei öffentlichem Hauptzweig mit
+offenen Funden auf dem Branch belassen (kein Offenlegen). Nie pushen ohne Zustimmung (US-0014).
+
+
+## 0.6
+
+Neuer Skill `secspine-run`: Standardlauf Scan → Verifikation → Bericht ohne Rückfrage, Halt
+erst vor der Dokumentations-Frage. Kandidaten werden schadensfrei aus der Analyse verifiziert;
+aktive Nachweise werden markiert statt blind ausgeführt und am Ende gemeldet (US-0014). Der
+docspine-Modus gleicht Funde mit schon dokumentierten Risiken ab, statt sie doppelt zu führen.
+
+
+## 0.5
+
+`secspine.py version` zeigt die installierte Version und prüft über den dist-Zweig auf
+Updates (nur Python-stdlib, offline-sicher). Erster Teil von US-0007.
+
+
+## 0.4
+
+docspine-Modus (US-0012): `secspine-report` destilliert bestätigte Funde nach Freigabe in
+arc42 Kapitel 11 (eigener Abschnitt, Präfix `SEC-`, Status-Spalte), legt Aufträge als Stories
+im Epic `E-SECURITY` an und verlinkt beidseitig; behobene Einträge bleiben erhalten.
+Installer schützt `logs/` und `certs/` per mitgeliefertem `.gitignore` (auch beim curl-Install).
+
+
 ## 0.3.1
 
 Fix: `render` legt den Ordner `security-review/` an, falls er fehlt (vorher Absturz,

@@ -8,6 +8,7 @@ Befehle:
   render           security-review/report.md neu aus den Befunden bauen
   list             Überblick: ID, Schwere, Status, Titel
   new <ID> "Titel" Befund aus der Vorlage anlegen
+  version          installierte Version zeigen und auf Updates prüfen
 """
 from __future__ import annotations
 
@@ -20,6 +21,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FINDINGS_DIR = os.path.join(ROOT, "security-review")
 TEMPLATE = os.path.join(ROOT, ".secspine", "finding-template.md")
 REPORT = os.path.join(ROOT, "security-review", "report.md")
+STANDARD = os.path.join(ROOT, ".secspine", "STANDARD.md")
+REMOTE_VERSION_URL = ("https://raw.githubusercontent.com/flaechsig/secspine/"
+                      "dist/.secspine/STANDARD.md")
+VERSION_RE = re.compile(r"<!--\s*secspine\s+(\S+)")
 
 STATUSES = ["candidate", "confirmed", "dismissed", "fixed", "verified"]
 SEVERITIES = ["info", "low", "medium", "high", "critical"]
@@ -248,6 +253,47 @@ def cmd_new(fid, title):
     return 0
 
 
+def _installed_version():
+    try:
+        with open(STANDARD, encoding="utf-8") as fh:
+            m = VERSION_RE.match(fh.readline())
+            return m.group(1) if m else None
+    except OSError:
+        return None
+
+
+def _as_tuple(ver):
+    return tuple(int(p) if p.isdigit() else 0 for p in (ver or "").split("."))
+
+
+def _remote_version(timeout=5):
+    import urllib.request
+    with urllib.request.urlopen(REMOTE_VERSION_URL, timeout=timeout) as resp:
+        first = resp.read(200).decode("utf-8", "replace").splitlines()[0]
+    m = VERSION_RE.match(first)
+    return m.group(1) if m else None
+
+
+def cmd_version():
+    installed = _installed_version()
+    print(f"secspine {installed or '(unbekannt)'} installiert.")
+    try:
+        remote = _remote_version()
+    except Exception:
+        print("Update-Prüfung nicht möglich (offline oder nicht erreichbar).")
+        return 0
+    if not remote:
+        print("Update-Prüfung: Version am dist-Zweig nicht lesbar.")
+        return 0
+    if _as_tuple(remote) > _as_tuple(installed):
+        print(f"Neuere Version verfügbar: {remote}. Aktualisieren mit der curl-Zeile aus dem README.")
+    elif _as_tuple(remote) < _as_tuple(installed):
+        print(f"Installierte Version ist neuer als der dist-Zweig ({remote}).")
+    else:
+        print("Aktuell.")
+    return 0
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -264,6 +310,8 @@ def main(argv):
             print('Aufruf: new <ID> "<Titel>"')
             return 1
         return cmd_new(rest[0], " ".join(rest[1:]))
+    if cmd == "version":
+        return cmd_version()
     print(f"Unbekannter Befehl: {cmd}\n")
     print(__doc__)
     return 1
