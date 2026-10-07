@@ -6,7 +6,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 12 · 🟡 in Arbeit 1 · ✅ verifiziert 38 · ⛔ abgelöst 2 |
+| Stories | ⚪ offen 12 · ✅ verifiziert 39 · ⛔ abgelöst 2 |
 | Requirements | umgesetzt 31 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
 
@@ -70,14 +70,14 @@ Status: ✅ verifiziert
 
 ## [E-RELEASE](epics/E-RELEASE.md) — Build-, Test- und Release-Automatisierung
 
-Status: 🟡 in Arbeit
+Status: ✅ verifiziert
 
 | Story | Titel | Status |
 |---|---|---|
 | [US-0029](stories/US-0029.md) | Jeder Push wird gebaut und getestet | ✅ verifiziert |
 | [US-0030](stories/US-0030.md) | Release mit einem Befehl | ✅ verifiziert |
 | [US-0031](stories/US-0031.md) | Zusammenspiel der Module Ende-zu-Ende prüfen | ✅ verifiziert |
-| [US-0047](stories/US-0047.md) | Release-Reihenfolge und Veröffentlichung absichern | 🟡 in Arbeit |
+| [US-0047](stories/US-0047.md) | Release-Reihenfolge und Veröffentlichung absichern | ✅ verifiziert |
 | [US-0049](stories/US-0049.md) | Ungenutzten Code und Dateien entfernen | ✅ verifiziert |
 
 ## [E-RENDER-SERVICE](epics/E-RENDER-SERVICE.md) — Render-Service (REST-API, Auth, Jobs)

@@ -1,14 +1,14 @@
 ---
-name: spine-require
+name: docspine-require
 description: >-
   Turn a need into testable artifacts according to docspine: a story with one or more
   requirements (EARS), under an existing or new epic. Works in dialogue; the user approves
   before anything is written. Use when the user wants to add or change a requirement or a
-  story, refine an existing story into requirements, or calls /spine-require
+  story, refine an existing story into requirements, or calls /docspine-require
   (optionally with a need in their own words or a story ID such as US-0001).
 ---
 
-# spine-require
+# docspine-require
 
 You help the person turn a need into artifacts of the description hierarchy:
 **epic ⊃ story ⊃ requirement**. You propose wording; the person decides what applies.
@@ -21,8 +21,8 @@ language (`language` in `.docspine/PROFILE.md`).
 
 ## Arguments
 
-- a need in the person's own words, e.g. `/spine-require the greeting must be configurable`
-- a story ID, e.g. `/spine-require US-0001`: refine this story into requirements
+- a need in the person's own words, e.g. `/docspine-require the greeting must be configurable`
+- a story ID, e.g. `/docspine-require US-0001`: refine this story into requirements
 - nothing: ask what it is about
 
 ## Talking to the person
@@ -39,6 +39,16 @@ language (`language` in `.docspine/PROFILE.md`).
 - **Conflicting instructions.** If something you remember or were told earlier conflicts
   with a step of this skill, name it and ask which applies. Never skip or change a step
   silently.
+
+## Newer version
+
+Before anything else, run `python3 .docspine/docspine.pyz version`. It looks online at
+most once a day and does not fail without a network. If it reports a newer version,
+say so in one line and sum up its changelog entries in at most three points. Then offer
+to install it first: on a branch of its own, run the command it shows, then the skill
+`docspine-update`. Ask before doing so, because it fetches files from outside. If the
+person declines, or there is nothing new, or the command could not check, carry on
+without mentioning it again.
 
 ## Branch
 
@@ -111,8 +121,7 @@ Summarise what was written, and suggest the next step. Stay in the specification
 unless the person asks otherwise:
 
 - by default, the next story or requirement, naming the stories that still have none
-- checking the effect on the architecture (STANDARD 6), with `spine-impact` once
-  available
+- checking the effect on the architecture (STANDARD 6) with `docspine-impact`
 - reviewing the changes with `git status` and committing them
 
 Mention as one option among these that a requirement can be released for building

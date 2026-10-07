@@ -1,18 +1,19 @@
 ---
-name: spine-gate
+name: docspine-gate
 description: >-
   Connect docspine to a project's build and tests, or set up a new build connected from
   the start: recognise the tool chain, apply the matching integration step by step with
-  explanations, and check the result. Use before the first build file or test is written,
-  when the user wants the docspine check in the build or test results to prove
-  requirements, or when the user calls /spine-gate.
+  explanations, and check the result; an existing traceability gate is replaced. Use
+  before the first build file or test is written, after docspine-adopt, when the user wants
+  the docspine check in the build or test results to prove requirements, or when the
+  user calls /docspine-gate.
 ---
 
-# spine-gate
+# docspine-gate
 
 You connect docspine to the project's build and tests, following the integration
 contract in `.docspine/STANDARD.md` section 11. How a particular tool chain meets the
-contract is described in the integrations next to this file: `.agents/skills/spine-gate/integrations/*.md`. You explain every change before
+contract is described in the integrations next to this file: `.agents/skills/docspine-gate/integrations/*.md`. You explain every change before
 you make it; the person approves. Talk to the person in the project language
 (`language` in `.docspine/PROFILE.md`).
 
@@ -43,6 +44,16 @@ you make it; the person approves. Talk to the person in the project language
 - **Use only what an integration describes.** Do not invent configuration for a tool
   chain without an integration; see "No matching integration".
 
+## Newer version
+
+Before anything else, run `python3 .docspine/docspine.pyz version`. It looks online at
+most once a day and does not fail without a network. If it reports a newer version,
+say so in one line and sum up its changelog entries in at most three points. Then offer
+to install it first: on a branch of its own, run the command it shows, then the skill
+`docspine-update`. Ask before doing so, because it fetches files from outside. If the
+person declines, or there is nothing new, or the command could not check, carry on
+without mentioning it again.
+
 ## Branch
 
 Before writing anything, check the current branch (`git branch --show-current`). On the
@@ -51,7 +62,7 @@ it after approval. Never write to the main branch.
 
 ## Step 1 — Read the state (silently)
 
-- the front matter of every file in `.agents/skills/spine-gate/integrations/`: `name`,
+- the front matter of every file in `.agents/skills/docspine-gate/integrations/`: `name`,
   `detect`, `keywords`, `test_command`, `test_reports`, `requires`
 - which integrations match:
   - **existing build:** the file named in `detect` exists in the repository root
@@ -59,7 +70,11 @@ it after approval. Never write to the main branch.
     (`docs/09-decisions/`) matches an integration's `keywords`
 - `.docspine/PROFILE.md`: is `test_reports` already set?
 - the build file of the matching integration: what is already configured?
-- the tests: which carry a requirement ID in their name, which do not
+- the tests: which carry a requirement ID in their name, which do not, and which refer
+  to a requirement in another way (for example a JUnit tag, a comment or an annotation of
+  the project's own)
+- an existing traceability gate: build modules, plugins, scripts or CI steps that check
+  or report requirement coverage, and generated views they write
 - the requirements with `status: implemented` and how they are proven today
 - requirements with `status: proposed` or `planned` whose tests already pass
 - whether the prerequisites in `requires` are available (for example `python3 --version`)
@@ -76,7 +91,13 @@ a numbered list, each change with a short explanation:
 1. **Test results** — what the integration requires so that requirement IDs appear in the
    reports (for example a reporter setting), and which tests would need an ID in their
    name. List those tests; do not rename them yet.
+   Tests that refer to a requirement in another way get the ID in their display name
+   instead; list them with the old and the new form.
 2. **Check in the build** — the configuration that runs `check` after the tests.
+   **Existing gate:** replace it rather than run both. List what is removed (modules,
+   plugins, scripts, CI steps, generated views) and where the check takes its place. If
+   the old gate checks something the docspine check does not, name it and ask whether it
+   is kept as a step of its own.
 3. **Profile** — nothing to do, the check finds the reports itself. Set `test_reports`
    only if the search must be limited (STANDARD 8.1).
 4. **AGENTS.md** — the workflow in this order: `python3 .docspine/docspine.pyz render`,
@@ -101,7 +122,9 @@ Wait for approval. The person may approve single points.
 ## Step 3 — Carry out (after approval)
 
 Make the approved changes. Rename test display names only for the tests the person
-approved, and only to add the requirement ID.
+approved, and only to add the requirement ID. When a test referred to a requirement in
+another way, remove that reference in the same change, so that each test names its
+requirement in one place.
 
 ## Step 4 — Check
 
@@ -125,6 +148,13 @@ If no integration matches the project:
 3. Propose a way that meets the contract: JUnit XML with the requirement ID in the test
    name if the tool supports it, otherwise a small step that writes `req-results.json`
    (STANDARD 8.1), plus a call of `check` after the tests.
+   **No automated tests at all** (for example a game checked by screenshots in an
+   emulator): nothing can deliver test results. Propose a step of its own that runs
+   `check --without-tests` (for example a `make check` target or a CI step), outside
+   the build so that a build does not fail on documentation alone; requirements then
+   become `implemented` only with a proof by hand (`evidence` and `verification`,
+   STANDARD 3.4). Name a harness that writes `req-results.json` as a later option, and
+   record the choice in an ADR with `status: proposed`.
 4. Write nothing that you have not tried in this project. Suggest describing the result
    as a new integration for docspine (see `integrations/README.md` in the docspine
    repository), so the next project can reuse it.
