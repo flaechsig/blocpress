@@ -12,7 +12,7 @@
 | R-6 | **Viele Reviews gleichzeitig fällig.** Fällige Vorlagen erscheinen nur in einer Liste (Vorlauf 60 Tage, [REQ-0021](01-goals/requirements/REQ-0021.md)); niemand wird aktiv benachrichtigt, und mit Ablauf rendert render die Vorlage nicht mehr ([REQ-0022](01-goals/requirements/REQ-0022.md)). | Abgelaufene Vorlagen fallen in Produktion aus | Liste der fälligen Reviews; aktive Meldung ist offen ([US-0040](01-goals/stories/US-0040.md)) | [US-0019](01-goals/stories/US-0019.md) |
 | R-7 | **Bausteine zur Renderzeit über die Workbench.** Zeigt ein verknüpfter Abschnitt auf `/api/webdav/released/`, lädt render ihn beim Rendern von der Workbench. | Ist die Workbench nicht erreichbar, scheitert das Rendern in Produktion | keine | [ADR-0011](09-decisions/ADR-0011.md) |
 | R-8 | **Gleichzeitiges Bearbeiten per WebDAV.** Ohne LOCK gewinnt der letzte PUT. | Änderungen eines Gestalters gehen verloren | hingenommen, ein Bearbeiter je Entwurf | [ADR-0011](09-decisions/ADR-0011.md) |
-| R-9 | **Workbench ohne serverseitige Authentifizierung.** Die Workbench prüft kein Token; Freigabe, Ablehnung und Statuswechsel sind für jeden möglich, der sie erreicht. Die Übergabe an render (`/api/render/templates/import`) ist ebenfalls ohne Authentifizierung. | Unbefugte Freigabe oder Änderung produktiver Vorlagen | Betrieb im geschützten Netz; Rollenprüfung ist offen ([US-0021](01-goals/stories/US-0021.md)) | [ADR-0003](09-decisions/ADR-0003.md) |
+| R-9 | **Workbench ohne serverseitige Authentifizierung.** Die Workbench prüft kein Token; Freigabe, Ablehnung und Statuswechsel sind für jeden möglich, der sie erreicht. Die Übergabe an render (`/api/render/templates/import`, auch `DELETE`) ist ebenfalls ohne Authentifizierung; sie liegt auf dem öffentlichen Port von render und bleibt auch mit `BLOCPRESS_AUTH_ENABLED=true` offen (Security-Test 2026-10-07, F-01). | Unbefugte Freigabe oder Änderung produktiver Vorlagen; wer render erreicht, kann Vorlagen in Produktion am Freigabeprozess vorbei ersetzen oder löschen | Betrieb im geschützten Netz, das CORS aber unterläuft (SEC-1); Rollenprüfung ist offen ([US-0021](01-goals/stories/US-0021.md)), Import absichern ist offen ([US-0054](01-goals/stories/US-0054.md)) | [ADR-0003](09-decisions/ADR-0003.md) |
 | R-10 | **Webhooks ohne Wiederholung.** render schickt die Benachrichtigung zu einem Job einmal und wartet nicht auf die Antwort. | Aufrufer verpassen das Ende eines Jobs | Status lässt sich per `GET /api/render/jobs/{id}` abfragen | [ADR-0012](09-decisions/ADR-0012.md), [Kontext](03-context.md) |
 
 _(confidence: verified — blocpress-core/…/LibreOfficeProcessor.java (`soffice` aus dem
@@ -29,6 +29,27 @@ Oberfläche und einen Refresh-Knopf als Maßnahme; beides ist nicht belegt und h
 übernommen. R-6 nannte eine Frühwarnung 30 Tage im Voraus, Priorisierung und Eskalation;
 gebaut ist nur die Liste mit 60 Tagen Vorlauf. Entfallen ist R-7 des Altbestands
 (Änderungen der UNO-API): blocpress ruft `soffice` über die Kommandozeile auf, nicht über UNO.
+
+## Security-Test-Befunde
+
+Bestätigte Befunde aus Security-Tests (secspine). Der Import ohne Authentifizierung ist
+unter R-9 geführt.
+
+| ID | Risiko | Schwere | Status | Story |
+|---|---|---|---|---|
+| SEC-1 | **CORS von jeder Origin.** Workbench und render setzen `quarkus.http.cors.origins=*`; weil die Workbench kein Token prüft, kann jede Webseite über den Browser eines Mitarbeiters Vorlagen lesen, ändern und freigeben. | mittel | offen | [US-0055](01-goals/stories/US-0055.md) |
+| SEC-2 | **Abhängigkeiten mit bekannten Lücken.** Quarkus 3.27.2 zieht Netty, Vert.x, pgjdbc und jackson-core mit bekannten Lücken nach (vor allem Denial of Service, Request Smuggling). Zwei Lücken in `quarkus-vertx-http` (CVE-2026-39852, CVE-2026-50559) erlauben möglicherweise, die pfadbasierte JWT-Prüfung von render zu umgehen; das ist noch nicht an einer laufenden Instanz nachgewiesen. | mittel | offen | [US-0056](01-goals/stories/US-0056.md) |
+| SEC-3 | **Öffentlicher JWT-Schlüssel im Quickstart.** Das Quickstart-Image prüft Tokens mit dem Dev-Schlüssel, dessen privater Teil im Repo liegt; mit eingeschaltetem JWT ohne eigenen Schlüssel kann jeder gültige Tokens erzeugen. | mittel | offen | [US-0057](01-goals/stories/US-0057.md) |
+| SEC-4 | **Container als root.** Kein Dockerfile setzt `USER`, die Kubernetes-Manifeste setzen keinen `securityContext`; eine Lücke in einem Dienst führt zu root-Rechten im Container. | niedrig | offen | [US-0058](01-goals/stories/US-0058.md) |
+| SEC-5 | **Actions über veränderliche Tags.** Der Release-Workflow bindet Actions von Drittanbietern über Major-Tags ein und gibt ihnen GPG-Schlüssel und Registry-Zugänge. | niedrig | offen | [US-0059](01-goals/stories/US-0059.md) |
+
+_(confidence: verified — Security-Test 2026-10-07 (secspine: Semgrep, Trivy, gitleaks, Analyse
+von Code und Konfiguration; keine laufende Instanz getestet))_
+
+Geprüft, kein Risiko: Die `ProcessBuilder`-Aufrufe für `soffice` und ImageMagick bekommen
+keine Nutzereingaben; der XML-Parser des PDF-Vergleichs liest nur die Ausgabe von
+`pdftohtml`; die Jackson-Lücken zur Codeausführung setzen Default-Typing voraus, das blocpress
+nicht einschaltet.
 
 ## Technische Schulden
 

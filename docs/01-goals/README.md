@@ -1,4 +1,3 @@
-# Ziele und Anforderungen
 
 Kapitel 1 des Dokuments: warum es blocpress gibt ([Vision](vision.md)) und was es leisten
 soll, heruntergebrochen in Epics, Stories und Requirements.
@@ -6,7 +5,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 12 · ✅ verifiziert 39 · ⛔ abgelöst 2 |
+| Stories | ⚪ offen 18 · ✅ verifiziert 39 · ⛔ abgelöst 2 |
 | Requirements | umgesetzt 31 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
 
@@ -106,6 +105,19 @@ Status: 🟡 in Arbeit
 | [US-0033](stories/US-0033.md) | Zahlen und Daten im Sprachformat der Vorlage | ✅ verifiziert |
 | [US-0035](stories/US-0035.md) | Platzhalter in Kopf- und Fußzeilen | ✅ verifiziert |
 | [US-0036](stories/US-0036.md) | Word-Vorlagen (DOCX) als Quelle | ⚪ offen |
+
+## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
+
+Status: ⚪ offen
+
+| Story | Titel | Status |
+|---|---|---|
+| [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ⚪ offen |
+| [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ⚪ offen |
+| [US-0056](stories/US-0056.md) | Quarkus-Plattform auf einen Stand ohne bekannte Lücken heben | ⚪ offen |
+| [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ⚪ offen |
+| [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ⚪ offen |
+| [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ⚪ offen |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
