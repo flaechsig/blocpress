@@ -37,11 +37,11 @@ unter R-9 geführt.
 
 | ID | Risiko | Schwere | Status | Story |
 |---|---|---|---|---|
-| SEC-1 | **CORS von jeder Origin.** Workbench und render setzen `quarkus.http.cors.origins=*`; weil die Workbench kein Token prüft, kann jede Webseite über den Browser eines Mitarbeiters Vorlagen lesen, ändern und freigeben. | mittel | offen | [US-0055](01-goals/stories/US-0055.md) |
-| SEC-2 | **Abhängigkeiten mit bekannten Lücken.** Quarkus 3.27.2 zieht Netty, Vert.x, pgjdbc und jackson-core mit bekannten Lücken nach (vor allem Denial of Service, Request Smuggling). Zwei Lücken in `quarkus-vertx-http` (CVE-2026-39852, CVE-2026-50559) erlauben möglicherweise, die pfadbasierte JWT-Prüfung von render zu umgehen; das ist noch nicht an einer laufenden Instanz nachgewiesen. | mittel | offen | [US-0056](01-goals/stories/US-0056.md) |
+| SEC-1 | **CORS von jeder Origin.** Workbench und render setzen `quarkus.http.cors.origins=*`; weil die Workbench kein Token prüft, kann jede Webseite über den Browser eines Mitarbeiters Vorlagen lesen, ändern und freigeben. | mittel | behoben | [US-0055](01-goals/stories/US-0055.md) |
+| SEC-2 | **Abhängigkeiten mit bekannten Lücken.** Quarkus 3.27.2 zieht Netty, Vert.x, pgjdbc und jackson-core mit bekannten Lücken nach (vor allem Denial of Service, Request Smuggling). Zwei Lücken in `quarkus-vertx-http` (CVE-2026-39852, CVE-2026-50559) erlauben möglicherweise, die pfadbasierte JWT-Prüfung von render zu umgehen; das ist nicht an einer laufenden Instanz nachgewiesen worden. Behoben am 2026-10-07 mit Quarkus 3.40.1 LTS; Trivy meldet danach keine Lücken mehr. | mittel | behoben | [US-0056](01-goals/stories/US-0056.md) |
 | SEC-3 | **Öffentlicher JWT-Schlüssel im Quickstart.** Das Quickstart-Image prüft Tokens mit dem Dev-Schlüssel, dessen privater Teil im Repo liegt; mit eingeschaltetem JWT ohne eigenen Schlüssel kann jeder gültige Tokens erzeugen. | mittel | offen | [US-0057](01-goals/stories/US-0057.md) |
 | SEC-4 | **Container als root.** Kein Dockerfile setzt `USER`, die Kubernetes-Manifeste setzen keinen `securityContext`; eine Lücke in einem Dienst führt zu root-Rechten im Container. | niedrig | offen | [US-0058](01-goals/stories/US-0058.md) |
-| SEC-5 | **Actions über veränderliche Tags.** Der Release-Workflow bindet Actions von Drittanbietern über Major-Tags ein und gibt ihnen GPG-Schlüssel und Registry-Zugänge. | niedrig | offen | [US-0059](01-goals/stories/US-0059.md) |
+| SEC-5 | **Actions über veränderliche Tags.** Der Release-Workflow bindet Actions von Drittanbietern über Major-Tags ein und gibt ihnen GPG-Schlüssel und Registry-Zugänge. Seit 2026-10-07 auf Commit-SHAs gepinnt; ob sie veralten, prüft der Security-Scan. | niedrig | behoben | [US-0059](01-goals/stories/US-0059.md) |
 
 _(confidence: verified — Security-Test 2026-10-07 (secspine: Semgrep, Trivy, gitleaks, Analyse
 von Code und Konfiguration; keine laufende Instanz getestet))_

@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 18 · ✅ verifiziert 39 · ⛔ abgelöst 2 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 41 · ⛔ abgelöst 2 |
 | Requirements | umgesetzt 31 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 14 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 3 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -108,16 +108,16 @@ Status: 🟡 in Arbeit
 
 ## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
 
-Status: ⚪ offen
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
 | [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ⚪ offen |
-| [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ⚪ offen |
+| [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ✅ verifiziert |
 | [US-0056](stories/US-0056.md) | Quarkus-Plattform auf einen Stand ohne bekannte Lücken heben | ⚪ offen |
 | [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ⚪ offen |
 | [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ⚪ offen |
-| [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ⚪ offen |
+| [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
@@ -158,10 +158,16 @@ Status: 🟡 in Arbeit
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
+- [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Wie werden eingebundene Abschnitte im Engine-Modus behandelt — ganz abschalten, nur Inhalte der hochgeladenen Vorlage, oder eine konfigurierte Quelle?
+- [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar.
+- [09-decisions/ADR-0017.md](../09-decisions/ADR-0017.md): UNKNOWN — offene Frage: Können tarifnova und weitere Clients vor 3.0 umgestellt werden, damit die Umstellung früher kommt?
+- [09-decisions/ADR-0017.md](../09-decisions/ADR-0017.md): UNKNOWN — offene Frage: Wird ein technisches Vier-Augen-Prinzip (Freigebender ≠ Autor) angestrebt? Dann muss die Workbench auch den Autor erfassen.
 
 ## Offene Entscheidungen
 
 - [ADR-0013](../09-decisions/ADR-0013.md) — REST-API von render API-first aus openapi.yml
+- [ADR-0016](../09-decisions/ADR-0016.md) — render in zwei Betriebsarten — Engine und voll
+- [ADR-0017](../09-decisions/ADR-0017.md) — Alle fachlichen Aufrufe sind authentifiziert
 
 ## Widersprüche
 
