@@ -110,6 +110,7 @@ Löschen des Containers.
 |---|---|---|
 | `BLOCPRESS_LO_WORKERS` | 1 | Obergrenze für gleichzeitige Konvertierungen und Auftragsschleifen in render; render teilt sich die CPU hier mit den anderen Diensten |
 | `BLOCPRESS_AUTH_ENABLED` | nicht gesetzt, also aus | JWT-Prüfung in render ([ADR-0002](09-decisions/ADR-0002.md)) |
+| `BLOCPRESS_CORS_ORIGINS` | nicht gesetzt, also nur same-origin | fremde Origins, die render und workbench aus dem Browser aufrufen dürfen, kommagetrennt; das Studio braucht keine, es leitet alles weiter |
 | `MP_JWT_VERIFY_PUBLICKEY` | eingebauter Entwicklungsschlüssel | wirkt nur in render und nur mit `BLOCPRESS_AUTH_ENABLED=true` |
 | `MP_JWT_VERIFY_ISSUER` | `https://blocpress.dev` | wie oben |
 | `JAVA_OPTS_STUDIO`, `JAVA_OPTS_WORKBENCH`, `JAVA_OPTS_RENDER` | leer | JVM-Optionen, nur im JVM-Image (`Dockerfile`) |

@@ -61,6 +61,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `QUARKUS_DATASOURCE_USERNAME` | Database username | `workbench` |
 | `QUARKUS_DATASOURCE_PASSWORD` | Database password | `workbench` |
 | `BLOCPRESS_AUTH_ENABLED` | Require a JWT Bearer token for all endpoints below `/api/render/` (rendering, jobs, dashboard). Requests without a valid token get HTTP 401. The internal template import and `/q/*` stay open. | `false` |
+| `BLOCPRESS_CORS_ORIGINS` | Browser origins allowed to call the API cross-origin, comma-separated (e.g. `https://portal.example`). Server-to-server clients do not need it. | not set (same-origin only) |
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required when `BLOCPRESS_AUTH_ENABLED=true` (or `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) — the service refuses to start without one. | — |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | — |
 | `RENDER_URL` | Internal URL of this service (used by blocpress-workbench) | `http://localhost:8080` |
