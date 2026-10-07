@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · ✅ verifiziert 41 · ⛔ abgelöst 2 |
-| Requirements | umgesetzt 31 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 3 · angenommen 14 |
+| Stories | ⚪ offen 20 · ✅ verifiziert 41 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 17 · umgesetzt 31 · abgelöst 1 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -57,15 +57,17 @@ Status: 🟡 in Arbeit
 | [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ⚪ offen |
 | [US-0050](stories/US-0050.md) | Freigabe nur mit bestandenen Regressionstests | ⚪ offen |
 | [US-0053](stories/US-0053.md) | Diff-PDF aus der Oberfläche abrufen | ⚪ offen |
+| [US-0063](stories/US-0063.md) | Freigabe berücksichtigt Bausteine | ⚪ offen |
 
 ## [E-PERSISTENZ](epics/E-PERSISTENZ.md) — Template-Speicherung (workbench / production)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
 | [US-0008](stories/US-0008.md) | Produktion nur aus freigegebenen Vorlagen | ✅ verifiziert |
 | [US-0052](stories/US-0052.md) | Dienste legen ihr Datenbankschema selbst an | ✅ verifiziert |
+| [US-0061](stories/US-0061.md) | Ein Name, eine Zeitachse | ⚪ offen |
 
 ## [E-RELEASE](epics/E-RELEASE.md) — Build-, Test- und Release-Automatisierung
 
@@ -118,6 +120,7 @@ Status: 🟡 in Arbeit
 | [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ⚪ offen |
 | [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ⚪ offen |
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
+| [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ⚪ offen |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
@@ -144,6 +147,7 @@ Status: 🟡 in Arbeit
 | [US-0015](stories/US-0015.md) | Vorlagen und Bausteine durchsuchen | ✅ verifiziert |
 | [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ✅ verifiziert |
 | [US-0048](stories/US-0048.md) | Workbench-Abläufe konsistent machen | ⚪ offen |
+| [US-0062](stories/US-0062.md) | Entwerfen mit Bausteinen | ⚪ offen |
 
 ## Offene Fragen
 
@@ -158,16 +162,17 @@ Status: 🟡 in Arbeit
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
-- [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Wie werden eingebundene Abschnitte im Engine-Modus behandelt — ganz abschalten, nur Inhalte der hochgeladenen Vorlage, oder eine konfigurierte Quelle?
 - [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar.
 - [09-decisions/ADR-0017.md](../09-decisions/ADR-0017.md): UNKNOWN — offene Frage: Können tarifnova und weitere Clients vor 3.0 umgestellt werden, damit die Umstellung früher kommt?
 - [09-decisions/ADR-0017.md](../09-decisions/ADR-0017.md): UNKNOWN — offene Frage: Wird ein technisches Vier-Augen-Prinzip (Freigebender ≠ Autor) angestrebt? Dann muss die Workbench auch den Autor erfassen.
+- [09-decisions/ADR-0018.md](../09-decisions/ADR-0018.md): UNKNOWN — offene Frage: Was geschieht mit Vorlagen in `production`, deren Verknüpfungen heute nicht auf `/bausteine/{name}.odt` passen (etwa direkte Links auf fremde Server) — bei der Migration abweisen oder erst beim Rendern?
 
 ## Offene Entscheidungen
 
 - [ADR-0013](../09-decisions/ADR-0013.md) — REST-API von render API-first aus openapi.yml
 - [ADR-0016](../09-decisions/ADR-0016.md) — render in zwei Betriebsarten — Engine und voll
 - [ADR-0017](../09-decisions/ADR-0017.md) — Alle fachlichen Aufrufe sind authentifiziert
+- [ADR-0018](../09-decisions/ADR-0018.md) — Bausteine werden zur Renderzeit aus der Produktion aufgelöst
 
 ## Widersprüche
 
