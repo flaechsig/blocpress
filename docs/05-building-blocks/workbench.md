@@ -165,12 +165,17 @@ Elasticsearch bestätigt nichts, worauf die Workbench wartet; Fehler werden nur 
 
 ## WebDAV
 
-`WebDavResource` bietet Vorlagen und Bausteine unter `/api/webdav/templates/` und
-`/api/webdav/bausteine/` an ([ADR-0011](../09-decisions/ADR-0011.md)): `GET` und `PUT` auf
-`{name}.odt`, `PROPFIND` auf Sammlung und Datei, `OPTIONS` mit `DAV: 1`. Unter
-`/api/webdav/released/…` liegt der freigegebene Stand nur zum Lesen; `PUT` dort ergibt 403.
+`WebDavResource` bietet Entwürfe von Vorlagen und Bausteinen unter
+`/api/webdav/design/templates/` und `/api/webdav/design/bausteine/` an
+([REQ-0044](../01-goals/requirements/REQ-0044.md), [ADR-0018](../09-decisions/ADR-0018.md)):
+`GET` und `PUT` auf `{name}.odt`, `PROPFIND` auf Sammlung und Datei, `OPTIONS` mit `DAV: 1`.
+Unter `/api/webdav/released/…` liegt der gültige freigegebene Stand nur zum Lesen; `PUT` dort
+ergibt 403. Der bisherige Entwurfspfad `/api/webdav/{templates|bausteine}/` aus
+[ADR-0011](../09-decisions/ADR-0011.md) bleibt bis Release 3.0 als Alias und verhält sich
+gleich. render nutzt aus einer Verknüpfung nur den Namen, ein Gestalter darf im Entwurf also
+auf `/design/` verknüpfen.
 
-- `GET` und `PUT` ohne `released` nehmen die höchste Version des Namens, gleich welchen
+- `GET` und `PUT` unter `design/` (und dem Alias) nehmen die höchste Version des Namens, gleich welchen
   Status (die Methode heißt `findLatestDraft`). Ist sie nicht `DRAFT`, lehnt `PUT` mit 403 ab,
   statt einen neuen Entwurf anzulegen.
 - Gibt es den Namen noch nicht, legt `PUT` Version 1 als `DRAFT` an; benutzt ihn der andere Typ,
@@ -206,6 +211,7 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0041](../01-goals/requirements/REQ-0041.md) IF the start or end of validity of a version is set to a time before the change, THEN the workbench shall reject the change.
 - [REQ-0042](../01-goals/requirements/REQ-0042.md) IF a draft of a name exists, THEN the workbench shall reject creating another draft of that name.
 - [REQ-0043](../01-goals/requirements/REQ-0043.md) WHEN the database is migrated to the rules of unique names, one valid version and one draft per name, the workbench shall report each name used by both types, each name with more than one draft and each overlap of validity, and shall leave these data unchanged.
+- [REQ-0044](../01-goals/requirements/REQ-0044.md) The workbench shall provide drafts via WebDAV under /api/webdav/design/{bausteine|templates}/{name}.odt and the valid approved version under /api/webdav/released/{bausteine|templates}/{name}.odt.
 - [REQ-0045](../01-goals/requirements/REQ-0045.md) WHEN the workbench renders a preview or a regression test, the workbench shall inline each linked building block as its draft if one exists, otherwise as its valid approved version, before sending the template to the render service.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0056](../01-goals/requirements/REQ-0056.md) WHEN the workbench transfers a template to production or removes it from production, the workbench shall forward the Authorization header of the triggering request to the render service unchanged.

@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -92,6 +93,48 @@ class BausteinWebDavIT {
         assertTrue(fields.has("offer"), "per WebDAV angelegter Entwurf wurde nicht validiert: " + fields);
         assertEquals(200, RestAssured.post(BASE + id + "/submit").statusCode(),
                 "per WebDAV angelegter Entwurf muss einreichbar sein");
+    }
+
+    @Test
+    @DisplayName("REQ-0044: designPathServesDraftAndReleasedPathServesApprovedVersion")
+    void designPathServesDraftAndReleasedPathServesApprovedVersion() throws Exception {
+        String name = "design-" + UUID.randomUUID();
+        byte[] v1 = Files.readAllBytes(CORE.resolve("special_agreement.odt"));
+        byte[] edited = Files.readAllBytes(CORE.resolve("header_footer.odt"));
+        String design = "/api/webdav/design/bausteine/" + name + ".odt";
+        String released = "/api/webdav/released/bausteine/" + name + ".odt";
+
+        String id = upload(name, "BAUSTEIN", v1);
+        assertArrayEquals(v1, RestAssured.get(design).asByteArray(), "Entwurf unter /design/");
+        assertEquals(404, RestAssured.get(released).statusCode(), "vor der Freigabe gibt es keinen freigegebenen Stand");
+        assertEquals(204, RestAssured.given().body(edited).put(design).statusCode());
+        assertArrayEquals(edited, RestAssured.get(design).asByteArray(), "PUT unter /design/ nicht gespeichert");
+
+        Response listing = RestAssured.request("PROPFIND", "/api/webdav/design/bausteine/");
+        assertEquals(207, listing.statusCode(), listing.asString());
+        assertTrue(listing.asString().contains("<D:href>" + design + "</D:href>"), listing.asString());
+
+        assertEquals(200, RestAssured.post(BASE + id + "/submit").statusCode());
+        assertEquals(200, RestAssured.given().contentType("application/json").body("{\"newStatus\":\"APPROVED\"}")
+                .put(BASE + id + "/status").statusCode());
+        upload(name, "BAUSTEIN", v1);   // neuer Entwurf v2 neben der freigegebenen v1
+
+        assertArrayEquals(edited, RestAssured.get(released).asByteArray(), "/released/ liefert den freigegebenen Stand");
+        assertArrayEquals(v1, RestAssured.get(design).asByteArray(), "/design/ liefert den neuen Entwurf");
+        assertEquals(403, RestAssured.given().body(edited).put(released).statusCode(), "/released/ ist nur lesbar");
+    }
+
+    @Test
+    @DisplayName("REQ-0044: putUnderDesignCreatesDraftWithDesignLocation")
+    void putUnderDesignCreatesDraftWithDesignLocation() throws Exception {
+        String name = "design-neu-" + UUID.randomUUID();
+        Response created = RestAssured.given().body(Files.readAllBytes(CORE.resolve("special_agreement.odt")))
+                .put("/api/webdav/design/templates/" + name + ".odt");
+        assertEquals(201, created.statusCode(), created.asString());
+        assertTrue(created.header("Location").endsWith("/api/webdav/design/templates/" + name + ".odt"),
+                created.header("Location"));
+        assertEquals(200, RestAssured.get("/api/webdav/templates/" + name + ".odt").statusCode(),
+                "der bisherige Pfad bleibt bis 3.0 als Alias");
     }
 
     private static String upload(String name, String type, byte[] content) throws Exception {

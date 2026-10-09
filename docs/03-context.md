@@ -75,7 +75,7 @@ flowchart TD
 | Webhook-Empfänger | render → | HTTP POST, JSON `{jobId, status}` | Benachrichtigung bei DONE oder FAILED, ohne Wiederholung |
 | Identity-Provider | → Aufrufer | JWT (Bearer) | Token; render prüft Signatur und Issuer nur, wenn `BLOCPRESS_AUTH_ENABLED` gesetzt ist ([ADR-0002](09-decisions/ADR-0002.md)) |
 | Browser | → studio | HTTP, Web Components | Oberfläche; das Token wird über ein Eingabefeld übernommen und an die Workbench weitergereicht |
-| LibreOffice Writer | → workbench | WebDAV unter `/api/webdav` | Entwürfe lesen und schreiben, freigegebene Stände unter `/api/webdav/released/` nur lesen ([US-0014](01-goals/stories/US-0014.md)) |
+| LibreOffice Writer | → workbench | WebDAV unter `/api/webdav` | Entwürfe unter `/api/webdav/design/` lesen und schreiben, freigegebene Stände unter `/api/webdav/released/` nur lesen ([US-0014](01-goals/stories/US-0014.md)) |
 | workbench | → render | HTTP/JSON, `POST /api/render/templates/import`, `DELETE /api/render/templates/import/{name}` | Übergabe bei Freigabe, Entfernen bei Zurückziehen ([US-0017](01-goals/stories/US-0017.md)); mit eingeschalteter Absicherung mit dem durchgereichten Token des Benutzers, Gruppe `reviewer` ([ADR-0019](09-decisions/ADR-0019.md)) |
 | PostgreSQL | workbench ↔ | JDBC, Datenbank `workbench` | Vorlagen, Textbausteine, Testdatensätze |
 | PostgreSQL | render ↔ | JDBC, Datenbank `production` | freigegebene Vorlagen, Render-Aufträge |
