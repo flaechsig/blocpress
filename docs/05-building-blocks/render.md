@@ -94,13 +94,17 @@ LibreOfficePool.java, application.properties)_
 
 ### Cache
 
-`TemplateCache` hält den Inhalt freigegebener Vorlagen im Quarkus-Cache `templates`
-(Caffeine, höchstens 100 Einträge, 10 Minuten nach dem Schreiben). Der Zugriff geht nach
-Name (`getTemplateContentByName`). Ein Import leert den ganzen Cache, das Entfernen nur den Eintrag des
-Namens, jeweils nur in der Instanz, die den Aufruf erhält. Was daraus für Ablaufdatum und
-mehrere Instanzen folgt, steht beim [Rendern per Name](../06-runtime/render-by-name.md).
+`TemplateCache` ermittelt bei jedem Rendern per Name (Vorlage oder Baustein) die `id` der
+gültigen Version aus der Datenbank (`ProductionTemplate.findValidId`, ohne Inhalt).
+`TemplateContentCache` hält nur den Inhalt je `id` im Quarkus-Cache `template-content`
+(Caffeine, höchstens 300 Einträge, eine Stunde nach dem letzten Zugriff); der Inhalt einer `id`
+ändert sich nicht, ein Import mit derselben `id` verwirft ihn. Ablauf, Zurückziehen und neue
+Versionen wirken so sofort und auf allen Instanzen
+([REQ-0063](../01-goals/requirements/REQ-0063.md), siehe
+[Rendern per Name](../06-runtime/render-by-name.md)).
 
-_(confidence: verified — TemplateCache.java, TemplateImportResource.java, application.properties)_
+_(confidence: verified — TemplateCache.java, TemplateContentCache.java, TemplateImportResource.java,
+application.properties)_
 
 ### WebhookSender
 
@@ -140,7 +144,7 @@ _(confidence: verified — TemplateImportResource.java, application.properties
 
 Gegenüber dem Altbestand korrigiert: render liest nicht das Schema `production` einer
 gemeinsamen Datenbank, sondern die eigene Datenbank `production`. Der Worker holt nicht einen
-Auftrag je Takt; der Cache wird über `findLatestActiveByName` gefüllt, das auch `validUntil`
+Auftrag je Takt; die gültige Version ermittelt `findValidId`, das auch `validUntil`
 beachtet. LibreOffice läuft als `soffice`-Prozess je Konvertierung, nicht über UNO; eine
 Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutzen Panache.
 
@@ -160,7 +164,9 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0034](../01-goals/requirements/REQ-0034.md) IF a linked section of a template rendered by name does not match a path ending in /bausteine/{name}.odt or no valid building block of that name exists, THEN the render service shall reject the request with HTTP 422 without technical details of the failure.
 - [REQ-0035](../01-goals/requirements/REQ-0035.md) IF a template sent with the request contains a linked section, THEN the render service shall reject the request with HTTP 422.
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
+- [REQ-0038](../01-goals/requirements/REQ-0038.md) The render service shall use the version that is valid at the moment of rendering, also when a version is cached.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0054](../01-goals/requirements/REQ-0054.md) WHERE JWT authentication is enabled, the render service shall reject requests to import or remove production templates with HTTP 401 if they carry no valid bearer token, and with HTTP 403 if the token lacks the group reviewer.
 - [REQ-0055](../01-goals/requirements/REQ-0055.md) WHILE JWT authentication is disabled, the render service shall accept requests to import or remove production templates without a token.
+- [REQ-0063](../01-goals/requirements/REQ-0063.md) WHEN the production store changes, the render service shall use the changed state for the next rendering, regardless of which instance made the change.
 <!-- /generated -->

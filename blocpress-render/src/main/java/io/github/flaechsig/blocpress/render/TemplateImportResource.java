@@ -1,7 +1,6 @@
 package io.github.flaechsig.blocpress.render;
 
 import io.quarkus.cache.CacheInvalidate;
-import io.quarkus.cache.CacheInvalidateAll;
 import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -38,7 +37,7 @@ import java.util.UUID;
 public class TemplateImportResource {
 
     @Inject
-    TemplateCache templateCache;
+    TemplateContentCache contentCache;
 
     /**
      * Import (or update) a template into the production schema.
@@ -50,8 +49,6 @@ public class TemplateImportResource {
     @POST
     @PermitAll
     @Transactional
-    @CacheInvalidateAll(cacheName = "templates")
-    @CacheInvalidateAll(cacheName = "bausteine")
     public Response importTemplate(ImportRequest request) {
         // Ungueltige Anfragen sind ein Fehler des Aufrufers (400), nicht des Servers (500)
         String invalid = validate(request);
@@ -62,8 +59,10 @@ public class TemplateImportResource {
         }
         byte[] content = Base64.getDecoder().decode(request.contentBase64());
 
-        // Delete existing template with same ID if present (upsert)
+        // Delete existing template with same ID if present (upsert); welche Version gilt, ermittelt
+        // render bei jedem Rendern neu, nur der Inhalt dieser id liegt im Cache (REQ-0063)
         ProductionTemplate.delete("id", request.id());
+        contentCache.invalidate(request.id());
 
         // Create and persist new template
         ProductionTemplate template = new ProductionTemplate();
@@ -92,8 +91,6 @@ public class TemplateImportResource {
     @Transactional
     public Response removeTemplate(@PathParam("name") String name) {
         ProductionTemplate.delete("name", name);
-        templateCache.invalidate(name);
-        templateCache.invalidateBaustein(name);
         return Response.noContent().build();
     }
 

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Abgelaufene, ausgemusterte und ersetzte Vorlagen wirken sofort** (US-0041, REQ-0038): render ermittelt die gültige Version bei jedem Rendern per Name aus der Datenbank und hält nur den Inhalt je Version im Cache. Bisher konnte eine abgelaufene oder ausgemusterte Version bis zu 10 Minuten weiter gerendert werden, bei mehreren Instanzen auch nach Import oder Ausmustern. Gilt für Vorlagen und Bausteine.
 - **Ausmustern zuverlässig** (US-0042): Bestätigt render das Entfernen aus production nicht, scheitert das Ausmustern mit 503 und die Vorlage bleibt freigegeben; bisher stand sie auf RETIRED, blieb aber renderbar. Namen mit Leerzeichen lassen sich jetzt ausmustern. Freigegebene Vorlagen lassen sich nicht mehr löschen (409), und der Wechsel APPROVED → SUBMITTED ist nicht mehr möglich (400); erneut freigegeben wird über eine neue Version.
 - **Vorschau und Regression mit eingeschalteter Absicherung** (US-0044): Die Workbench schickte render dabei kein Token, render antwortete mit 401 und die Vorschau scheiterte. Jetzt reicht sie das Token des Benutzers durch, die Oberfläche schickt es bei Vorschau und allen Regressionsfunktionen mit.
 - **Genehmigen und Ablehnen im Dashboard der Workbench:** Die Knöpfe auf den Karten öffneten keinen Dialog; die Dialoge erschienen nur in der Arbeitsansicht einer Vorlage.

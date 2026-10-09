@@ -1,47 +1,40 @@
 package io.github.flaechsig.blocpress.render;
 
-import io.quarkus.cache.CacheInvalidate;
-import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 /**
- * Cache for template content fetched from the production schema.
+ * Liefert den Inhalt der gueltigen Vorlage bzw. des gueltigen Bausteins eines Namens aus production.
  *
- * With TI-2 (multi-schema), templates are imported from blocpress-workbench
- * into the production schema via TemplateImportResource. This cache provides
- * fast access to the local production database.
- *
- * Uses Quarkus Cache with configurable TTL (10 minutes) to minimize database access.
+ * <p>Welche Version gilt, wird bei jedem Aufruf aus der Datenbank ermittelt (eine kleine Abfrage
+ * ohne Inhalt); nur der Inhalt liegt nach {@code id} im Cache ({@link TemplateContentCache}).
+ * Damit wirken Ablauf, Ausmustern und neue Versionen sofort, auch wenn eine andere render-Instanz
+ * die Aenderung angenommen hat (REQ-0038, REQ-0063).</p>
  */
 @ApplicationScoped
 public class TemplateCache {
     private static final Logger logger = LoggerFactory.getLogger(TemplateCache.class);
 
+    @Inject
+    TemplateContentCache contentCache;
+
     /**
-     * Fetches template content by name from the production schema.
-     * Retrieves the latest version (highest version number for the given name).
-     * Results are cached for performance (10 minutes TTL).
-     *
-     * @param templateName Template name
-     * @return Template binary content (ODT file) of latest version
-     * @throws TemplateNotFoundException if template does not exist in production
+     * @return Inhalt (ODT) der jetzt gueltigen Vorlage dieses Namens
+     * @throws TemplateNotFoundException wenn keine Version gilt
      */
     @Transactional
-    @CacheResult(cacheName = "templates")
     public byte[] getTemplateContentByName(String templateName) {
-        logger.info("Fetching template {} from production schema (cache miss)", templateName);
-
-        ProductionTemplate template = ProductionTemplate.findLatestActiveByName(templateName, TemplateType.TEMPLATE);
-        if (template == null) {
+        UUID id = ProductionTemplate.findValidId(templateName, TemplateType.TEMPLATE);
+        if (id == null) {
             throw new TemplateNotFoundException("Template not found in production: " + templateName);
         }
-
-        logger.info("Successfully fetched template {} v{} (size: {} bytes)",
-            templateName, template.version, template.content.length);
-        return template.content;
+        logger.debug("Template {} -> version {}", templateName, id);
+        return contentCache.content(id);
     }
 
     /**
@@ -50,30 +43,12 @@ public class TemplateCache {
      * @throws TemplateNotFoundException wenn es keinen gibt
      */
     @Transactional
-    @CacheResult(cacheName = "bausteine")
     public byte[] getBausteinContentByName(String name) {
-        ProductionTemplate baustein = ProductionTemplate.findLatestActiveByName(name, TemplateType.BAUSTEIN);
-        if (baustein == null) {
+        UUID id = ProductionTemplate.findValidId(name, TemplateType.BAUSTEIN);
+        if (id == null) {
             throw new TemplateNotFoundException("Building block not found in production: " + name);
         }
-        logger.info("Fetched building block {} v{}", name, baustein.version);
-        return baustein.content;
-    }
-
-    /** Invalidiert den Baustein-Eintrag dieses Namens. */
-    @CacheInvalidate(cacheName = "bausteine")
-    public void invalidateBaustein(String name) {
-        // Cache eviction is handled by the annotation
-    }
-
-    /**
-     * Invalidates the cache entry for a specific template name.
-     * Called when a template is removed from production (RETIRED transition).
-     *
-     * @param templateName Template name whose cache entry should be invalidated
-     */
-    @CacheInvalidate(cacheName = "templates")
-    public void invalidate(String templateName) {
-        // Cache eviction is handled by the annotation
+        logger.debug("Building block {} -> version {}", name, id);
+        return contentCache.content(id);
     }
 }

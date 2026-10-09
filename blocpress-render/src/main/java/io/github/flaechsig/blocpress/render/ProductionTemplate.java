@@ -50,21 +50,28 @@ public class ProductionTemplate extends PanacheEntityBase {
     public LocalDateTime validUntil;
 
     /**
-     * Finds the currently active template by name.
-     * Returns the template with the highest version for the most recent valid_from <= now(),
-     * excluding expired templates (valid_until < now()).
+     * Ermittelt die {@code id} der jetzt gueltigen Version: {@code validFrom} erreicht,
+     * {@code validUntil} nicht ueberschritten, bei mehreren die juengste {@code validFrom}, dann die
+     * hoechste Version. Laedt den Inhalt nicht; er liegt nach {@code id} im Cache (REQ-0038, REQ-0063).
+     * "Jetzt" ist die Zeit der JVM, wie beim Setzen von {@code validFrom} in der Workbench.
      *
-     * @param name Template name
-     * @return Currently active template, or null if not found or expired
+     * @return die {@code id}, oder {@code null}, wenn keine Version gilt
      */
-    public static ProductionTemplate findLatestActiveByName(String name, TemplateType type) {
-        return find("""
-            FROM ProductionTemplate
-            WHERE name = ?1
-            AND type = ?2
-            AND validFrom <= CURRENT_TIMESTAMP
-            AND (validUntil IS NULL OR validUntil > CURRENT_TIMESTAMP)
-            ORDER BY validFrom DESC, version DESC
-            """, name, type).firstResult();
+    public static UUID findValidId(String name, TemplateType type) {
+        return getEntityManager().createQuery("""
+            SELECT t.id FROM ProductionTemplate t
+            WHERE t.name = :name
+            AND t.type = :type
+            AND t.validFrom <= :now
+            AND (t.validUntil IS NULL OR t.validUntil > :now)
+            ORDER BY t.validFrom DESC, t.version DESC
+            """, UUID.class)
+            .setParameter("name", name)
+            .setParameter("type", type)
+            .setParameter("now", LocalDateTime.now())
+            .setMaxResults(1)
+            .getResultStream()
+            .findFirst()
+            .orElse(null);
     }
 }

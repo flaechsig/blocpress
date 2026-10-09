@@ -26,12 +26,12 @@ Element_Design_Concept.adoc:975-998 legacy (git history))_
 `POST /api/render/{name}` nimmt aus `production` unter allen Einträgen des Namens mit
 `validFrom ≤ jetzt` und (`validUntil` leer oder `> jetzt`) den mit dem **jüngsten
 `validFrom`**, bei Gleichstand die höchste Version. Findet sich keiner, antwortet render
-mit 404. Weil render den Inhalt bis zu 10 Minuten zwischenspeichert, kann ein
-Versionswechsel, der allein durch Zeitablauf eintritt, bis zu 10 Minuten später wirken;
-ein Import leert den Zwischenspeicher sofort.
+mit 404. render ermittelt die gültige Version bei jedem Aufruf neu; ein Versionswechsel durch
+Zeitablauf, ein Import oder ein Zurückziehen wirkt sofort, auf allen Instanzen
+([REQ-0038](../01-goals/requirements/REQ-0038.md), [REQ-0063](../01-goals/requirements/REQ-0063.md)).
 
-_(confidence: verified — blocpress-render/…/ProductionTemplate.java (`findLatestActiveByName`),
-TemplateCache.java, RenderResource.java, application.properties (`expire-after-write=10M`))_
+_(confidence: verified — blocpress-render/…/ProductionTemplate.java (`findValidId`),
+TemplateCache.java, TemplateContentCache.java, RenderResource.java)_
 
 Die Workbench wählt für ihre eigenen Zugriffe nach Namen (`GET …/by-name/{name}/content`,
 WebDAV unter `/api/webdav/released/`) anders: freigegeben, gültig und dann die **höchste
