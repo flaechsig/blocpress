@@ -14,6 +14,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,16 +74,34 @@ public class TemplateImportResource {
         template.validFrom = request.validFrom();
         template.validUntil = request.validUntil();
         template.type = request.type() == null ? TemplateType.TEMPLATE : TemplateType.valueOf(request.type());
+        endPreviousVersions(template);
         template.persist();
 
         return Response.ok().build();
     }
 
     /**
-     * Remove a template from the production schema (called when transitioning to RETIRED).
+     * Beendet die bis dahin gueltige Version desselben Namens zum Beginn der importierten, wie es die
+     * Workbench bei der Freigabe tut; so gilt auch in production hoechstens eine Version je Zeitpunkt
+     * (REQ-0040), im selben Schritt wie der Import.
+     */
+    private static void endPreviousVersions(ProductionTemplate imported) {
+        List<ProductionTemplate> others = ProductionTemplate.list("name = ?1 AND id <> ?2", imported.name, imported.id);
+        for (ProductionTemplate other : others) {
+            if (!other.validFrom.isAfter(imported.validFrom)
+                    && (other.validUntil == null || other.validUntil.isAfter(imported.validFrom))) {
+                other.validUntil = imported.validFrom;
+            }
+        }
+    }
+
+    /**
+     * Zieht einen Namen aus production zurueck (Workbench: RETIRED). Geloescht wird nichts: Jede
+     * Version, die noch gilt oder kuenftig gelten wuerde, endet jetzt (REQ-0037). So bleibt
+     * nachvollziehbar, welche Version zu welchem Zeitpunkt galt.
      * Endpoint: DELETE /api/render/templates/import/{name}
      *
-     * @param name Template name to remove
+     * @param name Template name to retire
      * @return 204 No Content on success
      */
     @DELETE
@@ -90,7 +109,9 @@ public class TemplateImportResource {
     @PermitAll
     @Transactional
     public Response removeTemplate(@PathParam("name") String name) {
-        ProductionTemplate.delete("name", name);
+        LocalDateTime now = LocalDateTime.now();
+        ProductionTemplate.update("validUntil = ?1 WHERE name = ?2 AND (validUntil IS NULL OR validUntil > ?1)",
+                now, name);
         return Response.noContent().build();
     }
 

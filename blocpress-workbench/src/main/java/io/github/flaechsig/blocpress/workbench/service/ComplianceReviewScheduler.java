@@ -29,7 +29,11 @@ public class ComplianceReviewScheduler {
     public void checkDueForReview() {
         LocalDateTime threshold = LocalDateTime.now().plusDays(leadDays);
         List<Template> due = Template.list(
-            "status = 'APPROVED' AND validUntil IS NOT NULL AND validUntil <= ?1", threshold);
+            "FROM Template t WHERE t.status = 'APPROVED' AND t.validUntil IS NOT NULL AND t.validUntil <= ?1"
+                // abgeloeste Versionen (es gibt eine neuere freigegebene) sind nicht faellig (REQ-0040)
+                + " AND NOT EXISTS (FROM Template n WHERE n.name = t.name AND n.status = 'APPROVED'"
+                + " AND n.version > t.version)",
+                threshold);
         if (!due.isEmpty()) {
             LOG.warn("{} Template(s) laufen innerhalb von {} Tagen ab: {}",
                 due.size(), leadDays, due.stream().map(t -> t.name).toList());

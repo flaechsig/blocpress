@@ -57,7 +57,7 @@ nicht einschaltet.
 | ID | Schuld | Folge | Quelle |
 |---|---|---|---|
 | TD-2 | Die aus `openapi.yml` erzeugten Interfaces von render werden nicht genutzt. | Spezifikation und Umsetzung der REST-API können auseinanderlaufen | [ADR-0013](09-decisions/ADR-0013.md) |
-| TD-3 | Workbench und render wählen unter einem Vorlagennamen verschiedene Versionen (höchste Version gegenüber jüngstem `validFrom`). | Vorschau und Produktion können verschiedene Stände zeigen | [Versionierung](08-concepts/versionierung.md) |
+| TD-3 | Workbench und render wählen unter einem Vorlagennamen verschiedene Versionen (höchste Version gegenüber jüngstem `validFrom`). Behoben am 2026-10-09: Zu jedem Zeitpunkt gilt höchstens eine Version ([REQ-0040](01-goals/requirements/REQ-0040.md)); Altdaten mit Überlappung meldet die Workbench beim Start ([REQ-0043](01-goals/requirements/REQ-0043.md)). | Vorschau und Produktion können verschiedene Stände zeigen, nur noch bei gemeldeten Altdaten | [Versionierung](08-concepts/versionierung.md) |
 | TD-4 | Die Prüfung der Vorlagen beim Hochladen liegt in der Workbench (`TemplateValidator`), nicht in `blocpress-core`. | Nutzer der Bibliothek können Vorlagen nicht vorab prüfen | [US-0009](01-goals/stories/US-0009.md) |
 | TD-5 | Native-Builds brauchen gepflegte Reflection-Registrierung und Build-Argumente. | Neue Abhängigkeiten können das Native-Image brechen | [ADR-0007](09-decisions/ADR-0007.md) |
 | TD-6 | Kein Batch-Endpunkt: Viele Dokumente bedeuten viele Aufrufe oder viele Jobs. | Mehr Aufrufe und mehr Verwaltungsaufwand beim Aufrufer | Altbestand TD-2 |

@@ -94,6 +94,7 @@ public class TemplateResource {
         }
 
         TemplateType templateType = "BAUSTEIN".equals(type) ? TemplateType.BAUSTEIN : TemplateType.TEMPLATE;
+        requireFreeForNewDraft(name.strip(), templateType);
 
         byte[] content = Files.readAllBytes(file.uploadedFile());
         ValidationResult validationResult = validator.validate(content);
@@ -429,9 +430,8 @@ public class TemplateResource {
         template.status = request.newStatus();
 
         if (request.newStatus() == TemplateStatus.APPROVED) {
-            LocalDateTime from = request.validFrom() != null
-                ? request.validFrom().atStartOfDay()
-                : (template.validFrom != null ? template.validFrom : LocalDateTime.now());
+            LocalDateTime from = approvalStart(request.validFrom());
+            endPreviousVersion(template, from);
             template.validFrom = from;
             template.reviewCycleYears = request.reviewCycleYears();
             template.validUntil = request.reviewCycleYears() != null
@@ -513,7 +513,11 @@ public class TemplateResource {
     public List<TemplateDetails> getDueForReview() {
         LocalDateTime threshold = LocalDateTime.now().plusDays(leadDays);
         return Template.<Template>list(
-                "status = 'APPROVED' AND validUntil IS NOT NULL AND validUntil <= ?1", threshold)
+                "FROM Template t WHERE t.status = 'APPROVED' AND t.validUntil IS NOT NULL AND t.validUntil <= ?1"
+                // abgeloeste Versionen (es gibt eine neuere freigegebene) sind nicht faellig (REQ-0040)
+                + " AND NOT EXISTS (FROM Template n WHERE n.name = t.name AND n.status = 'APPROVED'"
+                + " AND n.version > t.version)",
+                threshold)
             .stream()
             .map(t -> new TemplateDetails(t.id, t.name, t.createdAt, t.status,
                 t.validationResult, t.ignoredPatterns, t.rejectionReason, t.rejectedAt,
@@ -576,6 +580,7 @@ public class TemplateResource {
 
         // If duplicating with same name, auto-increment version (like upload)
         if (targetName.equals(source.name)) {
+            requireFreeForNewDraft(targetName, source.type);
             Template lastVersion = Template.find("name = ?1 ORDER BY version DESC", targetName)
                     .firstResult();
             if (lastVersion != null) {
@@ -598,6 +603,7 @@ public class TemplateResource {
         duplicate.version = targetVersion;
         duplicate.content = source.content.clone(); // Copy binary content
         duplicate.status = TemplateStatus.DRAFT;
+        duplicate.type = source.type;   // eine Kopie bleibt Vorlage bzw. Baustein (REQ-0039)
         duplicate.createdAt = LocalDateTime.now();
 
         // Re-validate (might have different results due to changes in validator)
@@ -653,6 +659,60 @@ public class TemplateResource {
             "errors", validationResult.errors(),
             "warnings", validationResult.warnings()
         )).build();
+    }
+
+    /**
+     * Ein neuer Entwurf darf nur entstehen, wenn der Name nicht vom anderen Typ benutzt wird
+     * (REQ-0039) und noch kein Entwurf dieses Namens existiert (REQ-0042); sonst 409.
+     */
+    static void requireFreeForNewDraft(String name, TemplateType type) {
+        if (Template.usedByOtherType(name, type)) {
+            throw new WebApplicationException(
+                "Name '" + name + "' is already used by the other type", Response.Status.CONFLICT);
+        }
+        if (Template.hasDraft(name)) {
+            throw new WebApplicationException(
+                "'" + name + "' already has a draft; edit it or finish its review first", Response.Status.CONFLICT);
+        }
+    }
+
+    /**
+     * Gueltigkeitsbeginn einer Freigabe: kein Datum oder heute heisst "ab jetzt", ein kuenftiges
+     * Datum gilt ab Tagesbeginn, ein vergangenes wird abgelehnt (REQ-0041).
+     */
+    static LocalDateTime approvalStart(LocalDate requested) {
+        LocalDate today = LocalDate.now();
+        if (requested == null || requested.equals(today)) {
+            return LocalDateTime.now();
+        }
+        if (requested.isBefore(today)) {
+            throw new WebApplicationException(
+                "validFrom must not be in the past: " + requested, Response.Status.BAD_REQUEST);
+        }
+        return requested.atStartOfDay();
+    }
+
+    /**
+     * Beendet die bis dahin gueltige Version desselben Namens zum Beginn der neuen, damit hoechstens
+     * eine Version je Zeitpunkt gilt (REQ-0040). Beginnt schon eine freigegebene Version spaeter,
+     * wird die Freigabe abgelehnt (REQ-0064). render wendet beim Import dieselbe Regel an.
+     */
+    private static void endPreviousVersion(Template approving, LocalDateTime from) {
+        List<Template> approved = Template.list(
+            "name = ?1 AND status = ?2 AND id <> ?3", approving.name, TemplateStatus.APPROVED, approving.id);
+        for (Template other : approved) {
+            if (other.validFrom != null && other.validFrom.isAfter(from)) {
+                throw new WebApplicationException(
+                    "Version " + other.version + " of '" + approving.name + "' is approved from "
+                        + other.validFrom + "; retire it before approving an earlier start",
+                    Response.Status.CONFLICT);
+            }
+        }
+        for (Template other : approved) {
+            if (other.validUntil == null || other.validUntil.isAfter(from)) {
+                other.validUntil = from;
+            }
+        }
     }
 
     private boolean isValidTransition(TemplateStatus from, TemplateStatus to) {
@@ -986,6 +1046,7 @@ public class TemplateResource {
     public Response createNewDraft(@PathParam("id") UUID id) {
         Template current = Template.findById(id);
         if (current == null) throw new WebApplicationException(Response.Status.NOT_FOUND);
+        requireFreeForNewDraft(current.name, current.type);
 
         // Find highest version for this template name
         Object maxVersionObj = Template.find(

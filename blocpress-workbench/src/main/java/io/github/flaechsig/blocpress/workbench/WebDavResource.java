@@ -94,7 +94,8 @@ public class WebDavResource {
         TemplateType type = resolveType(collection);
         Template template = findLatestDraft(name, type);
         if (template == null) {
-            // Create new DRAFT — WebDAV PUT semantics: create-or-update
+            // Create new DRAFT — WebDAV PUT semantics: create-or-update; Name nicht vom anderen Typ (REQ-0039)
+            TemplateResource.requireFreeForNewDraft(name, type);
             template = new Template();
             template.name = name;
             template.type = type;

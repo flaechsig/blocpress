@@ -54,15 +54,20 @@ arc42.adoc:1162-1172 legacy (git history), arc42.adoc:1272-1310 legacy (git hist
 ## Freigeben und Deploy
 
 1. Der Prüfer gibt im Freigabedialog Gültigkeitsbeginn und optional einen Review-Zyklus an.
-   `PUT …/{id}/status` mit `APPROVED` setzt `validFrom` (Tagesbeginn des Datums, ohne Datum
-   bleibt der bisherige Wert), `reviewCycleYears` und `validUntil = validFrom + Zyklus`
-   ([REQ-0020](../01-goals/requirements/REQ-0020.md)).
+   `PUT …/{id}/status` mit `APPROVED` setzt `validFrom` (ohne Datum oder mit heutigem „ab
+   jetzt“, mit künftigem Datum ab Tagesbeginn; ein vergangenes Datum ergibt 400,
+   [REQ-0041](../01-goals/requirements/REQ-0041.md)), `reviewCycleYears` und
+   `validUntil = validFrom + Zyklus` ([REQ-0020](../01-goals/requirements/REQ-0020.md)). Die bis
+   dahin gültige Version desselben Namens endet am neuen `validFrom`
+   ([REQ-0040](../01-goals/requirements/REQ-0040.md)); beginnt schon eine freigegebene Version
+   später, antwortet die Workbench mit 409 ([REQ-0064](../01-goals/requirements/REQ-0064.md)).
 2. Die Workbench aktualisiert den Status im Suchindex und schickt dann `id`, `name`,
    `version`, den Inhalt als Base64, `validFrom` und `validUntil` an
    `POST /api/render/templates/import` ([REQ-0014](../01-goals/requirements/REQ-0014.md)).
 3. render (`TemplateImportResource`) prüft die Pflichtfelder (sonst 400), löscht einen Eintrag
-   mit derselben `id`, legt den neuen an und verwirft den zwischengespeicherten Inhalt dieser `id`. Ältere Versionen
-   desselben Namens bleiben stehen.
+   mit derselben `id`, legt den neuen an und verwirft den zwischengespeicherten Inhalt dieser
+   `id`. Ältere Versionen desselben Namens bleiben stehen; die bis dahin gültige endet am
+   Beginn der neuen, im selben Schritt wie der Import.
 4. Ist render nicht erreichbar oder antwortet mit einem Fehler, antwortet die Workbench mit
    503. Die Transaktion wird zurückgerollt, die Vorlage bleibt `SUBMITTED`
    ([REQ-0015](../01-goals/requirements/REQ-0015.md)).
@@ -89,9 +94,10 @@ vor dem Deploy), ElasticsearchIndexService.java (`updateStatus`))_
 1. `PUT …/{id}/status` mit `RETIRED` (nur aus `APPROVED`) setzt `validUntil` auf jetzt,
    entfernt die Vorlage aus dem Suchindex und ruft `DELETE /api/render/templates/import/{name}`
    ([REQ-0023](../01-goals/requirements/REQ-0023.md)).
-2. render löscht **alle** Einträge mit diesem Namen aus `production`, also auch andere
-   freigegebene Versionen. Danach liefert [Rendern per Name](render-by-name.md) sofort 404,
-   auf allen Instanzen ([REQ-0063](../01-goals/requirements/REQ-0063.md)).
+2. render löscht nichts, sondern beendet jetzt die Gültigkeit jeder Version des Namens, die
+   noch gilt oder künftig gelten würde ([REQ-0037](../01-goals/requirements/REQ-0037.md)).
+   Danach liefert [Rendern per Name](render-by-name.md) sofort 404, auf allen Instanzen
+   ([REQ-0063](../01-goals/requirements/REQ-0063.md)).
 
 Wie bei der Freigabe scheitert das Zurückziehen mit 503, wenn render das Entfernen nicht
 bestätigt (nicht erreichbar, Fehler, 401/403): Die Transaktion wird zurückgerollt, die Vorlage
@@ -111,14 +117,10 @@ Zurückziehen über `RETIRED`. Löschen lässt sich eine freigegebene Vorlage ni
 
 _(confidence: verified — TemplateResource.java (`updateStatus`, `isValidTransition`))_
 
-Gegenüber dem Altbestand korrigiert: `validFrom` wird bei der Freigabe nicht auf „jetzt“
-gesetzt. Der Import ist kein Upsert nach Namen, sondern nach `id`. Beim Zurückziehen
-löscht render nicht die eine Vorlage, sondern alle Einträge des Namens. Das erneute Einreichen
+Gegenüber dem Altbestand korrigiert: Der Import ist kein Upsert nach Namen, sondern nach
+`id`. Das erneute Einreichen
 über `PUT …/status` löscht den Ablehnungsgrund nicht, nur `POST …/submit` tut das. Die
 Ablehnung prüft der Endpunkt selbst, eine Rollenprüfung gibt es nicht
 ([US-0021](../01-goals/stories/US-0021.md)).
 
-Dass das Zurückziehen nur die eine Version beendet statt alle Versionen des Namens zu löschen,
-ist mit [REQ-0037](../01-goals/requirements/REQ-0037.md) vorgeschlagen
-([US-0061](../01-goals/stories/US-0061.md)).
 

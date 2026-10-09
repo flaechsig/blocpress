@@ -60,6 +60,10 @@ class SearchIndexIT {
         String copyId = RestAssured.given().contentType(ContentType.JSON).body(Map.of("name", "Kopieziel"))
                 .post("/api/workbench/templates/" + id + "/duplicate")
                 .then().statusCode(201).extract().path("id");
+        // neben einem Entwurf entsteht kein zweiter (REQ-0042): Quelle als freigegeben markieren
+        io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() ->
+                io.github.flaechsig.blocpress.workbench.entity.Template.<io.github.flaechsig.blocpress.workbench.entity.Template>findById(
+                        java.util.UUID.fromString(id)).status = io.github.flaechsig.blocpress.workbench.entity.TemplateStatus.APPROVED);
         String draftId = RestAssured.given()
                 .post("/api/workbench/templates/" + id + "/new-draft")
                 .then().statusCode(201).extract().path("id");

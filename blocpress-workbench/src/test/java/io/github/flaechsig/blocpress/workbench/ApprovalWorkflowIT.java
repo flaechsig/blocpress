@@ -124,8 +124,10 @@ class ApprovalWorkflowIT {
     void templatesExpiringWithinLeadDaysAreDueForReview() throws Exception {
         // validUntil = validFrom + 1 Jahr = heute + 10 Tage -> faellig (Vorlauf 60 Tage)
         String due = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
-        LocalDate from = LocalDate.now().minusYears(1).plusDays(10);
-        assertEquals(200, status(due, "{\"newStatus\":\"APPROVED\",\"validFrom\":\"" + from + "\",\"reviewCycleYears\":1}").statusCode());
+        assertEquals(200, status(due, "{\"newStatus\":\"APPROVED\",\"reviewCycleYears\":1}").statusCode());
+        // rueckdatieren geht nicht mehr ueber die API (REQ-0041): Gueltigkeit direkt setzen
+        setValidity(due, LocalDate.now().minusYears(1).plusDays(10).atStartOfDay(),
+                LocalDate.now().plusDays(10).atStartOfDay());
         // validUntil in 5 Jahren -> nicht faellig
         String notDue = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
         assertEquals(200, status(notDue, "{\"newStatus\":\"APPROVED\",\"reviewCycleYears\":5}").statusCode());
@@ -142,6 +144,9 @@ class ApprovalWorkflowIT {
         byte[] odt = Files.readAllBytes(TEMPLATE);
         String name = "versioniert-" + UUID.randomUUID();
         JsonNode v1 = MAPPER.readTree(upload(name, odt).asString());
+        // erst nach der Freigabe von v1 darf ein neuer Entwurf entstehen (REQ-0042)
+        assertEquals(200, RestAssured.post(BASE + v1.path("id").asText() + "/submit").statusCode());
+        assertEquals(200, status(v1.path("id").asText(), "{\"newStatus\":\"APPROVED\"}").statusCode());
         JsonNode v2 = MAPPER.readTree(upload(name, odt).asString());
         assertEquals(1, v1.path("version").asInt());
         assertEquals(2, v2.path("version").asInt(), "erneuter Upload muss Version 2 ergeben");
@@ -182,8 +187,9 @@ class ApprovalWorkflowIT {
         String name = "abgelaufen-" + UUID.randomUUID();
         String id = MAPPER.readTree(upload(name, Files.readAllBytes(TEMPLATE)).asString()).path("id").asText();
         assertEquals(200, RestAssured.post(BASE + id + "/submit").statusCode());
-        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\",\"validFrom\":\"" + LocalDate.now().minusYears(2)
-                + "\",\"reviewCycleYears\":1}").statusCode());
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\",\"reviewCycleYears\":1}").statusCode());
+        // rueckdatieren geht nicht mehr ueber die API (REQ-0041): Gueltigkeit direkt setzen
+        setValidity(id, LocalDate.now().minusYears(2).atStartOfDay(), LocalDate.now().minusYears(1).atStartOfDay());
 
         assertEquals(404, RestAssured.get(BASE + "by-name/" + name + "/content").statusCode(),
                 "abgelaufene Version darf nicht als aktiv ausgeliefert werden (wie in render)");
@@ -276,6 +282,16 @@ class ApprovalWorkflowIT {
 
         assertEquals(400, status(id, "{\"newStatus\":\"SUBMITTED\"}").statusCode());
         assertEquals("APPROVED", details(id).path("status").asText());
+    }
+
+    /** Setzt die Gueltigkeit einer Version direkt in der Datenbank, wie sie fruehere Daten haben koennen. */
+    private static void setValidity(String id, java.time.LocalDateTime from, java.time.LocalDateTime until) {
+        io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() -> {
+            io.github.flaechsig.blocpress.workbench.entity.Template t =
+                    io.github.flaechsig.blocpress.workbench.entity.Template.findById(UUID.fromString(id));
+            t.validFrom = from;
+            t.validUntil = until;
+        });
     }
 
     private static Response statusWithToken(String id, String json, String authorization) {
