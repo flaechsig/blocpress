@@ -111,7 +111,7 @@ Löschen des Containers.
 | `BLOCPRESS_LO_WORKERS` | 1 | Obergrenze für gleichzeitige Konvertierungen und Auftragsschleifen in render; render teilt sich die CPU hier mit den anderen Diensten |
 | `BLOCPRESS_AUTH_ENABLED` | nicht gesetzt, also aus | JWT-Prüfung in render ([ADR-0002](09-decisions/ADR-0002.md)) |
 | `BLOCPRESS_CORS_ORIGINS` | nicht gesetzt, also nur same-origin | fremde Origins, die render und workbench aus dem Browser aufrufen dürfen, kommagetrennt; das Studio braucht keine, es leitet alles weiter |
-| `MP_JWT_VERIFY_PUBLICKEY` | eingebauter Entwicklungsschlüssel | wirkt nur in render und nur mit `BLOCPRESS_AUTH_ENABLED=true` |
+| `MP_JWT_VERIFY_PUBLICKEY` | nicht gesetzt, kein eingebauter Schlüssel ([REQ-0053](01-goals/requirements/REQ-0053.md)) | wirkt nur in render; mit `BLOCPRESS_AUTH_ENABLED=true` Pflicht, sonst startet render nicht |
 | `MP_JWT_VERIFY_ISSUER` | `https://blocpress.dev` | wie oben |
 | `JAVA_OPTS_STUDIO`, `JAVA_OPTS_WORKBENCH`, `JAVA_OPTS_RENDER` | leer | JVM-Optionen, nur im JVM-Image (`Dockerfile`) |
 
@@ -130,9 +130,8 @@ _(confidence: unverified — Verhalten von supervisord, im Container nicht auspr
 Ohne `BLOCPRESS_AUTH_ENABLED=true` hat das Token im Quickstart keine Schutzwirkung: Das
 Studio verlangt nur irgendeinen eingegebenen Text (siehe [blocpress-studio](05-building-blocks/studio.md)),
 die Workbench prüft kein Token ([ADR-0003](09-decisions/ADR-0003.md)), render prüft es nur
-mit eingeschalteter Absicherung. Das Studio und die Kommentare im Dockerfile verweisen für das
-Entwicklungs-Token auf `docs/samples/quickstart/token.txt`; diese Datei gibt es nicht, sie
-liegt unter `site/samples/quickstart/token.txt`.
+mit eingeschalteter Absicherung. Das Beispiel-Token `site/samples/quickstart/token.txt` gilt
+im Quickstart nirgends; es füllt nur das Eingabefeld des Studios.
 
 _(confidence: verified — bp-app.js, bp-token-input.js, docker/studio/Dockerfile,
 site/samples/quickstart/token.txt)_

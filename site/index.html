@@ -341,9 +341,9 @@
     <p class="text-muted small mt-2">
         The Quickstart image bundles <strong>Studio</strong> (workbench UI on port 8080),
         <strong>Render</strong> (REST API on port 8081), <strong>PostgreSQL</strong>, and <strong>Elasticsearch</strong> in a single container.
-        A built-in dev JWT keypair is included — override via
-        <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
-        <code>-e MP_JWT_VERIFY_ISSUER="..."</code> for production use.
+        JWT is off; to turn it on, set <code>-e BLOCPRESS_AUTH_ENABLED=true</code> together with
+        your own key via <code>-e MP_JWT_VERIFY_PUBLICKEY="..."</code> and
+        <code>-e MP_JWT_VERIFY_ISSUER="..."</code> — the image has no built-in key.
         Open <a href="http://localhost:8080">http://localhost:8080</a> for the workbench UI.
     </p>
 

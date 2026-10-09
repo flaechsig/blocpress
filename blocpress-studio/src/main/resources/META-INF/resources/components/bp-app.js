@@ -141,8 +141,8 @@ export class BpApp extends LitElement {
                                 <strong>Set Token</strong>.
                             </p>
                             <p style="color:#888;font-size:0.82rem;margin:0;">
-                                Quickstart: copy the token from
-                                <code style="background:#eef3ff;padding:2px 6px;border-radius:4px;color:#2a5298;">docs/samples/quickstart/token.txt</code>
+                                Quickstart: tokens are not checked there; use the sample token
+                                <code style="background:#eef3ff;padding:2px 6px;border-radius:4px;color:#2a5298;">flaechsig.github.io/blocpress/samples/quickstart/token.txt</code>
                             </p>
                         </div>`;
                 }
