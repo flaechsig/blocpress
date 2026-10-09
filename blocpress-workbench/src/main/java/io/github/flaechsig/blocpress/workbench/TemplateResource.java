@@ -1,5 +1,6 @@
 package io.github.flaechsig.blocpress.workbench;
 
+import io.github.flaechsig.blocpress.core.TextBlockRejectedException;
 import io.github.flaechsig.blocpress.workbench.entity.Template;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateStatus;
 import io.github.flaechsig.blocpress.workbench.entity.TemplateType;
@@ -56,6 +57,9 @@ public class TemplateResource {
 
     @Inject
     TemplateValidator validator;
+
+    @Inject
+    io.github.flaechsig.blocpress.workbench.service.WorkbenchTextBlocks textBlocks;
 
     @Inject
     TestDataSetService testDataSetService;
@@ -251,8 +255,10 @@ public class TemplateResource {
         }
 
         try {
+            // Bausteine selbst einsetzen; render nimmt keine Verknuepfungen an (ADR-0018, REQ-0045)
+            byte[] content = textBlocks.inline(template.content);
             // Build request JSON manually for reliable serialization
-            String base64Template = Base64.getEncoder().encodeToString(template.content);
+            String base64Template = Base64.getEncoder().encodeToString(content);
             com.fasterxml.jackson.databind.node.ObjectNode requestJson = objectMapper.createObjectNode();
             requestJson.put("template", base64Template);
             requestJson.set("data", objectMapper.valueToTree(request.data()));
@@ -294,6 +300,11 @@ public class TemplateResource {
                 .build();
         } catch (WebApplicationException e) {
             throw e;  // Re-throw as-is
+        } catch (TextBlockRejectedException e) {
+            throw new WebApplicationException(Response.status(422)
+                .entity(Map.of("error", e.getMessage()))
+                .type(MediaType.APPLICATION_JSON)
+                .build());
         } catch (Exception e) {
             log.error("Preview failed for template {}: {}", id, e.getMessage(), e);
             throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -423,6 +434,7 @@ public class TemplateResource {
                 deployJson.put("id", template.id.toString());
                 deployJson.put("name", template.name);
                 deployJson.put("version", template.version);
+                deployJson.put("type", template.type.name());
                 deployJson.put("contentBase64", Base64.getEncoder().encodeToString(template.content));
                 deployJson.put("validFrom", template.validFrom.toString());
                 if (template.validUntil != null) {
@@ -1009,7 +1021,14 @@ public class TemplateResource {
     public record IgnoreBlockRequest(String pattern, String scope) {} // scope: "this" | "all"
 
     private byte[] renderPdf(Template template, TestDataSet tds) throws Exception {
-        String base64Template = Base64.getEncoder().encodeToString(template.content);
+        byte[] content;
+        try {
+            // Bausteine selbst einsetzen; render nimmt keine Verknuepfungen an (ADR-0018, REQ-0045)
+            content = textBlocks.inline(template.content);
+        } catch (TextBlockRejectedException e) {
+            throw new WebApplicationException(e.getMessage(), 422);
+        }
+        String base64Template = Base64.getEncoder().encodeToString(content);
         com.fasterxml.jackson.databind.node.ObjectNode requestJson = objectMapper.createObjectNode();
         requestJson.put("template", base64Template);
         requestJson.set("data", tds.testData);

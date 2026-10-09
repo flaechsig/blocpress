@@ -62,6 +62,16 @@ public class OdtTemplateDocument implements TemplateDocument {
         }
     }
 
+    /** Laedt einen Baustein aus seinem Inhalt; die Vorlage hat dann keine URL. */
+    public OdtTemplateDocument(@NonNull byte[] content) {
+        this.url = null;
+        try (InputStream in = new java.io.ByteArrayInputStream(content)) {
+            document = OdfTextDocument.loadDocument(in);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public URL getUrl() {
         return url;

@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 20 · ✅ verifiziert 41 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 17 · umgesetzt 31 · abgelöst 1 |
+| Stories | ⚪ offen 18 · 🟡 in Arbeit 1 · ✅ verifiziert 42 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 12 · umgesetzt 36 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -120,7 +120,7 @@ Status: 🟡 in Arbeit
 | [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ⚪ offen |
 | [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ⚪ offen |
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
-| [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ⚪ offen |
+| [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ✅ verifiziert |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
@@ -147,7 +147,7 @@ Status: 🟡 in Arbeit
 | [US-0015](stories/US-0015.md) | Vorlagen und Bausteine durchsuchen | ✅ verifiziert |
 | [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ✅ verifiziert |
 | [US-0048](stories/US-0048.md) | Workbench-Abläufe konsistent machen | ⚪ offen |
-| [US-0062](stories/US-0062.md) | Entwerfen mit Bausteinen | ⚪ offen |
+| [US-0062](stories/US-0062.md) | Entwerfen mit Bausteinen | 🟡 in Arbeit |
 
 ## Offene Fragen
 

@@ -50,6 +50,7 @@ public class TemplateImportResource {
     @PermitAll
     @Transactional
     @CacheInvalidateAll(cacheName = "templates")
+    @CacheInvalidateAll(cacheName = "bausteine")
     public Response importTemplate(ImportRequest request) {
         // Ungueltige Anfragen sind ein Fehler des Aufrufers (400), nicht des Servers (500)
         String invalid = validate(request);
@@ -71,6 +72,7 @@ public class TemplateImportResource {
         template.content = content;
         template.validFrom = request.validFrom();
         template.validUntil = request.validUntil();
+        template.type = request.type() == null ? TemplateType.TEMPLATE : TemplateType.valueOf(request.type());
         template.persist();
 
         return Response.ok().build();
@@ -90,6 +92,7 @@ public class TemplateImportResource {
     public Response removeTemplate(@PathParam("name") String name) {
         ProductionTemplate.delete("name", name);
         templateCache.invalidate(name);
+        templateCache.invalidateBaustein(name);
         return Response.noContent().build();
     }
 
@@ -112,6 +115,10 @@ public class TemplateImportResource {
         } catch (IllegalArgumentException e) {
             return "contentBase64 is not valid Base64";
         }
+        if (request.type() != null && !java.util.EnumSet.allOf(TemplateType.class).stream()
+                .map(Enum::name).toList().contains(request.type())) {
+            return "type must be TEMPLATE or BAUSTEIN";
+        }
         return null;
     }
 
@@ -124,6 +131,7 @@ public class TemplateImportResource {
         Integer version,
         String contentBase64,       // Base64-encoded ODT binary
         java.time.LocalDateTime validFrom,
-        java.time.LocalDateTime validUntil  // null = kein Ablauf
+        java.time.LocalDateTime validUntil,  // null = kein Ablauf
+        String type                          // TEMPLATE (Standard) oder BAUSTEIN, ADR-0018
     ) {}
 }

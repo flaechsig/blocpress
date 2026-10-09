@@ -20,4 +20,11 @@ public interface TemplateSectionElement extends TemplateElement {
      * @return The resolved URL of the template section.
      */
     URL getUrl(URL baseURL);
+
+    /**
+     * @return der Verweis der Verknuepfung ({@code xlink:href}), unaufgeloest; leer, wenn keiner gesetzt ist
+     */
+    default String getHref() {
+        return "";
+    }
 }

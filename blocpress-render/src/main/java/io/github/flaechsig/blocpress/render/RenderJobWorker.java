@@ -48,6 +48,9 @@ public class RenderJobWorker {
     TemplateCache templateCache;
 
     @Inject
+    ProductionTextBlocks productionTextBlocks;
+
+    @Inject
     WebhookSender webhookSender;
 
     @Inject
@@ -121,7 +124,8 @@ public class RenderJobWorker {
             try {
                 Files.write(tempFile, templateContent);
                 var json = MAPPER.readTree(data);
-                byte[] merged = RenderEngine.mergeTemplate(tempFile.toUri().toURL(), json, localeConfig.defaultLocale());
+                byte[] merged = RenderEngine.mergeTemplate(tempFile.toUri().toURL(), json, localeConfig.defaultLocale(),
+                        productionTextBlocks.resolver());
                 result = libreOfficePool.convert(merged, format);
             } finally {
                 Files.deleteIfExists(tempFile);
