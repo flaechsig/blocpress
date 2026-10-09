@@ -50,10 +50,10 @@ The workbench (8082), PostgreSQL (5432) and Elasticsearch (9200) are only reacha
 | `BLOCPRESS_LO_WORKERS` | Upper limit for concurrent LibreOffice conversions in render; render shares the CPU with the other services here | `1` |
 | `BLOCPRESS_AUTH_ENABLED` | Require a JWT Bearer token for render's API | `false` |
 | `BLOCPRESS_CORS_ORIGINS` | Browser origins allowed to call render or the workbench cross-origin, comma-separated; the studio needs none | not set |
-| `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM), only with `BLOCPRESS_AUTH_ENABLED=true` | built-in development key |
+| `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required with `BLOCPRESS_AUTH_ENABLED=true` — render refuses to start without it | not set |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | `https://blocpress.dev` |
 
-> **Note:** This image is meant for evaluation and development. Without `BLOCPRESS_AUTH_ENABLED=true` and your own key, the token entered in the studio has no protective effect. Do not expose it to untrusted networks.
+> **Note:** This image is meant for evaluation and development. It has no built-in verification key: without `BLOCPRESS_AUTH_ENABLED=true` and your own key, tokens are not checked, and the token entered in the studio has no protective effect. Do not expose it to untrusted networks.
 
 ---
 

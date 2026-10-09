@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · 🟡 in Arbeit 1 · ✅ verifiziert 44 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 13 · umgesetzt 39 · abgelöst 1 |
+| Stories | ⚪ offen 15 · 🟡 in Arbeit 1 · ✅ verifiziert 45 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 12 · umgesetzt 40 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -117,7 +117,7 @@ Status: 🟡 in Arbeit
 | [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ⚪ offen |
 | [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ✅ verifiziert |
 | [US-0056](stories/US-0056.md) | Quarkus-Plattform auf einen Stand ohne bekannte Lücken heben | ✅ verifiziert |
-| [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ⚪ offen |
+| [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ✅ verifiziert |
 | [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ✅ verifiziert |
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
 | [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ✅ verifiziert |

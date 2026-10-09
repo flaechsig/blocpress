@@ -86,8 +86,8 @@ Token gesetzt ist, und reicht es als Eigenschaft `jwt` an `bp-workbench` weiter.
 prüft weder Form noch Signatur noch Ablauf; es gibt keine Anmeldung gegen einen
 Identity-Provider. `bp-workbench` schickt das Token nur bei wenigen Aufrufen als
 `Authorization: Bearer` mit (Suche, Vorschau), und die Workbench prüft es nicht
-([ADR-0003](../09-decisions/ADR-0003.md)). Der Hinweis in der Oberfläche nennt
-`docs/samples/quickstart/token.txt`; die Datei liegt unter `site/samples/quickstart/token.txt`.
+([ADR-0003](../09-decisions/ADR-0003.md)). Der Hinweis in der Oberfläche nennt für den
+Quickstart das veröffentlichte Beispiel-Token (`samples/quickstart/token.txt` der Website).
 
 _(confidence: verified — bp-token-input.js, bp-app.js,
 blocpress-workbench/src/main/resources/META-INF/resources/components/bp-workbench.js)_

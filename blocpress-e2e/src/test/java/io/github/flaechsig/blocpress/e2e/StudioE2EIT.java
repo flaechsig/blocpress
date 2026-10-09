@@ -243,7 +243,7 @@ class StudioE2EIT {
     @Order(7)
     void renderByNameAfterApproval() {
         // Render via name endpoint on the render service directly (requires JWT in prod;
-        // the studio quickstart uses the built-in dev key)
+        // JWT is off in the studio quickstart, so the token is sent but not checked)
         String devToken = loadDevToken();
 
         String body = """
@@ -375,7 +375,7 @@ class StudioE2EIT {
         }
     }
 
-    /** Reads the built-in dev JWT from test resources (matches the studio image's built-in key). */
+    /** Reads the dev JWT from test resources; the quickstart does not check it (JWT off, REQ-0053). */
     private static String loadDevToken() {
         try (InputStream is = StudioE2EIT.class.getClassLoader().getResourceAsStream("dev-token.txt")) {
             if (is == null) return ""; // render-by-name test will fail gracefully
