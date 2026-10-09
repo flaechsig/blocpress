@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.flaechsig.blocpress.core.OutputFormat;
 import io.github.flaechsig.blocpress.core.RenderEngine;
+import io.github.flaechsig.blocpress.core.TextBlockRejectedException;
+import io.github.flaechsig.blocpress.core.TextBlockResolver;
 import io.github.flaechsig.blocpress.render.model.RenderByNameRequest;
 import io.github.flaechsig.blocpress.render.model.RenderRequest;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,6 +51,9 @@ public class RenderResource {
     TemplateCache templateCache;
 
     @Inject
+    ProductionTextBlocks productionTextBlocks;
+
+    @Inject
     LibreOfficePool libreOfficePool;
 
     @Inject
@@ -77,7 +82,7 @@ public class RenderResource {
             Path tempFile = Files.createTempFile("template", ".odt");
             Files.copy(templateInputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             var json = mapper.readTree(data);
-            return mergeAndTransform(tempFile, json, format);
+            return mergeAndTransform(tempFile, json, format, TextBlockResolver.rejectAll());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -98,7 +103,7 @@ public class RenderResource {
             Path tempFile = Files.createTempFile("template", ".odt");
             Files.write(tempFile, renderRequest.getTemplate());
             var json = mapper.valueToTree(renderRequest.getData());
-            return mergeAndTransform(tempFile, json, format);
+            return mergeAndTransform(tempFile, json, format, TextBlockResolver.rejectAll());
         } catch (IllegalStateException e) {
             // LibreOfficeProcessor throws IllegalStateException when soffice exits non-zero
             // or does not produce the expected output file. Return 500 with the error details
@@ -145,13 +150,16 @@ public class RenderResource {
             byte[] templateContent = templateCache.getTemplateContentByName(name);
             Path tempFile = Files.createTempFile("template-" + name, ".odt");
             Files.write(tempFile, templateContent);
-            File result = mergeAndTransform(tempFile, dataNode, format);
+            File result = mergeAndTransform(tempFile, dataNode, format, productionTextBlocks.resolver());
             jobStatus = RenderJobStatus.DONE;
             return result;
         } catch (TemplateNotFoundException e) {
             jobError = e.getMessage();
             logger.warn("Template not found: {}", name);
             throw new WebApplicationException(e.getMessage(), Response.Status.NOT_FOUND);
+        } catch (TextBlockRejectedException e) {
+            jobError = e.getMessage();
+            throw e;  // 422 ueber TextBlockRejectedExceptionMapper (REQ-0034)
         } catch (IOException e) {
             jobError = e.getMessage();
             logger.error("Failed to fetch or render template {}: {}", name, e.getMessage(), e);
@@ -168,10 +176,11 @@ public class RenderResource {
         }
     }
 
-    private File mergeAndTransform(Path templatePath, JsonNode json, OutputFormat format) throws IOException {
+    private File mergeAndTransform(Path templatePath, JsonNode json, OutputFormat format,
+                                   TextBlockResolver textBlocks) throws IOException {
         var odt = templatePath.toUri().toURL();
         logger.info("Calling merge");
-        var merge = RenderEngine.mergeTemplate(odt, json, localeConfig.defaultLocale());
+        var merge = RenderEngine.mergeTemplate(odt, json, localeConfig.defaultLocale(), textBlocks);
         logger.info("Calling transform");
         var result = libreOfficePool.convert(merge, format);
         logger.info("Build output");

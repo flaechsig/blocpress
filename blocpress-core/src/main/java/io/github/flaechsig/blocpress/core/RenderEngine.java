@@ -61,12 +61,23 @@ public class RenderEngine {
      *                      Wird bewusst explizit uebergeben (nicht {@code Locale.getDefault()}/{@code LANG}),
      *                      damit das Ergebnis nicht von der Laufzeitumgebung abhaengt.
      */
-    @SneakyThrows
     public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data, @NonNull Locale defaultLocale) {
+        return mergeTemplate(template, data, defaultLocale, TextBlockResolver.byUrl());
+    }
+
+    /**
+     * Wie {@link #mergeTemplate(URL, JsonNode, Locale)}; verknuepfte Abschnitte setzt {@code resolver}
+     * ein (ADR-0018). Wer Vorlagen aus fremder Hand rendert, uebergibt eine strenge Regel.
+     *
+     * @throws TextBlockRejectedException wenn die Regel einen verknuepften Abschnitt ablehnt
+     */
+    @SneakyThrows
+    public static byte[] mergeTemplate(@NonNull URL template, @NonNull JsonNode data, @NonNull Locale defaultLocale,
+                                       @NonNull TextBlockResolver resolver) {
         byte[] output;
         TemplateDocument doc = TemplateDocument.getInstance(template);
 
-        expandTextBlocks(doc);
+        expandTextBlocks(doc, resolver);
         processConditions(doc, data);
         processLoops(doc, data);
         replaceFieldsWithStaticText(doc, data, defaultLocale);
@@ -91,16 +102,32 @@ public class RenderEngine {
      * @param doc The template document to expand. Cannot be null.
      *            The document may include references to external text blocks to be merged.
      */
-    private static void expandTextBlocks(@NonNull TemplateDocument doc) {
+    private static void expandTextBlocks(@NonNull TemplateDocument doc, @NonNull TextBlockResolver resolver) {
         var includedTextBlocks = doc.collectIncludedTextBlocks();
 
         for (var section : includedTextBlocks) {
-            var url = section.getUrl(doc.getUrl());
-            if (url == null) {
+            var tbDocument = resolver.resolve(section, doc.getUrl());
+            if (tbDocument == null) {
                 continue;
             }
-            var tbDocument = TemplateDocument.load(url);
             doc.merge(tbDocument, section);
+        }
+    }
+
+    /**
+     * Setzt nur die verknuepften Abschnitte ein, ohne Daten; Felder, Bedingungen und Schleifen
+     * bleiben unveraendert. Das Ergebnis enthaelt die eingesetzten Abschnitte nicht mehr als
+     * Verknuepfung (z.B. fuer eine Vorschau, die die Bausteine selbst aufloest, ADR-0018).
+     *
+     * @throws TextBlockRejectedException wenn die Regel einen verknuepften Abschnitt ablehnt
+     */
+    @SneakyThrows
+    public static byte[] expandTextBlocks(@NonNull URL template, @NonNull TextBlockResolver resolver) {
+        TemplateDocument doc = TemplateDocument.getInstance(template);
+        expandTextBlocks(doc, resolver);
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            doc.save(out);
+            return out.toByteArray();
         }
     }
 

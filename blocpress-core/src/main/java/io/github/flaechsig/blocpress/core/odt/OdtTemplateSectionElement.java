@@ -52,6 +52,11 @@ public class OdtTemplateSectionElement extends OdtTemplateElement implements Tem
         super(element);
     }
 
+    @Override
+    public String getHref() {
+        return element.getAttribute("xlink:href");
+    }
+
     /**
      * Retrieves the URL for the current template section element based on the configured mode.
      * <p>

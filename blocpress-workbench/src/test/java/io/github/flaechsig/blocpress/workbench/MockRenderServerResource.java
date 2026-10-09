@@ -21,6 +21,8 @@ public class MockRenderServerResource implements QuarkusTestResourceLifecycleMan
     public static volatile byte[] responseBody = "LibreOffice conversion failed (exit=1)".getBytes();
     /** Content-Type header of the mock response. */
     public static volatile String responseContentType = "text/plain";
+    /** Body of the last request the mock received (e.g. to inspect what the workbench sent). */
+    public static volatile byte[] lastRequestBody;
 
     private HttpServer server;
 
@@ -29,6 +31,7 @@ public class MockRenderServerResource implements QuarkusTestResourceLifecycleMan
         try {
             server = HttpServer.create(new InetSocketAddress(0), 0);
             server.createContext("/", exchange -> {
+                lastRequestBody = exchange.getRequestBody().readAllBytes();
                 byte[] body = responseBody;
                 exchange.getResponseHeaders().set("Content-Type", responseContentType);
                 exchange.sendResponseHeaders(statusCode, body.length);

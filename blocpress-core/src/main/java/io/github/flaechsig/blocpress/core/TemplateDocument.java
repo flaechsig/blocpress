@@ -38,6 +38,10 @@ public interface TemplateDocument {
         return new OdtTemplateDocument(url);
     }
 
+    static TemplateDocument load(byte[] content) {
+        return new OdtTemplateDocument(content);
+    }
+
     URL getUrl();
 
     /**

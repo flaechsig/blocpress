@@ -21,4 +21,5 @@ nicht nötig.
 <!-- generated:stories -->
 - [US-0008](../stories/US-0008.md) — Produktion nur aus freigegebenen Vorlagen
 - [US-0052](../stories/US-0052.md) — Dienste legen ihr Datenbankschema selbst an
+- [US-0061](../stories/US-0061.md) — Ein Name, eine Zeitachse
 <!-- /generated -->

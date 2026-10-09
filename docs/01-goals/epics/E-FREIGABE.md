@@ -32,4 +32,5 @@ späteres Verschärfen.
 - [US-0042](../stories/US-0042.md) — Ausmustern und Zurückziehen zuverlässig machen
 - [US-0050](../stories/US-0050.md) — Freigabe nur mit bestandenen Regressionstests
 - [US-0053](../stories/US-0053.md) — Diff-PDF aus der Oberfläche abrufen
+- [US-0063](../stories/US-0063.md) — Freigabe berücksichtigt Bausteine
 <!-- /generated -->

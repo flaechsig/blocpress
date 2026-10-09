@@ -3,8 +3,11 @@ package io.github.flaechsig.blocpress.render;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -36,6 +39,12 @@ public class ProductionTemplate extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.VARBINARY)
     public byte[] content;
 
+    /** Vorlage oder Baustein (ADR-0018, REQ-0036). */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    @ColumnDefault("'TEMPLATE'")
+    public TemplateType type = TemplateType.TEMPLATE;
+
     /** Ablaufdatum des Templates. Null = kein Ablauf. */
     @Column(name = "valid_until")
     public LocalDateTime validUntil;
@@ -48,13 +57,14 @@ public class ProductionTemplate extends PanacheEntityBase {
      * @param name Template name
      * @return Currently active template, or null if not found or expired
      */
-    public static ProductionTemplate findLatestActiveByName(String name) {
+    public static ProductionTemplate findLatestActiveByName(String name, TemplateType type) {
         return find("""
             FROM ProductionTemplate
             WHERE name = ?1
+            AND type = ?2
             AND validFrom <= CURRENT_TIMESTAMP
             AND (validUntil IS NULL OR validUntil > CURRENT_TIMESTAMP)
             ORDER BY validFrom DESC, version DESC
-            """, name).firstResult();
+            """, name, type).firstResult();
     }
 }

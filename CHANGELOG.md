@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Quarkus 3.40.1 LTS** statt 3.27.2 (Support von 3.27 endete am 2026-09-24) in render, workbench und studio. Damit sind die von Trivy gemeldeten Lücken in Netty, Vert.x, `quarkus-vertx-http`, pgjdbc und Jackson behoben (u. a. Request Smuggling, Denial of Service, Umgehung pfadbasierter Berechtigungen). In `blocpress-core` bcprov 1.86 (transitiv über odfdom), commons-lang3 3.20.0 und Jackson 2.21.7.
 - **CORS nur noch ausdrücklich:** render und workbench erlaubten Aufrufe aus dem Browser von jeder Origin (`*`). Jetzt gilt same-origin; fremde Origins nennt `BLOCPRESS_CORS_ORIGINS` (kommagetrennt). Das Studio braucht keine, es leitet alle Aufrufe weiter. Wer render oder workbench direkt aus einer anderen Web-Anwendung aufruft, muss deren Origin setzen.
+- **Bausteine nur aus der eigenen Bibliothek** (ADR-0018, US-0060): render öffnet die Verknüpfung eines Bausteins (`text:section-source`) nicht mehr, sondern nimmt aus ihr nur den Namen (`…/bausteine/{name}.odt`) und lädt den zur Renderzeit gültigen, freigegebenen Baustein aus der eigenen Datenbank. Bisher konnte eine Vorlage render beliebige Adressen aufrufen oder lokale Dateien einbinden lassen. **Achtung:** `POST /api/render/template` lehnt Vorlagen mit Verknüpfungen jetzt mit 422 ab; andere Verknüpfungen oder unbekannte Bausteine beim Rendern per Namen ebenfalls 422. Bausteine, die vor diesem Release in die Produktion übernommen wurden, gelten dort als Vorlage und müssen einmal neu freigegeben werden, damit render sie als Baustein findet.
 - **GitHub Actions auf Commit-SHA gepinnt:** Ein umgehängter Tag einer fremden Action kann im Release-Workflow keinen fremden Code mehr mit Signaturschlüssel und Registry-Zugängen ausführen.
 
 ### Changed
 
+- **Vorschau und Regressionstest mit Bausteinen** (REQ-0045): Die Workbench setzt verknüpfte Bausteine selbst ein — den Entwurf, sonst die gültige freigegebene Version — und schickt render eine Vorlage ohne Verknüpfung.
+- **Import nach production mit Typ** (REQ-0036): Vorlage oder Baustein; per Name rendert render nur Vorlagen, eingebunden werden nur Bausteine. Neues Liquibase-Changeset `002-template-type`.
 - **Suche der Workbench:** Low-Level-Client `Rest5Client` aus elasticsearch-java 9, wie ihn Quarkus 3.40 mitbringt; der Server bleibt Elasticsearch 8.x.
 
 ### Fixed

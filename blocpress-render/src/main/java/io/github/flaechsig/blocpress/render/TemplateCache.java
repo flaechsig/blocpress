@@ -34,7 +34,7 @@ public class TemplateCache {
     public byte[] getTemplateContentByName(String templateName) {
         logger.info("Fetching template {} from production schema (cache miss)", templateName);
 
-        ProductionTemplate template = ProductionTemplate.findLatestActiveByName(templateName);
+        ProductionTemplate template = ProductionTemplate.findLatestActiveByName(templateName, TemplateType.TEMPLATE);
         if (template == null) {
             throw new TemplateNotFoundException("Template not found in production: " + templateName);
         }
@@ -42,6 +42,28 @@ public class TemplateCache {
         logger.info("Successfully fetched template {} v{} (size: {} bytes)",
             templateName, template.version, template.content.length);
         return template.content;
+    }
+
+    /**
+     * Liefert den gueltigen, freigegebenen Baustein dieses Namens (ADR-0018, REQ-0033).
+     *
+     * @throws TemplateNotFoundException wenn es keinen gibt
+     */
+    @Transactional
+    @CacheResult(cacheName = "bausteine")
+    public byte[] getBausteinContentByName(String name) {
+        ProductionTemplate baustein = ProductionTemplate.findLatestActiveByName(name, TemplateType.BAUSTEIN);
+        if (baustein == null) {
+            throw new TemplateNotFoundException("Building block not found in production: " + name);
+        }
+        logger.info("Fetched building block {} v{}", name, baustein.version);
+        return baustein.content;
+    }
+
+    /** Invalidiert den Baustein-Eintrag dieses Namens. */
+    @CacheInvalidate(cacheName = "bausteine")
+    public void invalidateBaustein(String name) {
+        // Cache eviction is handled by the annotation
     }
 
     /**

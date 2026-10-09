@@ -109,6 +109,10 @@ paths:
           description: Bad request — missing template, invalid JSON, or invalid template structure
         "406":
           description: Unsupported output format
+        "422":
+          description: >
+            The template links a building block (text:section-source); templates sent with
+            the request must be self-contained (ADR-0018).
         "500":
           description: Internal server error
 
@@ -158,6 +162,11 @@ paths:
           description: Template not approved for rendering
         "404":
           description: Template not found
+        "422":
+          description: >
+            A linked section does not reference a building block (path ending in
+            /bausteine/{name}.odt) or no valid approved building block of that name exists.
+            Building blocks are taken from the production store by name, never from the link.
         "500":
           description: Internal server error
 
