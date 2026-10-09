@@ -17,6 +17,9 @@ gitleaks, Analyse von Code und Konfiguration; keine laufende Instanz getestet). 
 Risiko: Die `ProcessBuilder`-Aufrufe für `soffice` und ImageMagick bekommen keine
 Nutzereingaben; der XML-Parser des PDF-Vergleichs liest nur die Ausgabe von `pdftohtml`; die
 Jackson-Lücken zur Codeausführung setzen Default-Typing voraus, das blocpress nicht einschaltet.
+Der Security-Test vom 2026-10-09 lief zusätzlich gegen lokal gestartete Container
+(ZAP Baseline passiv, Nuclei ohne eingreifende Vorlagen, Trivy auf die Images); daraus
+stammt SEC-0007.
 
 Gegenüber dem Altbestand korrigiert: R-0001 sprach von Speicherlecks einer lange laufenden
 LibreOffice-Instanz und von deren Neustart nach X Generierungen. Eine solche Instanz gibt es
@@ -50,7 +53,7 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 | [R-0006](R-0006.md) | Viele Reviews gleichzeitig fällig | offen | — | [US-0040](../01-goals/stories/US-0040.md) |
 | [R-0007](R-0007.md) | Bausteine zur Renderzeit über die Workbench | behoben | — | [US-0060](../01-goals/stories/US-0060.md) |
 | [R-0008](R-0008.md) | Gleichzeitiges Bearbeiten per WebDAV | hingenommen | — | — |
-| [R-0009](R-0009.md) | Workbench und Import ohne Authentifizierung | offen | mittel | [US-0021](../01-goals/stories/US-0021.md), [US-0054](../01-goals/stories/US-0054.md) |
+| [R-0009](R-0009.md) | Workbench und Import ohne Authentifizierung | abgelöst | mittel | — |
 | [R-0010](R-0010.md) | Webhooks ohne Wiederholung | offen | — | — |
 
 ## Security-Risiken
@@ -64,6 +67,7 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 | [SEC-0005](SEC-0005.md) | Actions über veränderliche Tags | behoben | niedrig | [US-0059](../01-goals/stories/US-0059.md) |
 | [SEC-0006](SEC-0006.md) | Eingebundene Abschnitte laden beliebige Adressen | behoben | mittel | [US-0060](../01-goals/stories/US-0060.md) |
 | [SEC-0007](SEC-0007.md) | Oberflächen ohne Security-Header | behoben | niedrig | [US-0064](../01-goals/stories/US-0064.md) |
+| [SEC-0008](SEC-0008.md) | Workbench und Import ohne Authentifizierung | offen | mittel | [US-0021](../01-goals/stories/US-0021.md), [US-0054](../01-goals/stories/US-0054.md) |
 
 ## Technische Schulden
 
