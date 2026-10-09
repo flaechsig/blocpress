@@ -2185,7 +2185,7 @@ export class BpWorkbench extends LitElement {
         try {
             const res = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/run-all-regressions`,
-                { method: 'POST' }
+                { method: 'POST', headers: this._authHeaders() }
             );
             if (!res.ok) throw new Error(`Fehler: ${res.status}`);
             this._regressionResults = await res.json();
@@ -2538,7 +2538,7 @@ export class BpWorkbench extends LitElement {
             const templateId = this._selectedTemplate.id;
             const res = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${templateId}/testdata/${testDataSetId}/regression-diff-pages`,
-                { method: 'POST' }
+                { method: 'POST', headers: this._authHeaders() }
             );
             if (!res.ok) throw new Error(`Fehler: ${res.status}`);
             this._diffReport = await res.json();
@@ -2710,7 +2710,7 @@ export class BpWorkbench extends LitElement {
         try {
             const res = await fetch(
                 `${this._getApiBase()}/api/workbench/templates/${this._selectedTemplate.id}/testdata/${testDataSetId}/save-rendered-as-expected`,
-                { method: 'POST' }
+                { method: 'POST', headers: this._authHeaders() }
             );
             if (!res.ok) throw new Error(`Fehler: ${res.status}`);
             this._expandedDiffId = null;
@@ -3238,6 +3238,11 @@ export class BpWorkbench extends LitElement {
     }
 
     // --- API helpers ---
+
+    /** Token des Benutzers als Header; die Workbench reicht es an render weiter (REQ-0059). */
+    _authHeaders() {
+        return this.jwt ? { 'Authorization': `Bearer ${this.jwt}` } : {};
+    }
 
     _getApiBase() {
         if (this.apiBaseUrl) return this.apiBaseUrl.replace(/\/+$/, '');

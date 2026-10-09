@@ -84,8 +84,9 @@ application.properties)_
 unter `bp-jwt` ab; „Clear“ entfernt es. `bp-app` zeigt die Workbench erst, wenn irgendein
 Token gesetzt ist, und reicht es als Eigenschaft `jwt` an `bp-workbench` weiter. Das Studio
 prüft weder Form noch Signatur noch Ablauf; es gibt keine Anmeldung gegen einen
-Identity-Provider. `bp-workbench` schickt das Token nur bei wenigen Aufrufen als
-`Authorization: Bearer` mit (Suche, Vorschau), und die Workbench prüft es nicht
+Identity-Provider. `bp-workbench` schickt das Token als `Authorization: Bearer` bei
+Suche, Vorschau, Regression und Statuswechsel mit; die Workbench reicht es an render weiter,
+prüft es aber nicht
 ([ADR-0003](../09-decisions/ADR-0003.md)). Der Hinweis in der Oberfläche nennt für den
 Quickstart das veröffentlichte Beispiel-Token (`samples/quickstart/token.txt` der Website).
 
