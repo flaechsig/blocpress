@@ -63,7 +63,7 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 | [SEC-0004](SEC-0004.md) | Container als root | behoben | niedrig | [US-0058](../01-goals/stories/US-0058.md) |
 | [SEC-0005](SEC-0005.md) | Actions über veränderliche Tags | behoben | niedrig | [US-0059](../01-goals/stories/US-0059.md) |
 | [SEC-0006](SEC-0006.md) | Eingebundene Abschnitte laden beliebige Adressen | behoben | mittel | [US-0060](../01-goals/stories/US-0060.md) |
-| [SEC-0007](SEC-0007.md) | Oberflächen ohne Security-Header | offen | niedrig | — |
+| [SEC-0007](SEC-0007.md) | Oberflächen ohne Security-Header | behoben | niedrig | [US-0064](../01-goals/stories/US-0064.md) |
 
 ## Technische Schulden
 

@@ -23,4 +23,5 @@ eines Tests sollen deshalb nachvollziehbar zu einer Behebung führen.
 - [US-0058](../stories/US-0058.md) — Container ohne root-Rechte betreiben
 - [US-0059](../stories/US-0059.md) — Actions im Release-Workflow auf Commit-SHA pinnen
 - [US-0060](../stories/US-0060.md) — Bausteine nur aus der eigenen Bibliothek
+- [US-0064](../stories/US-0064.md) — Security-Header in Workbench, Studio und render
 <!-- /generated -->

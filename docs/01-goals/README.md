@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 10 · ✅ verifiziert 51 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 4 · umgesetzt 59 · abgelöst 1 |
+| Stories | ⚪ offen 10 · ✅ verifiziert 52 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 4 · umgesetzt 62 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 3 · angenommen 15 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -121,6 +121,7 @@ Status: ✅ verifiziert
 | [US-0058](stories/US-0058.md) | Container ohne root-Rechte betreiben | ✅ verifiziert |
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
 | [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ✅ verifiziert |
+| [US-0064](stories/US-0064.md) | Security-Header in Workbench, Studio und render | ✅ verifiziert |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 

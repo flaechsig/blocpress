@@ -222,4 +222,6 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0061](../01-goals/requirements/REQ-0061.md) IF deleting an approved template is requested, THEN the workbench shall reject the deletion with HTTP 409.
 - [REQ-0062](../01-goals/requirements/REQ-0062.md) IF a status change from APPROVED to SUBMITTED is requested, THEN the workbench shall reject it.
 - [REQ-0064](../01-goals/requirements/REQ-0064.md) IF an approved version of the name starts later than the version to be approved, THEN the workbench shall reject the approval with HTTP 409.
+- [REQ-0065](../01-goals/requirements/REQ-0065.md) The workbench and the studio shall send the headers X-Content-Type-Options with the value nosniff and X-Frame-Options with the value DENY with every response.
+- [REQ-0066](../01-goals/requirements/REQ-0066.md) The workbench and the studio shall send with every response a Content-Security-Policy that permits scripts only from their own origin, from https://esm.sh and from the import map of their start page, and that forbids embedding in other pages.
 <!-- /generated -->
