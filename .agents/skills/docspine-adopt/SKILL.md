@@ -115,6 +115,7 @@ Then show the plan as one table, every row with a target:
 | vision or project description | core statement in `docs/01-goals/vision.md` (3.1) |
 | decisions | `docs/09-decisions/ADR-NNNN.md` (3.5) |
 | architecture chapters with content | chapter files (2.1); empty chapters are dropped |
+| risks, security findings and technical debt | one file each under `docs/11-risks/` as `R-`, `SEC-` or `TD-` (3.8); references from stories into `addresses` |
 | diagram sources and images | Mermaid where small; otherwise source and SVG under `docs/diagrams/`, the SVG rendered with the command `diagram` (9) |
 | guides, runbooks and other own documentation | own folder under `docs/` (2.1) |
 | old documentation without structure | `docs/legacy/` (10) |

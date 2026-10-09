@@ -6,8 +6,8 @@ title: Sicherheit
 ## E-SECURITY — Sicherheit
 
 Maßnahmen aus Security-Tests (secspine): Schwachstellen in Konfiguration, Abhängigkeiten,
-Images und Pipeline, die ein Test bestätigt hat. Jede Story verweist auf ihr Risiko
-(`SEC-n` oder `R-n`) in [Kapitel 11](../../11-risks.md).
+Images und Pipeline, die ein Test bestätigt hat. Jede Story nennt in `addresses` das Risiko
+(`SEC-NNNN` oder `R-NNNN`) in [Kapitel 11](../../11-risks/README.md), an dem sie arbeitet.
 
 **Warum.** blocpress verarbeitet Vorlagen, aus denen Dokumente an Kunden entstehen. Wer
 Vorlagen in Produktion ändern oder die Dienste lahmlegen kann, trifft genau das; Befunde

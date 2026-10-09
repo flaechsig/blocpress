@@ -51,6 +51,9 @@ it after approval. Never write to the main branch.
 4. A field `docspine:` in the front matter of `.docspine/PROFILE.md` (no longer used).
 5. Diagram sources (DOT, PlantUML) under `docs/` whose SVG carries no checksum yet
    (error 12 since version 0.17), and whether Graphviz or PlantUML is installed.
+6. Chapter 11 as a single file `docs/11-risks.md` that numbers its risks or debts (for
+   example `R-9`, `SEC-4`, `TD-2`), and stories that refer to them in their text. Since
+   version 0.21 these can be files with IDs (STANDARD 3.8).
 
 ## Step 2 — Propose
 
@@ -68,6 +71,14 @@ are newer than the README's version. Then list what you would do:
   `python3 .docspine/docspine.pyz diagram`, so that they carry the checksum of their
   source (STANDARD 9). If the tool is missing, name it; the check reports the images
   until they are rendered.
+- **Risks with IDs (optional):** if step 1.6 found numbered risks, offer to move them
+  into `docs/11-risks/`, one file each. Numbers are kept (`R-9` → `R-0009`); a status
+  such as "fixed" becomes `closed` only if every story that works on the risk is
+  `verified`, otherwise `open`, and you name it. References in the text of stories
+  become `addresses`; notes like "fixed on …" in stories and in chapter 11 are dropped,
+  because the risk shows its stories. Text that is not a risk (footnotes, "checked, no
+  risk") goes into `docs/11-risks/README.md` above the generated region. This step can
+  also be done later; without it nothing breaks.
 
 If there is nothing to do, say "Nothing to do" and continue with step 4.
 

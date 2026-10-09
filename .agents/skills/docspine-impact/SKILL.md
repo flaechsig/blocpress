@@ -20,7 +20,7 @@ This skill is not a documentation generator. Its most frequent good result is a 
 evidenced verdict, often "no impact". The documentation grows with the changes (STANDARD
 principle 8); writing nothing on good grounds is as valuable as writing.
 
-Before you start, read `.docspine/STANDARD.md` sections 1, 2.1, 3.6–3.8, 6, 7 and 9. The
+Before you start, read `.docspine/STANDARD.md` sections 1, 2.1, 3.6–3.9, 6, 7 and 9. The
 rules there apply; this skill only describes the procedure. Talk to the person in the
 project language (`language` in `.docspine/PROFILE.md`).
 
@@ -120,9 +120,14 @@ here, without changing a file.
 ## Step 4 — Write (after approval)
 
 - Edit the chapter file; create it if the chapter does not exist yet (STANDARD 2.1). A
-  chapter that is only partly filled carries `arc42_status: PARTIAL` (STANDARD 3.8).
+  chapter that is only partly filled carries `arc42_status: PARTIAL` (STANDARD 3.9).
 - Every new statement carries its confidence inline (STANDARD 7).
 - A changed building block keeps its `path` current (STANDARD 3.6).
+- Chapter 11 with risk files (`docs/11-risks/`, STANDARD 3.8): a new risk or debt is a new
+  file with the next free number of its prefix, `status: open`; a security risk is
+  `SEC-`, never `R-`. Set a risk to `closed` only when every story in its region
+  `stories` is `verified`; `accepted` only when the person decides to live with it. Do
+  not write which story handles it or when it was fixed; that is generated.
 - Diagrams: change the source; render DOT and PlantUML with
   `python3 .docspine/docspine.pyz diagram`. If Graphviz or PlantUML is missing, change
   only the source and name it as an open point.
