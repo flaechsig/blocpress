@@ -6,8 +6,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 | | Anzahl |
 |---|---|
 | Stories | ⚪ offen 15 · 🟡 in Arbeit 1 · ✅ verifiziert 45 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 12 · umgesetzt 40 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 5 · angenommen 13 · abgelöst 1 |
+| Requirements | vorgeschlagen 12 · geplant 4 · umgesetzt 40 · abgelöst 1 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -171,7 +171,6 @@ Status: 🟡 in Arbeit
 - [ADR-0016](../09-decisions/ADR-0016.md) — render in zwei Betriebsarten — Engine und voll
 - [ADR-0017](../09-decisions/ADR-0017.md) — Alle fachlichen Aufrufe sind authentifiziert
 - [ADR-0018](../09-decisions/ADR-0018.md) — Bausteine werden zur Renderzeit aus der Produktion aufgelöst
-- [ADR-0019](../09-decisions/ADR-0019.md) — Import in die Produktion bei eingeschalteter Absicherung nur für Reviewer
 
 ## Widersprüche
 
