@@ -5,20 +5,20 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 14 · 🟡 in Arbeit 1 · ✅ verifiziert 46 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 12 · umgesetzt 44 · abgelöst 1 |
+| Stories | ⚪ offen 13 · 🟡 in Arbeit 1 · ✅ verifiziert 47 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 12 · umgesetzt 46 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
-Status: ⚪ offen
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
 | [US-0020](stories/US-0020.md) | Benutzer und Rollen verwalten | ⛔ abgelöst |
 | [US-0021](stories/US-0021.md) | Rollen bei jedem API-Aufruf prüfen | ⚪ offen |
 | [US-0022](stories/US-0022.md) | Workflow-Änderungen im Audit-Log festhalten | ⚪ offen |
-| [US-0044](stories/US-0044.md) | Absicherung durchgängig | ⚪ offen |
+| [US-0044](stories/US-0044.md) | Absicherung durchgängig | ✅ verifiziert |
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 

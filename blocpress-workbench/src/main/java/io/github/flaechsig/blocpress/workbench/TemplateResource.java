@@ -249,7 +249,8 @@ public class TemplateResource {
     @Path("{id}/preview")
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
-    public Response previewTemplate(@PathParam("id") UUID id, PreviewRequest request) {
+    public Response previewTemplate(@PathParam("id") UUID id, PreviewRequest request,
+                                    @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(id);
         if (template == null || template.content == null || template.content.length == 0) {
             throw new WebApplicationException("Template not found or empty", Response.Status.NOT_FOUND);
@@ -271,7 +272,8 @@ public class TemplateResource {
             HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
-            HttpRequest httpRequest = HttpRequest.newBuilder()
+            // Token des Benutzers durchreichen (REQ-0058)
+            HttpRequest httpRequest = withAuthorization(HttpRequest.newBuilder(), authorization)
                 .uri(URI.create(renderUrl + "/render/template"))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/pdf")
@@ -767,7 +769,8 @@ public class TemplateResource {
     @Path("{templateId}/testdata/{testDataSetId}/run-regression")
     @Transactional
     public RegressionResult runRegression(@PathParam("templateId") UUID templateId,
-                                          @PathParam("testDataSetId") UUID testDataSetId) {
+                                          @PathParam("testDataSetId") UUID testDataSetId,
+                                          @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(templateId);
         if (template == null || template.content == null || template.content.length == 0) {
             throw new WebApplicationException("Template not found or empty", Response.Status.NOT_FOUND);
@@ -782,7 +785,7 @@ public class TemplateResource {
         }
 
         try {
-            byte[] actualPdf = renderPdf(template, tds);
+            byte[] actualPdf = renderPdf(template, tds, authorization);
             List<String> ignoredPatterns = mergedIgnoredPatterns(template, tds);
             boolean identicalWithoutIgnoring = pdfComparisonService.areVisuallyIdentical(tds.expectedPdf, actualPdf, List.of());
             boolean passedWithIgnoring = identicalWithoutIgnoring
@@ -799,7 +802,8 @@ public class TemplateResource {
     @Path("{templateId}/testdata/{testDataSetId}/regression-diff")
     @Produces("application/pdf")
     public Response regressionDiff(@PathParam("templateId") UUID templateId,
-                                   @PathParam("testDataSetId") UUID testDataSetId) {
+                                   @PathParam("testDataSetId") UUID testDataSetId,
+                                   @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(templateId);
         if (template == null || template.content == null || template.content.length == 0) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -813,7 +817,7 @@ public class TemplateResource {
         }
 
         try {
-            byte[] actualPdf = renderPdf(template, tds);
+            byte[] actualPdf = renderPdf(template, tds, authorization);
             byte[] diffPdf = pdfComparisonService.generateDiffPdf(tds.expectedPdf, actualPdf);
             if (diffPdf == null)
                 throw new WebApplicationException("Diff-Generierung fehlgeschlagen", Response.Status.INTERNAL_SERVER_ERROR);
@@ -835,7 +839,8 @@ public class TemplateResource {
     @Path("{templateId}/testdata/{testDataSetId}/save-rendered-as-expected")
     @Transactional
     public Response saveRenderedAsExpected(@PathParam("templateId") UUID templateId,
-                                           @PathParam("testDataSetId") UUID testDataSetId) {
+                                           @PathParam("testDataSetId") UUID testDataSetId,
+                                           @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(templateId);
         if (template == null || template.content == null || template.content.length == 0)
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -843,7 +848,7 @@ public class TemplateResource {
         if (tds == null || !tds.template.id.equals(templateId))
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         try {
-            byte[] pdf = renderPdf(template, tds);
+            byte[] pdf = renderPdf(template, tds, authorization);
             testDataSetService.saveExpectedPdf(testDataSetId, pdf);
             return Response.ok().build();
         } catch (WebApplicationException e) {
@@ -857,7 +862,8 @@ public class TemplateResource {
     @POST
     @Path("{id}/run-all-regressions")
     @Transactional
-    public List<RegressionResult> runAllRegressions(@PathParam("id") UUID id) {
+    public List<RegressionResult> runAllRegressions(@PathParam("id") UUID id,
+                                                    @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(id);
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -865,7 +871,7 @@ public class TemplateResource {
         List<TestDataSet> testDataSets = TestDataSet.list("template.id", id);
         List<RegressionResult> results = new java.util.ArrayList<>();
         for (TestDataSet tds : testDataSets) {
-            results.add(runRegression(id, tds.id));
+            results.add(runRegression(id, tds.id, authorization));
         }
         return results;
     }
@@ -891,7 +897,8 @@ public class TemplateResource {
     @POST
     @Path("{templateId}/testdata/{testDataSetId}/regression-diff-pages")
     public Response regressionDiffPages(@PathParam("templateId") UUID templateId,
-                                        @PathParam("testDataSetId") UUID testDataSetId) {
+                                        @PathParam("testDataSetId") UUID testDataSetId,
+                                        @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(templateId);
         if (template == null || template.content == null || template.content.length == 0)
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -902,7 +909,7 @@ public class TemplateResource {
             throw new WebApplicationException("Kein Expected PDF gespeichert", Response.Status.BAD_REQUEST);
 
         try {
-            byte[] actualPdf = renderPdf(template, tds);
+            byte[] actualPdf = renderPdf(template, tds, authorization);
             List<String> ignoredPatterns = mergedIgnoredPatterns(template, tds);
             PdfComparisonService.DiffPagesReport report =
                 pdfComparisonService.generateDiffPages(tds.expectedPdf, actualPdf, ignoredPatterns);
@@ -1038,7 +1045,7 @@ public class TemplateResource {
 
     public record IgnoreBlockRequest(String pattern, String scope) {} // scope: "this" | "all"
 
-    private byte[] renderPdf(Template template, TestDataSet tds) throws Exception {
+    private byte[] renderPdf(Template template, TestDataSet tds, String authorization) throws Exception {
         byte[] content;
         try {
             // Bausteine selbst einsetzen; render nimmt keine Verknuepfungen an (ADR-0018, REQ-0045)
@@ -1054,7 +1061,8 @@ public class TemplateResource {
         String requestBody = objectMapper.writeValueAsString(requestJson);
 
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        // Token des Benutzers durchreichen (REQ-0058)
+        HttpRequest httpRequest = withAuthorization(HttpRequest.newBuilder(), authorization)
             .uri(URI.create(renderUrl + "/render/template"))
             .header("Content-Type", "application/json")
             .header("Accept", "application/pdf")

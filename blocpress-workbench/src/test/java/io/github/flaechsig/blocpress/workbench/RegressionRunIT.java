@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -125,6 +126,44 @@ class RegressionRunIT {
         Response diff = RestAssured.post(BASE + templateId + "/testdata/" + testDataId + "/regression-diff");
         assertEquals(200, diff.statusCode(), diff.asString());
         assertTrue(diff.asString().startsWith("%PDF"), "Diff ist kein PDF");
+    }
+
+    @Test
+    @DisplayName("REQ-0058: previewAndRegressionForwardUserTokenToRender")
+    void previewAndRegressionForwardUserTokenToRender() throws Exception {
+        saveExpected(EXPECTED);
+        RecordingRenderServerResource.reset();
+        RecordingRenderServerResource.renderResponse = AMOUNT_CHANGED;
+        String bearer = "Bearer user-token-" + UUID.randomUUID();
+        String tds = BASE + templateId + "/testdata/" + testDataId;
+
+        assertEquals(200, withToken(bearer).contentType("application/json")
+                .body("{\"data\":{},\"outputType\":\"pdf\"}").post(BASE + templateId + "/preview").statusCode());
+        assertEquals(200, withToken(bearer).post(tds + "/run-regression").statusCode());
+        assertEquals(200, withToken(bearer).post(BASE + templateId + "/run-all-regressions").statusCode());
+        assertEquals(200, withToken(bearer).post(tds + "/regression-diff").statusCode());
+        assertEquals(200, withToken(bearer).post(tds + "/regression-diff-pages").statusCode());
+        assertEquals(200, withToken(bearer).post(tds + "/save-rendered-as-expected").statusCode());
+
+        var renders = RecordingRenderServerResource.calls("POST", "/render/template");
+        assertEquals(6, renders.size(), "ein Render-Aufruf je Funktion: " + RecordingRenderServerResource.CALLS);
+        renders.forEach(c -> assertEquals(bearer, c.authorization(), "Render-Aufruf ohne das Token des Benutzers"));
+    }
+
+    @Test
+    @DisplayName("REQ-0058: withoutUserTokenPreviewSendsNoAuthorization")
+    void withoutUserTokenPreviewSendsNoAuthorization() {
+        RecordingRenderServerResource.renderResponse = EXPECTED;
+        assertEquals(200, RestAssured.given().contentType("application/json")
+                .body("{\"data\":{},\"outputType\":\"pdf\"}").post(BASE + templateId + "/preview").statusCode());
+
+        var renders = RecordingRenderServerResource.calls("POST", "/render/template");
+        assertEquals(1, renders.size(), RecordingRenderServerResource.CALLS.toString());
+        assertNull(renders.getFirst().authorization(), "die Workbench darf kein eigenes Token erfinden");
+    }
+
+    private static io.restassured.specification.RequestSpecification withToken(String authorization) {
+        return RestAssured.given().header("Authorization", authorization);
     }
 
     private void saveExpected(byte[] pdf) {
