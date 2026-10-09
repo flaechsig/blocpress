@@ -17,9 +17,11 @@ sequenceDiagram
     participant DB as DB production
     App->>R: POST /api/render/{name}
     R->>C: Inhalt für name
-    alt nicht im Cache
-        C->>DB: gültige Version suchen
-        DB-->>C: ODT oder nichts
+    C->>DB: id der gültigen Version
+    DB-->>C: id oder nichts
+    alt Inhalt der id nicht im Cache
+        C->>DB: Inhalt der id
+        DB-->>C: ODT
     end
     C-->>R: ODT
     R->>R: mischen, konvertieren
@@ -28,11 +30,13 @@ sequenceDiagram
 ```
 
 1. Der Aufruf bringt die JSON-Daten und `outputType` (`pdf`, `rtf` oder `odt`) mit.
-2. `TemplateCache.getTemplateContentByName` liefert den Inhalt aus dem Cache (Caffeine,
-   höchstens 100 Einträge, 10 Minuten nach dem Schreiben verfallen). Fehlt der Eintrag,
-   sucht `ProductionTemplate.findLatestActiveByName` unter allen Einträgen des Namens mit
-   `validFrom ≤ jetzt` und (`validUntil` leer oder `> jetzt`) den mit dem jüngsten `validFrom`,
-   bei Gleichstand die höchste Version (siehe [Versionierung](../08-concepts/versionierung.md)).
+2. `TemplateCache.getTemplateContentByName` sucht bei jedem Aufruf mit
+   `ProductionTemplate.findValidId` unter allen Einträgen des Namens mit `validFrom ≤ jetzt`
+   und (`validUntil` leer oder `> jetzt`) den mit dem jüngsten `validFrom`, bei Gleichstand die
+   höchste Version (siehe [Versionierung](../08-concepts/versionierung.md)); „jetzt“ ist die Zeit
+   der JVM. Die Abfrage liefert nur die `id`. Den Inhalt dieser `id` hält
+   `TemplateContentCache` im Speicher (Caffeine, höchstens 300 Einträge, eine Stunde nach dem
+   letzten Zugriff verfallen), sonst lädt er ihn aus der Datenbank.
 3. Findet sich keine gültige Version, auch weil das Ablaufdatum überschritten ist, antwortet
    render mit 404 ([REQ-0022](../01-goals/requirements/REQ-0022.md)).
 4. `RenderEngine.mergeTemplate` mischt Vorlage und Daten mit der eingestellten Standard-Locale,
@@ -47,21 +51,20 @@ sequenceDiagram
 Fehler im Mischen oder Konvertieren beantwortet render mit 500 und der Fehlermeldung.
 
 _(confidence: verified — blocpress-render/…/RenderResource.java (`renderDocumentByName`,
-`mergeAndTransform`), TemplateCache.java, ProductionTemplate.java (`findLatestActiveByName`),
+`mergeAndTransform`), TemplateCache.java, TemplateContentCache.java, ProductionTemplate.java (`findValidId`),
 LibreOfficePool.java, RenderJobWorker.java (`recordSync`),
 blocpress-render/src/main/resources/application.properties; derived_from:
 arc42.adoc:938-1007 legacy (git history))_
 
-**Folgen des Caches.** Der Cache kennt das Ablaufdatum nicht: Eine Version, deren
-`validUntil` verstreicht oder deren Nachfolger durch Zeitablauf gültig wird, kann noch bis zu
-10 Minuten aus dem Cache ausgeliefert werden. Ein Import leert den Cache ganz, das
-Zurückziehen nur den Eintrag des Namens (siehe [Freigabe](approval-and-deployment.md)). Der Cache
-liegt im Speicher jeder render-Instanz; Import und Zurückziehen leeren ihn nur in der
-Instanz, die den Aufruf erhält.
+**Cache und Gültigkeit.** Weil die gültige Version bei jedem Aufruf aus der Datenbank kommt,
+wirken Ablauf, Zurückziehen und neue Versionen sofort, auch wenn eine andere render-Instanz die
+Änderung angenommen hat ([REQ-0063](../01-goals/requirements/REQ-0063.md),
+[REQ-0038](../01-goals/requirements/REQ-0038.md)). Zwischengespeichert ist nur der Inhalt je
+`id`, der sich nicht ändert; ein Import mit derselben `id` verwirft ihn. Bausteine laufen
+denselben Weg (`getBausteinContentByName`).
 
-_(confidence: verified — TemplateCache.java (`@CacheResult`, `invalidate`),
-TemplateImportResource.java (`@CacheInvalidateAll`, `removeTemplate`),
-`quarkus.cache.type=caffeine`)_
+_(confidence: verified — TemplateCache.java, TemplateContentCache.java (`@CacheResult`,
+`invalidate`), TemplateImportResource.java, application.properties; ProductionChangesTest)_
 
 Gegenüber dem Altbestand korrigiert: render wählt nicht die „höchste Version mit
 `validFrom ≤ now`“, sondern zuerst nach `validFrom` und beachtet `validUntil`. Der Ablauf ist
@@ -69,4 +72,3 @@ nicht `TemplateNotFoundException` vom Repository, sondern ein leeres Suchergebni
 wird über `LibreOfficePool.convert`, nicht `refreshAndTransform`. Neu gegenüber dem Altbestand
 ist der Protokolleintrag als `RenderJob`.
 
-- UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?

@@ -43,8 +43,8 @@ sequenceDiagram
    und Zyklus freigegeben wird.
 5. **Ablauf:** Ist `validUntil` überschritten, findet render die Version nicht mehr und
    antwortet beim [Rendern per Name](render-by-name.md) mit 404
-   ([REQ-0022](../01-goals/requirements/REQ-0022.md)), wegen des Caches bis zu 10 Minuten
-   später. In der Workbench bleibt die Vorlage `APPROVED`.
+   ([REQ-0022](../01-goals/requirements/REQ-0022.md)), sofort und auf allen Instanzen
+   ([REQ-0038](../01-goals/requirements/REQ-0038.md)). In der Workbench bleibt die Vorlage `APPROVED`.
 
 Bereits abgelaufene Vorlagen erfüllen die Bedingung weiter und erscheinen täglich erneut in
 Log und Liste, bis sie neu freigegeben oder zurückgezogen sind.

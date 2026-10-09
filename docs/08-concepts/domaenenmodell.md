@@ -142,10 +142,11 @@ Element_Design_Concept.adoc:1184-1215 legacy (git history))_
 Freigegebene Vorlagen in vereinfachter Form: `id` (dieselbe UUID wie in der Workbench),
 `name`, `version`, `validFrom`, `validUntil`, `content`. Ein Status fehlt; was hier liegt, gilt
 als freigegeben. Der Import ersetzt einen Eintrag mit gleicher `id`. Ältere Versionen
-bleiben stehen, bis die Vorlage zurückgezogen wird. render hält den Inhalt bis zu 10 Minuten
-in einem Cache (höchstens 100 Einträge); ein Import leert ihn.
+bleiben stehen, bis die Vorlage zurückgezogen wird. render hält den Inhalt je `id` in einem
+Cache (höchstens 300 Einträge); welche Version gilt, ermittelt es bei jedem Rendern neu.
 
 _(confidence: verified — ProductionTemplate.java, TemplateImportResource.java, TemplateCache.java,
+TemplateContentCache.java,
 blocpress-render/src/main/resources/application.properties; derived_from:
 Element_Design_Concept.adoc:847-876 legacy (git history))_
 

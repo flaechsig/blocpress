@@ -61,7 +61,7 @@ arc42.adoc:1162-1172 legacy (git history), arc42.adoc:1272-1310 legacy (git hist
    `version`, den Inhalt als Base64, `validFrom` und `validUntil` an
    `POST /api/render/templates/import` ([REQ-0014](../01-goals/requirements/REQ-0014.md)).
 3. render (`TemplateImportResource`) prüft die Pflichtfelder (sonst 400), löscht einen Eintrag
-   mit derselben `id`, legt den neuen an und leert den ganzen Vorlagen-Cache. Ältere Versionen
+   mit derselben `id`, legt den neuen an und verwirft den zwischengespeicherten Inhalt dieser `id`. Ältere Versionen
    desselben Namens bleiben stehen.
 4. Ist render nicht erreichbar oder antwortet mit einem Fehler, antwortet die Workbench mit
    503. Die Transaktion wird zurückgerollt, die Vorlage bleibt `SUBMITTED`
@@ -90,8 +90,8 @@ vor dem Deploy), ElasticsearchIndexService.java (`updateStatus`))_
    entfernt die Vorlage aus dem Suchindex und ruft `DELETE /api/render/templates/import/{name}`
    ([REQ-0023](../01-goals/requirements/REQ-0023.md)).
 2. render löscht **alle** Einträge mit diesem Namen aus `production`, also auch andere
-   freigegebene Versionen, und entfernt den Namen aus dem Cache. Danach liefert
-   [Rendern per Name](render-by-name.md) 404.
+   freigegebene Versionen. Danach liefert [Rendern per Name](render-by-name.md) sofort 404,
+   auf allen Instanzen ([REQ-0063](../01-goals/requirements/REQ-0063.md)).
 
 Wie bei der Freigabe scheitert das Zurückziehen mit 503, wenn render das Entfernen nicht
 bestätigt (nicht erreichbar, Fehler, 401/403): Die Transaktion wird zurückgerollt, die Vorlage

@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 12 · 🟡 in Arbeit 1 · ✅ verifiziert 48 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 11 · geplant 2 · umgesetzt 49 · abgelöst 1 |
+| Stories | ⚪ offen 11 · 🟡 in Arbeit 1 · ✅ verifiziert 49 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 11 · umgesetzt 51 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -92,7 +92,7 @@ Status: 🟡 in Arbeit
 | [US-0006](stories/US-0006.md) | Asynchron rendern über eine Job-Queue | ✅ verifiziert |
 | [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ✅ verifiziert |
 | [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
-| [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ⚪ offen |
+| [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ✅ verifiziert |
 | [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
@@ -158,7 +158,6 @@ Status: 🟡 in Arbeit
 - [04-strategy.md](../04-strategy.md): UNKNOWN — offene Frage: Gelten die Zielwerte des Altbestands noch (Dokument bis 20 Seiten in unter 5 s, Suche über 1.000 Vorlagen in unter 2 s)? Gemessen ist bisher nur der Durchsatz von render (docs/guides/render-sizing.md), nicht die Suche.
 - [05-building-blocks/studio.md](../05-building-blocks/studio.md): UNKNOWN — offene Frage: Soll das Studio das Token bei allen Aufrufen der Workbench mitsenden, solange die Workbench es nicht prüft, oder entfällt das Eingabefeld, bis eine Anmeldung gegen den Identity-Provider existiert?
 - [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
-- [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
 - [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar.
