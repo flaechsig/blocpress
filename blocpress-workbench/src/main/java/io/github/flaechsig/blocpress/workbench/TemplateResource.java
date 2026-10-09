@@ -37,9 +37,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
@@ -385,6 +387,12 @@ public class TemplateResource {
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
+        // Aus production kommt eine Vorlage nur ueber das Ausmustern (REQ-0061)
+        if (template.status == TemplateStatus.APPROVED) {
+            throw new WebApplicationException(
+                "Approved templates cannot be deleted; retire them first",
+                Response.Status.CONFLICT);
+        }
         elasticsearchIndexService.deleteAfterCommit(template.id);
         template.delete();
         return Response.noContent().build();
@@ -480,7 +488,8 @@ public class TemplateResource {
             }
         }
 
-        // UC-12: RETIRED — remove from production DB; im Suchindex bleibt sie mit Status RETIRED
+        // UC-12: RETIRED — remove from production DB; im Suchindex bleibt sie mit Status RETIRED.
+        // Scheitert das Entfernen, wird das Ausmustern zurueckgerollt (REQ-0060).
         if (request.newStatus() == TemplateStatus.RETIRED) {
             removeFromProduction(template.name, authorization);
         }
@@ -519,22 +528,35 @@ public class TemplateResource {
                 : builder.header("Authorization", authorization);
     }
 
+    /**
+     * Entfernt die Vorlage aus production. Bestaetigt render das nicht, scheitert der Aufruf mit 503
+     * und die Transaktion des Ausmusterns wird zurueckgerollt (REQ-0060).
+     */
     private void removeFromProduction(String templateName, String authorization) {
+        // Name als Pfadsegment kodieren, sonst scheitern Namen mit Leerzeichen (REQ-0023)
+        String segment = URLEncoder.encode(templateName, StandardCharsets.UTF_8).replace("+", "%20");
+        int status;
         try {
             HttpRequest req = withAuthorization(HttpRequest.newBuilder(), authorization)
-                .uri(URI.create(renderUrl + "/render/templates/import/" + templateName))
+                .uri(URI.create(renderUrl + "/render/templates/import/" + segment))
                 .DELETE()
                 .timeout(Duration.ofSeconds(30))
                 .build();
             HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
-            HttpResponse<Void> resp = httpClient.send(req, HttpResponse.BodyHandlers.discarding());
-            if (resp.statusCode() >= 400) {
-                log.warn("Could not remove template '{}' from production: HTTP {}", templateName, resp.statusCode());
-            }
+            status = httpClient.send(req, HttpResponse.BodyHandlers.discarding()).statusCode();
         } catch (Exception e) {
             log.warn("Failed to call render DELETE for template '{}': {}", templateName, e.getMessage());
+            throw new WebApplicationException(
+                "Template not retired: removal from production failed: " + e.getMessage(),
+                Response.Status.SERVICE_UNAVAILABLE);
+        }
+        if (status >= 400) {
+            log.warn("Could not remove template '{}' from production: HTTP {}", templateName, status);
+            throw new WebApplicationException(
+                "Template not retired: render refused removal from production (HTTP " + status + ")",
+                Response.Status.SERVICE_UNAVAILABLE);
         }
     }
 
@@ -637,7 +659,8 @@ public class TemplateResource {
         return switch (from) {
             case DRAFT -> to == TemplateStatus.SUBMITTED;
             case SUBMITTED -> to == TemplateStatus.DRAFT || to == TemplateStatus.APPROVED || to == TemplateStatus.REJECTED;
-            case APPROVED -> to == TemplateStatus.SUBMITTED || to == TemplateStatus.RETIRED;
+            // keine Rueckstufung freigegebener Versionen (REQ-0062); Aenderungen ueber einen neuen Entwurf
+            case APPROVED -> to == TemplateStatus.RETIRED;
             case REJECTED -> to == TemplateStatus.DRAFT;
             case RETIRED -> false;
         };

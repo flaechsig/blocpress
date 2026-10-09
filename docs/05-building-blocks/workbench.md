@@ -78,9 +78,9 @@ service/*.java, application.properties)_
 Bei Vorschau und Regression reicht die Workbench das Token des Benutzers an render durch
 ([REQ-0058](../01-goals/requirements/REQ-0058.md)); mit `BLOCPRESS_AUTH_ENABLED=true` braucht
 render dort ein gültiges Token, ohne Token antwortet es mit 401 und die Vorschau schlägt mit
-502 fehl. Für Import und Entfernen reicht die Workbench das Token ebenso durch; scheitert das Entfernen (etwa 403 ohne Gruppe `reviewer`), meldet sie das Zurückziehen
-trotzdem als erfolgreich und loggt nur eine Warnung, die Vorlage bleibt in production
-([US-0042](../01-goals/stories/US-0042.md)).
+502 fehl. Für Import und Entfernen reicht die Workbench das Token ebenso durch; scheitert das
+Entfernen (etwa 403 ohne Gruppe `reviewer`), scheitert das Zurückziehen mit 503 und die
+Vorlage bleibt `APPROVED` ([REQ-0060](../01-goals/requirements/REQ-0060.md)).
 
 _(confidence: verified — TemplateResource.java (`previewTemplate`, `renderPdf`, `updateStatus`),
 blocpress-render/src/main/resources/application.properties; am 2026-10-09 mit Containern und
@@ -206,4 +206,7 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0057](../01-goals/requirements/REQ-0057.md) WHEN a user changes the status of a template in the workbench interface, the interface shall send the user's token with the request.
 - [REQ-0058](../01-goals/requirements/REQ-0058.md) WHEN the workbench sends a template to the render service for a preview or a regression test, the workbench shall forward the Authorization header of the triggering request unchanged.
 - [REQ-0059](../01-goals/requirements/REQ-0059.md) WHEN a user requests a preview or a regression test in the workbench interface, the interface shall send the user's token with the request.
+- [REQ-0060](../01-goals/requirements/REQ-0060.md) IF the render service does not confirm the removal when a template is retired, THEN the workbench shall reject the retirement with HTTP 503 and keep the template APPROVED.
+- [REQ-0061](../01-goals/requirements/REQ-0061.md) IF deleting an approved template is requested, THEN the workbench shall reject the deletion with HTTP 409.
+- [REQ-0062](../01-goals/requirements/REQ-0062.md) IF a status change from APPROVED to SUBMITTED is requested, THEN the workbench shall reject it.
 <!-- /generated -->
