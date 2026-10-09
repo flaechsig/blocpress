@@ -7,6 +7,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
+import java.util.UUID;
+
+import io.smallrye.jwt.build.Jwt;
 
 /** Kleiner HTTP-Client fuer die JWT-Tests (ADR-002) gegen die laufende Quarkus-Testinstanz. */
 final class AuthTestClient {
@@ -34,6 +37,31 @@ final class AuthTestClient {
         String payload = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{\"iss\":\"https://blocpress.dev\",\"sub\":\"mallory\",\"exp\":2082754800}".getBytes());
         return parts[0] + "." + payload + "." + parts[2];
+    }
+
+    /** Mit dem Dev-Schluessel signiertes Token mit den angegebenen Gruppen (groups-Claim). */
+    static String tokenWithGroups(String... groups) {
+        return Jwt.issuer(DEV_ISSUER)
+                .subject("rita")
+                .groups(java.util.Set.of(groups))
+                .expiresIn(3600)
+                .sign("dev-privatekey.pem");
+    }
+
+    /** POST /api/render/templates/import mit einer vollstaendigen Vorlage namens {@code name}. */
+    int importTemplate(String name, String token) throws Exception {
+        byte[] odt;
+        try (InputStream is = AuthTestClient.class.getResourceAsStream("/kuendigung.odt")) {
+            odt = is.readAllBytes();
+        }
+        String body = "{\"id\":\"" + UUID.randomUUID() + "\",\"name\":\"" + name + "\",\"version\":1,"
+                + "\"contentBase64\":\"" + Base64.getEncoder().encodeToString(odt) + "\","
+                + "\"validFrom\":\"2026-01-01T00:00:00\"}";
+        return postJson("/api/render/templates/import", body, token);
+    }
+
+    int delete(String path, String token) throws Exception {
+        return send(HttpRequest.newBuilder(base.resolve(path)).DELETE(), token);
     }
 
     int get(String path, String token) throws Exception {

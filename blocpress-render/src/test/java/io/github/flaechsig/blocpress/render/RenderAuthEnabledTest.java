@@ -13,7 +13,6 @@ import java.util.Map;
 import static io.github.flaechsig.blocpress.render.AuthTestClient.devToken;
 import static io.github.flaechsig.blocpress.render.AuthTestClient.forgedToken;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /** REQ-0008: bei eingeschaltetem JWT verlangen Render-, Job- und Dashboard-Endpunkte ein gueltiges Token. */
 @QuarkusTest
@@ -52,10 +51,8 @@ class RenderAuthEnabledTest {
     }
 
     @Test
-    void internalImportAndHealthStayOpen() throws Exception {
-        var client = new AuthTestClient(base);
-        // Import: kein 401 (die leere Anfrage ist fachlich ungueltig, aber nicht unautorisiert)
-        assertNotEquals(401, client.postJson("/api/render/templates/import", "{}", null));
-        assertEquals(200, client.get("/q/health/live", null));
+    void healthStaysOpen() throws Exception {
+        // Der Import ist seit ADR-0019 nicht mehr offen, siehe ImportAuthEnabledTest (REQ-0054)
+        assertEquals(200, new AuthTestClient(base).get("/q/health/live", null));
     }
 }

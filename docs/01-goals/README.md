@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 15 · 🟡 in Arbeit 1 · ✅ verifiziert 45 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 12 · umgesetzt 40 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 5 · angenommen 13 · abgelöst 1 |
+| Stories | ⚪ offen 14 · 🟡 in Arbeit 1 · ✅ verifiziert 46 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 12 · umgesetzt 44 · abgelöst 1 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -110,11 +110,11 @@ Status: 🟡 in Arbeit
 
 ## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
 
-Status: 🟡 in Arbeit
+Status: ✅ verifiziert
 
 | Story | Titel | Status |
 |---|---|---|
-| [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ⚪ offen |
+| [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ✅ verifiziert |
 | [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ✅ verifiziert |
 | [US-0056](stories/US-0056.md) | Quarkus-Plattform auf einen Stand ohne bekannte Lücken heben | ✅ verifiziert |
 | [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ✅ verifiziert |
@@ -171,7 +171,6 @@ Status: 🟡 in Arbeit
 - [ADR-0016](../09-decisions/ADR-0016.md) — render in zwei Betriebsarten — Engine und voll
 - [ADR-0017](../09-decisions/ADR-0017.md) — Alle fachlichen Aufrufe sind authentifiziert
 - [ADR-0018](../09-decisions/ADR-0018.md) — Bausteine werden zur Renderzeit aus der Produktion aufgelöst
-- [ADR-0019](../09-decisions/ADR-0019.md) — Import in die Produktion bei eingeschalteter Absicherung nur für Reviewer
 
 ## Widersprüche
 

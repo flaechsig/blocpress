@@ -68,7 +68,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `BLOCPRESS_LO_WORKERS` | Upper limit for concurrent LibreOffice conversions (each ~150 MiB). Without it, render uses the container's CPU limit rounded down, at least 1 (all cores if there is no limit); the setting can lower that number, e.g. for a tight memory limit, but never raise it above the cores. | CPU limit |
 | `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
-> **Note:** JWT authentication is **off by default** so existing integrations keep working. If the service is reachable from outside a trusted network, set `BLOCPRESS_AUTH_ENABLED=true` with your own key and issuer. The internal template import (`/api/render/templates/import`) is never authenticated — expose it only to blocpress-workbench.
+> **Note:** JWT authentication is **off by default** so existing integrations keep working. If the service is reachable from outside a trusted network, set `BLOCPRESS_AUTH_ENABLED=true` with your own key and issuer. The template import (`/api/render/templates/import`, called by blocpress-workbench on approval) then requires a token with the group `reviewer`, which the workbench forwards from the user; with authentication off it stays open — expose it only to blocpress-workbench.
 
 ---
 

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quarkus 3.40.1 LTS** statt 3.27.2 (Support von 3.27 endete am 2026-09-24) in render, workbench und studio. Damit sind die von Trivy gemeldeten Lücken in Netty, Vert.x, `quarkus-vertx-http`, pgjdbc und Jackson behoben (u. a. Request Smuggling, Denial of Service, Umgehung pfadbasierter Berechtigungen). In `blocpress-core` bcprov 1.86 (transitiv über odfdom), commons-lang3 3.20.0 und Jackson 2.21.7.
 - **CORS nur noch ausdrücklich:** render und workbench erlaubten Aufrufe aus dem Browser von jeder Origin (`*`). Jetzt gilt same-origin; fremde Origins nennt `BLOCPRESS_CORS_ORIGINS` (kommagetrennt). Das Studio braucht keine, es leitet alle Aufrufe weiter. Wer render oder workbench direkt aus einer anderen Web-Anwendung aufruft, muss deren Origin setzen.
 - **Bausteine nur aus der eigenen Bibliothek** (ADR-0018, US-0060): render öffnet die Verknüpfung eines Bausteins (`text:section-source`) nicht mehr, sondern nimmt aus ihr nur den Namen (`…/bausteine/{name}.odt`) und lädt den zur Renderzeit gültigen, freigegebenen Baustein aus der eigenen Datenbank. Bisher konnte eine Vorlage render beliebige Adressen aufrufen oder lokale Dateien einbinden lassen. **Achtung:** `POST /api/render/template` lehnt Vorlagen mit Verknüpfungen jetzt mit 422 ab; andere Verknüpfungen oder unbekannte Bausteine beim Rendern per Namen ebenfalls 422. Bausteine, die vor diesem Release in die Produktion übernommen wurden, gelten dort als Vorlage und müssen einmal neu freigegeben werden, damit render sie als Baustein findet.
+- **Import in die Produktion nur für Reviewer** (ADR-0019, US-0054): Mit `BLOCPRESS_AUTH_ENABLED=true` verlangt render für `POST`/`DELETE /api/render/templates/import` ein Token mit der Gruppe `reviewer` (ohne Token 401, ohne Gruppe 403). Bisher war der Import auch bei eingeschalteter Absicherung offen. Die Workbench reicht das Token des Benutzers beim Freigeben und Ausmustern durch, die Oberfläche schickt es beim Statuswechsel mit. **Achtung:** Wer die Absicherung eingeschaltet hat, muss Reviewern im Identity-Provider die Gruppe `reviewer` geben, sonst scheitert die Freigabe. Ohne Absicherung ändert sich nichts.
+- **Quickstart ohne eingebauten JWT-Schlüssel** (US-0057): Das Quickstart-Image setzt `MP_JWT_VERIFY_PUBLICKEY` nicht mehr auf den öffentlich bekannten Dev-Schlüssel. Wer dort `BLOCPRESS_AUTH_ENABLED=true` setzt, muss einen eigenen Schlüssel angeben, sonst startet render nicht.
+- **Container ohne root** (US-0058): render, workbench und studio laufen als UID 10001; die Kubernetes-Manifeste setzen einen restriktiven `securityContext` mit schreibgeschütztem Dateisystem und einem `emptyDir` unter `/tmp`.
 - **GitHub Actions auf Commit-SHA gepinnt:** Ein umgehängter Tag einer fremden Action kann im Release-Workflow keinen fremden Code mehr mit Signaturschlüssel und Registry-Zugängen ausführen.
 
 ### Changed
@@ -22,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Genehmigen und Ablehnen im Dashboard der Workbench:** Die Knöpfe auf den Karten öffneten keinen Dialog; die Dialoge erschienen nur in der Arbeitsansicht einer Vorlage.
 - **Workbench lief im Dev-Profil:** `quarkus.profile=dev` stand fest in der Konfiguration; die ausgelieferte Workbench lief deshalb mit dem kleinen Dev-Verbindungspool (höchstens 5). Jetzt gilt das Produktionsprofil (höchstens 20).
 
 ## [2.7.1] - 2026-10-06
