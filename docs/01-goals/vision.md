@@ -2,8 +2,9 @@
 
 ## Kernsatz
 
-LibreOffice-Writer-Vorlagen (ODT) + JSON-Daten → fertige Dokumente (ODT/PDF/RTF).
-Vorlagen werden **gestaltet statt programmiert**.
+Wer eine Vorlage in LibreOffice gestalten kann, bringt neue Dokumente in Produktion –
+**ohne Entwickler, ohne Deploy**: blocpress füllt die Vorlage mit JSON-Daten, sichert sie
+über Test und Freigabe ab und liefert PDF, RTF oder ODT per HTTP-Aufruf.
 
 ## Warum es das gibt
 
@@ -16,8 +17,7 @@ Render-Engine**, die die Vorlage mit JSON füllt.
 
 ## Das treibende Ziel
 
-**Wer eine Vorlage gestalten kann, kann ein neues Dokument erzeugen — ohne
-Entwickler, ohne Deploy.** Benutzerfelder mit Punkt-Notation bilden auf
+Die Vorlage selbst trägt die Logik: Benutzerfelder mit Punkt-Notation bilden auf
 JSON-Pfade ab; Abschnitte und Tabellenzeilen werden zu Wiederhol- und
 Bedingungsgruppen; externe ODT-Dateien liefern geteilte Textbausteine. Daran
 misst sich die Engine: je weniger Code eine neue Vorlage braucht, desto besser.
