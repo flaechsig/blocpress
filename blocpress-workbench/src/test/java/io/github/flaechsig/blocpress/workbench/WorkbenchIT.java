@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -89,15 +90,13 @@ class WorkbenchIT {
 
     @Test
     @Order(5)
-    void uploadDuplicateNameCreatesNewVersion() throws Exception {
+    @DisplayName("REQ-0042: uploadUnderNameWithDraftIsRejected")
+    void uploadUnderNameWithDraftIsRejected() {
         byte[] odtContent = "other-content".getBytes(StandardCharsets.UTF_8);
         Response response = uploadMultipart("test-template", odtContent);
 
-        // With UC-10.1 versioning, duplicate names create new versions (v2, v3, etc.)
-        assertEquals(201, response.statusCode());
-        JsonNode body = MAPPER.readTree(response.body().asString());
-        assertEquals("test-template", body.get("name").asText());
-        assertEquals(2, body.get("version").asInt()); // Should be v2
+        // Frueher entstand v2 neben dem Entwurf v1; je Name gibt es hoechstens einen Entwurf (REQ-0042)
+        assertEquals(409, response.statusCode());
     }
 
     @Test
@@ -226,13 +225,13 @@ class WorkbenchIT {
 
     @Test
     @Order(16)
-    void listTemplatesAfterDeleteOneVersion() throws Exception {
+    void listTemplatesAfterDeleteOnlyVersion() throws Exception {
         Response response = get("/api/workbench/templates");
 
         assertEquals(200, response.statusCode());
         JsonNode list = MAPPER.readTree(response.body().asString());
         assertTrue(list.isArray());
-        // v2 still exists as the latest version - verify test-template is still there
+        // es gab nur den einen Entwurf (REQ-0042); nach dem Loeschen ist der Name weg
         boolean found = false;
         for (JsonNode item : list) {
             if ("test-template".equals(item.get("name").asText())) {
@@ -240,7 +239,7 @@ class WorkbenchIT {
                 break;
             }
         }
-        assertTrue(found, "test-template v2 should still be in the list");
+        assertFalse(found, "test-template should be gone after deleting its only version");
     }
 
     @Test

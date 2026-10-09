@@ -1933,6 +1933,7 @@ export class BpWorkbench extends LitElement {
                             <input type="date"
                                 style="padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;"
                                 .value=${this._approvalValidFrom}
+                                min=${new Date().toISOString().substring(0, 10)}
                                 @change=${e => { this._approvalValidFrom = e.target.value; }}
                             />
                         </div>

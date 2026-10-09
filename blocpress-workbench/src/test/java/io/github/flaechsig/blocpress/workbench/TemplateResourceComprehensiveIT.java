@@ -246,6 +246,9 @@ class TemplateResourceComprehensiveIT {
         assertEquals(201, uploadResp.statusCode());
         JsonNode uploadBody = MAPPER.readTree(uploadResp.body().asString());
         String templateId = uploadBody.get("id").asText();
+        // neben einem Entwurf entsteht kein zweiter (REQ-0042): Quelle als freigegeben markieren
+        io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() ->
+                Template.<Template>findById(UUID.fromString(templateId)).status = TemplateStatus.APPROVED);
 
         // Duplicate with same name - should create v2
         String duplicateJson = "{\"name\": \"dup-same-name\"}";

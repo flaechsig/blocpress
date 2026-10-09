@@ -135,7 +135,10 @@ enthält nur eine Startseite)_
 `TemplateImportResource` nimmt die Übergabe aus der Workbench an
 ([US-0017](../01-goals/stories/US-0017.md)): `POST` prüft `id`, `name`, `version`,
 `contentBase64` und `validFrom` (sonst 400), löscht einen Eintrag mit derselben ID und legt ihn
-neu an, mit `validUntil`, falls angegeben. `DELETE …/{name}` löscht alle Versionen des Namens.
+neu an, mit `validUntil`, falls angegeben; dabei endet die bis dahin gültige Version desselben
+Namens am Beginn der neuen ([REQ-0040](../01-goals/requirements/REQ-0040.md)). `DELETE …/{name}`
+löscht nichts, sondern beendet jetzt die Gültigkeit aller noch gültigen oder künftigen Versionen
+des Namens ([REQ-0037](../01-goals/requirements/REQ-0037.md)).
 Die Endpunkte sind ohne Anmeldung erreichbar und sollen nur im internen Netz liegen; render
 selbst schränkt das nicht ein.
 
@@ -164,7 +167,9 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0034](../01-goals/requirements/REQ-0034.md) IF a linked section of a template rendered by name does not match a path ending in /bausteine/{name}.odt or no valid building block of that name exists, THEN the render service shall reject the request with HTTP 422 without technical details of the failure.
 - [REQ-0035](../01-goals/requirements/REQ-0035.md) IF a template sent with the request contains a linked section, THEN the render service shall reject the request with HTTP 422.
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
+- [REQ-0037](../01-goals/requirements/REQ-0037.md) The render service shall keep every approved version in its production store; IF a version is retired, THEN the render service shall end its validity instead of deleting it.
 - [REQ-0038](../01-goals/requirements/REQ-0038.md) The render service shall use the version that is valid at the moment of rendering, also when a version is cached.
+- [REQ-0040](../01-goals/requirements/REQ-0040.md) WHEN a version is approved, the workbench shall end the validity of the version valid until then at the start of validity of the new one, so that at most one version of a name is valid at any time.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0054](../01-goals/requirements/REQ-0054.md) WHERE JWT authentication is enabled, the render service shall reject requests to import or remove production templates with HTTP 401 if they carry no valid bearer token, and with HTTP 403 if the token lacks the group reviewer.
 - [REQ-0055](../01-goals/requirements/REQ-0055.md) WHILE JWT authentication is disabled, the render service shall accept requests to import or remove production templates without a token.

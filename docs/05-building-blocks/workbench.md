@@ -173,7 +173,8 @@ Elasticsearch bestätigt nichts, worauf die Workbench wartet; Fehler werden nur 
 - `GET` und `PUT` ohne `released` nehmen die höchste Version des Namens, gleich welchen
   Status (die Methode heißt `findLatestDraft`). Ist sie nicht `DRAFT`, lehnt `PUT` mit 403 ab,
   statt einen neuen Entwurf anzulegen.
-- Gibt es den Namen noch nicht, legt `PUT` Version 1 als `DRAFT` an.
+- Gibt es den Namen noch nicht, legt `PUT` Version 1 als `DRAFT` an; benutzt ihn der andere Typ,
+  lehnt es mit 409 ab ([REQ-0039](../01-goals/requirements/REQ-0039.md)).
 - Jedes `PUT` validiert und indiziert wie ein Upload.
 - `PROPFIND` auf `released/…` listet alle freigegebenen Versionen; mehrere freigegebene
   Versionen eines Namens erscheinen dann mehrfach unter demselben Dateinamen.
@@ -200,6 +201,11 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0030](../01-goals/requirements/REQ-0030.md) WHEN a template or text block is uploaded, saved via WebDAV, given new content, copied, given a new draft, deleted or changes its status, the workbench shall update the search index after the change has been committed, so that a search finds its current content and status; a retired template shall remain findable with status RETIRED, and a file whose text cannot be read shall be findable by name and status.
 - [REQ-0032](../01-goals/requirements/REQ-0032.md) IF the search index is missing or a change could not be written to it, THEN the workbench shall create the index and rebuild it from the database, and the workbench shall rebuild the index on request.
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
+- [REQ-0039](../01-goals/requirements/REQ-0039.md) IF a name is already used by a template or a building block, THEN the workbench shall reject creating an item of the other type with that name.
+- [REQ-0040](../01-goals/requirements/REQ-0040.md) WHEN a version is approved, the workbench shall end the validity of the version valid until then at the start of validity of the new one, so that at most one version of a name is valid at any time.
+- [REQ-0041](../01-goals/requirements/REQ-0041.md) IF the start or end of validity of a version is set to a time before the change, THEN the workbench shall reject the change.
+- [REQ-0042](../01-goals/requirements/REQ-0042.md) IF a draft of a name exists, THEN the workbench shall reject creating another draft of that name.
+- [REQ-0043](../01-goals/requirements/REQ-0043.md) WHEN the database is migrated to the rules of unique names, one valid version and one draft per name, the workbench shall report each name used by both types, each name with more than one draft and each overlap of validity, and shall leave these data unchanged.
 - [REQ-0045](../01-goals/requirements/REQ-0045.md) WHEN the workbench renders a preview or a regression test, the workbench shall inline each linked building block as its draft if one exists, otherwise as its valid approved version, before sending the template to the render service.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0056](../01-goals/requirements/REQ-0056.md) WHEN the workbench transfers a template to production or removes it from production, the workbench shall forward the Authorization header of the triggering request to the render service unchanged.
@@ -209,4 +215,5 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0060](../01-goals/requirements/REQ-0060.md) IF the render service does not confirm the removal when a template is retired, THEN the workbench shall reject the retirement with HTTP 503 and keep the template APPROVED.
 - [REQ-0061](../01-goals/requirements/REQ-0061.md) IF deleting an approved template is requested, THEN the workbench shall reject the deletion with HTTP 409.
 - [REQ-0062](../01-goals/requirements/REQ-0062.md) IF a status change from APPROVED to SUBMITTED is requested, THEN the workbench shall reject it.
+- [REQ-0064](../01-goals/requirements/REQ-0064.md) IF an approved version of the name starts later than the version to be approved, THEN the workbench shall reject the approval with HTTP 409.
 <!-- /generated -->

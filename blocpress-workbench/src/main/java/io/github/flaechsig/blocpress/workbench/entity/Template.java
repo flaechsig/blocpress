@@ -118,6 +118,20 @@ public class Template extends PanacheEntityBase {
     }
 
     /**
+     * Gibt es zu diesem Namen schon einen Entwurf, also eine Version vor der Freigabe
+     * (DRAFT, SUBMITTED oder REJECTED)? Je Name ist hoechstens einer erlaubt (REQ-0042).
+     */
+    public static boolean hasDraft(String name) {
+        return count("name = ?1 AND status IN (?2, ?3, ?4)", name,
+            TemplateStatus.DRAFT, TemplateStatus.SUBMITTED, TemplateStatus.REJECTED) > 0;
+    }
+
+    /** Wird der Name schon vom anderen Typ benutzt? Ein Name bezeichnet genau eine Sache (REQ-0039). */
+    public static boolean usedByOtherType(String name, TemplateType type) {
+        return count("name = ?1 AND type <> ?2", name, type) > 0;
+    }
+
+    /**
      * Finds the latest active version of a template by name as of now.
      */
     public static Template findLatestActiveByName(String name) {
