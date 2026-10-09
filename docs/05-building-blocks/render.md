@@ -174,4 +174,5 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0054](../01-goals/requirements/REQ-0054.md) WHERE JWT authentication is enabled, the render service shall reject requests to import or remove production templates with HTTP 401 if they carry no valid bearer token, and with HTTP 403 if the token lacks the group reviewer.
 - [REQ-0055](../01-goals/requirements/REQ-0055.md) WHILE JWT authentication is disabled, the render service shall accept requests to import or remove production templates without a token.
 - [REQ-0063](../01-goals/requirements/REQ-0063.md) WHEN the production store changes, the render service shall use the changed state for the next rendering, regardless of which instance made the change.
+- [REQ-0067](../01-goals/requirements/REQ-0067.md) The render service shall send the header X-Content-Type-Options with the value nosniff with every response.
 <!-- /generated -->

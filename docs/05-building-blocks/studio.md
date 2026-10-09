@@ -104,4 +104,6 @@ von proof oder admin.
 <!-- generated:realized -->
 - [REQ-0029](../01-goals/requirements/REQ-0029.md) WHEN a client sends a WebDAV request (OPTIONS, HEAD, PROPFIND, LOCK, UNLOCK, GET, PUT) to the studio below /api/webdav, the studio shall forward it with its body and WebDAV headers to the workbench and return the workbench response with its status and headers, making a Location that points to the workbench server-relative.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
+- [REQ-0065](../01-goals/requirements/REQ-0065.md) The workbench and the studio shall send the headers X-Content-Type-Options with the value nosniff and X-Frame-Options with the value DENY with every response.
+- [REQ-0066](../01-goals/requirements/REQ-0066.md) The workbench and the studio shall send with every response a Content-Security-Policy that permits scripts only from their own origin, from https://esm.sh and from the import map of their start page, and that forbids embedding in other pages.
 <!-- /generated -->
