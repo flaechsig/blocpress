@@ -68,14 +68,19 @@ flowchart TD
 Die Workbench ruft render über `RENDER_URL` auf: `POST /api/render/template` für Vorschau
 und Regression, `POST /api/render/templates/import` bei der Freigabe, `DELETE
 /api/render/templates/import/{name}` beim Zurückziehen, jeweils mit dem `HttpClient` des JDK.
+Bei Import und Entfernen reicht sie den `Authorization`-Header des Benutzers unverändert durch
+([REQ-0056](../01-goals/requirements/REQ-0056.md)); die Oberfläche schickt das Token beim
+Statuswechsel mit ([REQ-0057](../01-goals/requirements/REQ-0057.md)).
 
 _(confidence: verified — TemplateResource.java, SearchResource.java, WebDavResource.java,
 service/*.java, application.properties)_
 
 Die Workbench schickt bei Vorschau und Regression kein Token an render. Ist in render
 `BLOCPRESS_AUTH_ENABLED=true` gesetzt, antwortet render darauf mit 401, und Vorschau und
-Regression schlagen fehl. Import und Entfernen sind davon nicht betroffen, weil diese Pfade
-in render immer offen sind.
+Regression schlagen fehl. Für Import und Entfernen reicht die Workbench das Token durch;
+scheitert das Entfernen (etwa 403 ohne Gruppe `reviewer`), meldet sie das Zurückziehen
+trotzdem als erfolgreich und loggt nur eine Warnung, die Vorlage bleibt in production
+([US-0042](../01-goals/stories/US-0042.md)).
 
 _(confidence: verified — TemplateResource.java (`previewTemplate`, `renderPdf`),
 blocpress-render/src/main/resources/application.properties; Folge aus dem Code, nicht
@@ -197,4 +202,6 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
 - [REQ-0045](../01-goals/requirements/REQ-0045.md) WHEN the workbench renders a preview or a regression test, the workbench shall inline each linked building block as its draft if one exists, otherwise as its valid approved version, before sending the template to the render service.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
+- [REQ-0056](../01-goals/requirements/REQ-0056.md) WHEN the workbench transfers a template to production or removes it from production, the workbench shall forward the Authorization header of the triggering request to the render service unchanged.
+- [REQ-0057](../01-goals/requirements/REQ-0057.md) WHEN a user changes the status of a template in the workbench interface, the interface shall send the user's token with the request.
 <!-- /generated -->

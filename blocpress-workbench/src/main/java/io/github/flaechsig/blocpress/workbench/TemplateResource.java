@@ -17,6 +17,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -387,11 +388,21 @@ public class TemplateResource {
         return Response.noContent().build();
     }
 
+    @Transactional
+    public Response updateStatus(UUID id, StatusUpdateRequest request) {
+        return updateStatus(id, request, null);
+    }
+
+    /**
+     * Statuswechsel; beim Freigeben und Ausmustern reicht die Workbench den Authorization-Header
+     * des Benutzers unveraendert an render weiter (ADR-0019, REQ-0056). Sie prueft ihn nicht selbst.
+     */
     @PUT
     @Path("{id}/status")
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
-    public Response updateStatus(@PathParam("id") UUID id, StatusUpdateRequest request) {
+    public Response updateStatus(@PathParam("id") UUID id, StatusUpdateRequest request,
+                                 @HeaderParam("Authorization") String authorization) {
         Template template = Template.findById(id);
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -447,7 +458,7 @@ public class TemplateResource {
                 HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(5))
                     .build();
-                HttpRequest deployRequest = HttpRequest.newBuilder()
+                HttpRequest deployRequest = withAuthorization(HttpRequest.newBuilder(), authorization)
                     .uri(URI.create(renderUrl + "/render/templates/import"))
                     .header("Content-Type", "application/json")
                     .timeout(Duration.ofSeconds(30))
@@ -469,7 +480,7 @@ public class TemplateResource {
 
         // UC-12: RETIRED — remove from production DB; im Suchindex bleibt sie mit Status RETIRED
         if (request.newStatus() == TemplateStatus.RETIRED) {
-            removeFromProduction(template.name);
+            removeFromProduction(template.name, authorization);
         }
 
         var responseMap = new java.util.HashMap<String, Object>();
@@ -499,9 +510,16 @@ public class TemplateResource {
             .toList();
     }
 
-    private void removeFromProduction(String templateName) {
+    /** Setzt den Authorization-Header des Benutzers, falls er einen mitgeschickt hat. */
+    private static HttpRequest.Builder withAuthorization(HttpRequest.Builder builder, String authorization) {
+        return authorization == null || authorization.isBlank()
+                ? builder
+                : builder.header("Authorization", authorization);
+    }
+
+    private void removeFromProduction(String templateName, String authorization) {
         try {
-            HttpRequest req = HttpRequest.newBuilder()
+            HttpRequest req = withAuthorization(HttpRequest.newBuilder(), authorization)
                 .uri(URI.create(renderUrl + "/render/templates/import/" + templateName))
                 .DELETE()
                 .timeout(Duration.ofSeconds(30))

@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -186,6 +187,41 @@ class ApprovalWorkflowIT {
 
         assertEquals(404, RestAssured.get(BASE + "by-name/" + name + "/content").statusCode(),
                 "abgelaufene Version darf nicht als aktiv ausgeliefert werden (wie in render)");
+    }
+
+    @Test
+    @DisplayName("REQ-0056: approvalAndRetirementForwardUserTokenToRender")
+    void approvalAndRetirementForwardUserTokenToRender() throws Exception {
+        String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+        String name = details(id).path("name").asText();
+        String bearer = "Bearer user-token-" + UUID.randomUUID();
+
+        assertEquals(200, statusWithToken(id, "{\"newStatus\":\"APPROVED\"}", bearer).statusCode());
+        assertEquals(200, statusWithToken(id, "{\"newStatus\":\"RETIRED\"}", bearer).statusCode());
+
+        var deploy = RecordingRenderServerResource.calls("POST", "/render/templates/import");
+        var remove = RecordingRenderServerResource.calls("DELETE", "/render/templates/import/" + name);
+        assertEquals(1, deploy.size(), RecordingRenderServerResource.CALLS.toString());
+        assertEquals(1, remove.size(), RecordingRenderServerResource.CALLS.toString());
+        assertEquals(bearer, deploy.getFirst().authorization(), "Import ohne das Token des Benutzers");
+        assertEquals(bearer, remove.getFirst().authorization(), "Entfernen ohne das Token des Benutzers");
+    }
+
+    @Test
+    @DisplayName("REQ-0056: withoutUserTokenNoAuthorizationIsSentToRender")
+    void withoutUserTokenNoAuthorizationIsSentToRender() throws Exception {
+        String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
+
+        var deploy = RecordingRenderServerResource.calls("POST", "/render/templates/import");
+        assertEquals(1, deploy.size(), RecordingRenderServerResource.CALLS.toString());
+        assertNull(deploy.getFirst().authorization(), "die Workbench darf kein eigenes Token erfinden");
+    }
+
+    private static Response statusWithToken(String id, String json, String authorization) {
+        return RestAssured.given().contentType("application/json").header("Authorization", authorization)
+                .body(json).put(BASE + id + "/status");
     }
 
     private static Response upload(String name, byte[] odt) {

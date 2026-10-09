@@ -1,7 +1,8 @@
 # render: Dokumente erzeugen. Standardgroesse nach docs/guides/render-sizing.md (2 CPU, 640Mi);
 # die Zahl der LibreOffice-Worker leitet render aus dem CPU-Limit ab. Mehr Last: mehr Replicas.
-# /api/render/templates/import ist ohne Anmeldung und nur fuer die Workbench gedacht —
-# render deshalb nicht ungefiltert nach aussen freigeben.
+# /api/render/templates/import ist nur fuer die Workbench gedacht. Ohne BLOCPRESS_AUTH_ENABLED=true
+# ist er offen — render dann nicht ungefiltert nach aussen freigeben; eingeschaltet verlangt er ein
+# Token mit der Gruppe reviewer (ADR-0019).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

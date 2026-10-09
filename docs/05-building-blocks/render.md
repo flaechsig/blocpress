@@ -59,7 +59,8 @@ flowchart TD
 | `POST /api/render/templates/import`, `DELETE /api/render/templates/import/{name}` | `TemplateImportResource` | Übergabe freigegebener Vorlagen aus der Workbench, Entfernen beim Zurückziehen |
 
 Mit `BLOCPRESS_AUTH_ENABLED=true` verlangen alle Pfade unter `/api/render/` ein gültiges
-Token, außer den beiden Import-Pfaden, die immer offen sind. Beim Start bricht render ab, wenn
+Token, die beiden Import-Pfade zusätzlich die Gruppe `reviewer` (sonst 403,
+[ADR-0019](../09-decisions/ADR-0019.md)); ausgeschaltet ist der Import offen. Beim Start bricht render ab, wenn
 die Absicherung an ist, aber kein Schlüssel konfiguriert ist (`RenderAuthConfig`), oder wenn
 die Standard-Locale `BLOCPRESS_DEFAULT_LOCALE` (Standard `de-DE`) ungültig ist
 (`RenderLocaleConfig`).
@@ -160,4 +161,6 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0035](../01-goals/requirements/REQ-0035.md) IF a template sent with the request contains a linked section, THEN the render service shall reject the request with HTTP 422.
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
+- [REQ-0054](../01-goals/requirements/REQ-0054.md) WHERE JWT authentication is enabled, the render service shall reject requests to import or remove production templates with HTTP 401 if they carry no valid bearer token, and with HTTP 403 if the token lacks the group reviewer.
+- [REQ-0055](../01-goals/requirements/REQ-0055.md) WHILE JWT authentication is disabled, the render service shall accept requests to import or remove production templates without a token.
 <!-- /generated -->

@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Mock des Render-Service, der jeden Aufruf mitschreibt (Methode, Pfad, Body). So laesst sich pruefen,
+ * Mock des Render-Service, der jeden Aufruf mitschreibt (Methode, Pfad, Body, Authorization-Header). So laesst sich pruefen,
  * was die Workbench beim Auto-Deploy (POST …/render/templates/import) bzw. beim Ausmustern
  * (DELETE …/render/templates/import/{name}) an render schickt — und ein Ausfall simulieren.
  */
 public class RecordingRenderServerResource implements QuarkusTestResourceLifecycleManager {
 
-    public record Call(String method, String path, String body) {}
+    public record Call(String method, String path, String body, String authorization) {}
 
     public static final List<Call> CALLS = new CopyOnWriteArrayList<>();
     /** Status, mit dem render auf Aufrufe antwortet (500 = render-Ausfall simulieren). */
@@ -44,7 +44,8 @@ public class RecordingRenderServerResource implements QuarkusTestResourceLifecyc
             server.createContext("/", exchange -> {
                 String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                 String path = exchange.getRequestURI().getPath();
-                CALLS.add(new Call(exchange.getRequestMethod(), path, body));
+                CALLS.add(new Call(exchange.getRequestMethod(), path, body,
+                        exchange.getRequestHeaders().getFirst("Authorization")));
                 byte[] response = path.endsWith("/render/template") ? renderResponse : new byte[0];
                 exchange.sendResponseHeaders(status, response.length == 0 ? -1 : response.length);
                 if (response.length > 0) {

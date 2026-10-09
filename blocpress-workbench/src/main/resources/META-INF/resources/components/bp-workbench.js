@@ -1611,6 +1611,10 @@ export class BpWorkbench extends LitElement {
 
                 ${this._uploadMode ? this._renderUploadForm() : ''}
 
+                <!-- Genehmigen/Ablehnen gibt es auch auf den Karten des Dashboards -->
+                ${this._rejectDialogOpen ? this._renderRejectDialog() : ''}
+                ${this._approvalDialogOpen ? this._renderApprovalDialog() : ''}
+
                 ${this._error ? html`<div class="error">${this._error}</div>` : ''}
                 ${this._success ? html`<div class="success">${this._success}</div>` : ''}
             </div>
@@ -1867,7 +1871,12 @@ export class BpWorkbench extends LitElement {
                 `${this._getApiBase()}/api/workbench/templates/${templateId}/status`,
                 {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    // Token des Benutzers: die Workbench reicht es beim Freigeben und
+                    // Ausmustern an render weiter (ADR-0019, REQ-0057)
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(this.jwt ? { 'Authorization': `Bearer ${this.jwt}` } : {})
+                    },
                     body: JSON.stringify(body)
                 }
             );

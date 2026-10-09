@@ -67,8 +67,11 @@ arc42.adoc:1162-1172 legacy (git history), arc42.adoc:1272-1310 legacy (git hist
    503. Die Transaktion wird zurückgerollt, die Vorlage bleibt `SUBMITTED`
    ([REQ-0015](../01-goals/requirements/REQ-0015.md)).
 
-Der Import-Endpunkt ist ohne Anmeldung erreichbar, auch wenn JWT für render eingeschaltet ist.
-Die Workbench ruft ihn mit einem eigenen `HttpClient` auf.
+Die Workbench ruft den Import mit einem eigenen `HttpClient` auf und reicht dabei den
+`Authorization`-Header des Benutzers durch. Ist JWT für render eingeschaltet, verlangt der
+Import ein Token mit der Gruppe `reviewer`; ohne gültiges Token oder ohne die Gruppe scheitert
+die Freigabe mit 503 ([ADR-0019](../09-decisions/ADR-0019.md)). Ausgeschaltet ist er ohne
+Anmeldung erreichbar.
 
 _(confidence: verified — TemplateResource.java (`updateStatus`), TemplateImportResource.java,
 blocpress-render/src/main/resources/application.properties

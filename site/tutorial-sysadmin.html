@@ -485,10 +485,12 @@ kubectl -n blocpress rollout status deploy/blocpress-render</pre>
             </div>
 
             <div class="tip-box">
-                <strong>What stays open:</strong> the internal template import
-                (<code>/api/render/templates/import</code>, called by the Workbench on approval) and
-                <code>/q/health</code>. Never expose the Render API to the outside without blocking
-                the import path. The Workbench does not validate tokens on the server side yet —
+                <strong>Template import:</strong> with authentication on, the import
+                (<code>/api/render/templates/import</code>, called by the Workbench on approval and
+                retirement) requires a token with the group <code>reviewer</code>; the Workbench
+                forwards the token of the user who approves. Give reviewers this group in your
+                identity provider, otherwise approval fails. <code>/q/health</code> stays open.
+                The Workbench does not validate tokens on the server side yet —
                 protect the Studio via your network or ingress (e.g. OAuth2 proxy).
             </div>
 

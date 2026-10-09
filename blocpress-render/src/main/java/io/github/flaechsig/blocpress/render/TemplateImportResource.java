@@ -27,8 +27,9 @@ import java.util.UUID;
  *
  * Endpoint: POST /api/render/templates/import
  *
- * No authentication required — this is an internal endpoint only accessible
- * within the deployment infrastructure.
+ * Access (ADR-0019): with BLOCPRESS_AUTH_ENABLED=true the HTTP permission "import" in
+ * application.properties requires a token with the group reviewer, which workbench forwards
+ * from the user; with authentication disabled the endpoint stays open (@PermitAll).
  */
 @ApplicationScoped
 @Path("api/render/templates/import")
