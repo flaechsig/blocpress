@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 13 · 🟡 in Arbeit 1 · ✅ verifiziert 47 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 12 · umgesetzt 46 · abgelöst 1 |
+| Stories | ⚪ offen 12 · 🟡 in Arbeit 1 · ✅ verifiziert 48 · ⛔ abgelöst 2 |
+| Requirements | vorgeschlagen 12 · umgesetzt 49 · abgelöst 1 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 4 · angenommen 14 · abgelöst 1 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -54,7 +54,7 @@ Status: 🟡 in Arbeit
 | [US-0018](stories/US-0018.md) | Änderungen per Regressionstest absichern | ✅ verifiziert |
 | [US-0019](stories/US-0019.md) | Vorlagen periodisch überprüfen (Compliance-Review) | ✅ verifiziert |
 | [US-0040](stories/US-0040.md) | Fällige Reviews aktiv melden | ⚪ offen |
-| [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ⚪ offen |
+| [US-0042](stories/US-0042.md) | Ausmustern und Zurückziehen zuverlässig machen | ✅ verifiziert |
 | [US-0050](stories/US-0050.md) | Freigabe nur mit bestandenen Regressionstests | ⚪ offen |
 | [US-0053](stories/US-0053.md) | Diff-PDF aus der Oberfläche abrufen | ⚪ offen |
 | [US-0063](stories/US-0063.md) | Freigabe berücksichtigt Bausteine | ⚪ offen |
@@ -157,7 +157,6 @@ Status: 🟡 in Arbeit
 - [03-context.md](../03-context.md): UNKNOWN — offene Frage: Wie kommt ein Benutzer in einer produktiven Installation an sein Token? Das Studio kennt nur das Eingabefeld, keinen Anmeldeablauf gegen den Identity-Provider.
 - [04-strategy.md](../04-strategy.md): UNKNOWN — offene Frage: Gelten die Zielwerte des Altbestands noch (Dokument bis 20 Seiten in unter 5 s, Suche über 1.000 Vorlagen in unter 2 s)? Gemessen ist bisher nur der Durchsatz von render (docs/guides/render-sizing.md), nicht die Suche.
 - [05-building-blocks/studio.md](../05-building-blocks/studio.md): UNKNOWN — offene Frage: Soll das Studio das Token bei allen Aufrufen der Workbench mitsenden, solange die Workbench es nicht prüft, oder entfällt das Eingabefeld, bis eine Anmeldung gegen den Identity-Provider existiert?
-- [06-runtime/approval-and-deployment.md](../06-runtime/approval-and-deployment.md): UNKNOWN — offene Frage: Soll das Zurückziehen wie die Freigabe fehlschlagen (503), wenn render die Vorlage nicht entfernen kann, und soll es nur die zurückgezogene Version statt aller Versionen des Namens entfernen?
 - [06-runtime/dashboard.md](../06-runtime/dashboard.md): UNKNOWN — offene Frage: Sollen ältere Versionen eines Namens im Dashboard sichtbar sein, und sollen die Aktionen der produktiven Version auch erreichbar sein, wenn eine neuere Version in Arbeit ist?
 - [06-runtime/render-by-name.md](../06-runtime/render-by-name.md): UNKNOWN — offene Frage: Soll ein abgelaufenes oder zurückgezogenes Template bis zu 10 Minuten (und in weiteren render-Instanzen) noch gerendert werden dürfen, oder muss der Cache das Ablaufdatum beachten?
 - [08-concepts/versionierung.md](../08-concepts/versionierung.md): UNKNOWN — offene Frage: Ist die unterschiedliche Auswahl in Workbench und render gewollt, und soll das Zurückziehen einer Version wirklich alle Versionen dieses Namens aus production entfernen?

@@ -219,6 +219,65 @@ class ApprovalWorkflowIT {
         assertNull(deploy.getFirst().authorization(), "die Workbench darf kein eigenes Token erfinden");
     }
 
+    @Test
+    @DisplayName("REQ-0060: retirementFailsWith503AndTemplateStaysApprovedWhenRenderDoesNotRemove")
+    void retirementFailsWith503AndTemplateStaysApprovedWhenRenderDoesNotRemove() throws Exception {
+        for (int renderStatus : new int[]{500, 403}) {
+            String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+            assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
+            RecordingRenderServerResource.status = renderStatus;
+
+            Response retire = status(id, "{\"newStatus\":\"RETIRED\"}");
+
+            RecordingRenderServerResource.status = 200;
+            assertEquals(503, retire.statusCode(), "render " + renderStatus + ": " + retire.asString());
+            JsonNode details = details(id);
+            assertEquals("APPROVED", details.path("status").asText(),
+                    "render " + renderStatus + ": Ausmustern trotz nicht entfernter Vorlage");
+            assertTrue(details.path("validUntil").isNull() || details.path("validUntil").isMissingNode(),
+                    "render " + renderStatus + ": Gueltigkeit trotz Fehlschlag beendet: " + details);
+        }
+    }
+
+    @Test
+    @DisplayName("REQ-0023: retiringRemovesTemplateWithSpaceInName")
+    void retiringRemovesTemplateWithSpaceInName() throws Exception {
+        String name = "Rechnung mit Leerzeichen " + UUID.randomUUID();
+        String id = MAPPER.readTree(upload(name, Files.readAllBytes(TEMPLATE)).asString()).path("id").asText();
+        assertEquals(200, RestAssured.post(BASE + id + "/submit").statusCode());
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
+
+        assertEquals(200, status(id, "{\"newStatus\":\"RETIRED\"}").statusCode());
+
+        var removed = RecordingRenderServerResource.calls("DELETE", "/render/templates/import/");
+        assertEquals(1, removed.size(), RecordingRenderServerResource.CALLS.toString());
+        assertEquals("/render/templates/import/" + name.replace(" ", "%20"),
+                removed.getFirst().rawPath(), "Name nicht als Pfadsegment kodiert");
+    }
+
+    @Test
+    @DisplayName("REQ-0061: deletingApprovedTemplateIsRejectedWith409")
+    void deletingApprovedTemplateIsRejectedWith409() throws Exception {
+        String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
+
+        assertEquals(409, RestAssured.delete(BASE + id).statusCode());
+        assertEquals("APPROVED", details(id).path("status").asText());
+
+        assertEquals(200, status(id, "{\"newStatus\":\"RETIRED\"}").statusCode());
+        assertEquals(204, RestAssured.delete(BASE + id).statusCode(), "ausgemusterte Vorlagen bleiben loeschbar");
+    }
+
+    @Test
+    @DisplayName("REQ-0062: approvedTemplateCannotGoBackToSubmitted")
+    void approvedTemplateCannotGoBackToSubmitted() throws Exception {
+        String id = uploadAndSubmit(Files.readAllBytes(TEMPLATE));
+        assertEquals(200, status(id, "{\"newStatus\":\"APPROVED\"}").statusCode());
+
+        assertEquals(400, status(id, "{\"newStatus\":\"SUBMITTED\"}").statusCode());
+        assertEquals("APPROVED", details(id).path("status").asText());
+    }
+
     private static Response statusWithToken(String id, String json, String authorization) {
         return RestAssured.given().contentType("application/json").header("Authorization", authorization)
                 .body(json).put(BASE + id + "/status");

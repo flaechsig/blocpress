@@ -1804,7 +1804,7 @@ export class BpWorkbench extends LitElement {
 
             case 'APPROVED':
                 actions.push(
-                    { label: '← Zurück zu Test', style: 'secondary', handler: () => this._changeStatus(template.id, 'SUBMITTED') },
+                    // keine Rueckstufung nach SUBMITTED (REQ-0062); Aenderungen ueber einen neuen Entwurf
                     { label: 'Als Kopie', style: 'primary', handler: () => this._duplicateTemplate(template) },
                     { label: 'Zurückziehen', style: 'danger', handler: () => this._changeStatus(template.id, 'RETIRED') }
                 );

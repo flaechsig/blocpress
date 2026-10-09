@@ -17,7 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class RecordingRenderServerResource implements QuarkusTestResourceLifecycleManager {
 
-    public record Call(String method, String path, String body, String authorization) {}
+    public record Call(String method, String path, String body, String authorization, String rawPath) {}
 
     public static final List<Call> CALLS = new CopyOnWriteArrayList<>();
     /** Status, mit dem render auf Aufrufe antwortet (500 = render-Ausfall simulieren). */
@@ -45,7 +45,7 @@ public class RecordingRenderServerResource implements QuarkusTestResourceLifecyc
                 String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                 String path = exchange.getRequestURI().getPath();
                 CALLS.add(new Call(exchange.getRequestMethod(), path, body,
-                        exchange.getRequestHeaders().getFirst("Authorization")));
+                        exchange.getRequestHeaders().getFirst("Authorization"), exchange.getRequestURI().getRawPath()));
                 byte[] response = path.endsWith("/render/template") ? renderResponse : new byte[0];
                 exchange.sendResponseHeaders(status, response.length == 0 ? -1 : response.length);
                 if (response.length > 0) {

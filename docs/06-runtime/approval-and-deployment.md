@@ -93,20 +93,21 @@ vor dem Deploy), ElasticsearchIndexService.java (`updateStatus`))_
    freigegebene Versionen, und entfernt den Namen aus dem Cache. Danach liefert
    [Rendern per Name](render-by-name.md) 404.
 
-Anders als bei der Freigabe werden Fehler beim Zurückziehen nur geloggt: Ist render nicht
-erreichbar, steht die Vorlage in der Workbench auf `RETIRED`, bleibt aber in `production`
-renderbar. Der Name wird ungeprüft an die URL gehängt; enthält er Zeichen, die in einer URI
-nicht erlaubt sind (etwa ein Leerzeichen), scheitert schon der Aufbau der Anfrage, mit
-derselben Folge.
+Wie bei der Freigabe scheitert das Zurückziehen mit 503, wenn render das Entfernen nicht
+bestätigt (nicht erreichbar, Fehler, 401/403): Die Transaktion wird zurückgerollt, die Vorlage
+bleibt `APPROVED` mit unverändertem `validUntil`
+([REQ-0060](../01-goals/requirements/REQ-0060.md)). Der Name wird als Pfadsegment kodiert,
+auch Namen mit Leerzeichen lassen sich zurückziehen.
 
 _(confidence: verified — TemplateResource.java (`updateStatus`, `removeFromProduction`),
 TemplateImportResource.java (`removeTemplate`); derived_from:
 arc42.adoc:1261-1269 legacy (git history))_
 
-Ein Wechsel von `APPROVED` zurück nach `SUBMITTED` ruft render nicht auf; die Vorlage bleibt
-in `production` gültig. Entschieden (2026-10-06): Der Wechsel wird verboten; eine
-freigegebene Version wird nicht zurückgestuft. Änderungen laufen über einen neuen Entwurf,
-das Zurückziehen über `RETIRED` ([US-0042](../01-goals/stories/US-0042.md)).
+Ein Wechsel von `APPROVED` zurück nach `SUBMITTED` wird mit 400 abgelehnt
+([REQ-0062](../01-goals/requirements/REQ-0062.md), entschieden 2026-10-06): Eine freigegebene
+Version wird nicht zurückgestuft. Änderungen laufen über einen neuen Entwurf, das
+Zurückziehen über `RETIRED`. Löschen lässt sich eine freigegebene Vorlage nicht (409,
+[REQ-0061](../01-goals/requirements/REQ-0061.md)).
 
 _(confidence: verified — TemplateResource.java (`updateStatus`, `isValidTransition`))_
 
@@ -117,5 +118,7 @@ löscht render nicht die eine Vorlage, sondern alle Einträge des Namens. Das er
 Ablehnung prüft der Endpunkt selbst, eine Rollenprüfung gibt es nicht
 ([US-0021](../01-goals/stories/US-0021.md)).
 
-- UNKNOWN — offene Frage: Soll das Zurückziehen wie die Freigabe fehlschlagen (503), wenn render die Vorlage nicht entfernen kann, und soll es nur die zurückgezogene Version statt aller Versionen des Namens entfernen?
+Dass das Zurückziehen nur die eine Version beendet statt alle Versionen des Namens zu löschen,
+ist mit [REQ-0037](../01-goals/requirements/REQ-0037.md) vorgeschlagen
+([US-0061](../01-goals/stories/US-0061.md)).
 

@@ -72,7 +72,7 @@ Alle Karten haben „Öffnen“. Dazu kommen:
 |---|---|
 | `DRAFT` | Aktualisieren, → Test, Löschen |
 | `SUBMITTED` | ← Zurück, ✓ Genehmigen, ✗ Ablehnen |
-| `APPROVED` | ← Zurück zu Test, Als Kopie, Zurückziehen |
+| `APPROVED` | Als Kopie, Zurückziehen |
 | `REJECTED` | ← Zurück, Löschen |
 | `RETIRED` | Als Kopie |
 
@@ -106,9 +106,9 @@ arc42.adoc:1174-1220 legacy (git history))_
 - `duplicate` prüft den Status der Quelle nicht; dass nur `APPROVED` und `RETIRED` kopiert
   werden, regelt allein die Oberfläche. Fehlt `name` im Aufruf, bricht der Endpunkt mit einer
   unbehandelten Ausnahme ab.
-- `DELETE …/{id}` prüft den Status nicht und ruft render nicht auf. Über die API lässt sich
-  so eine freigegebene Vorlage in der Workbench löschen, während sie in `production`
-  renderbar bleibt.
+- `DELETE …/{id}` lehnt freigegebene Vorlagen mit 409 ab
+  ([REQ-0061](../01-goals/requirements/REQ-0061.md)); alle anderen löscht er, ohne render
+  aufzurufen.
 - Der Filter „Abgelehnt“ bleibt in der Regel leer: Die Ablehnung aus der Oberfläche setzt die
   Vorlage auf `DRAFT` zurück; `REJECTED` entsteht nur über `PUT …/status` direkt.
 

@@ -37,10 +37,10 @@ sequenceDiagram
    Filter „Produktiv“. Die Kennzeichnung „Läuft ab“ oder „Abgelaufen“ an den Vorlagen ist
    zwar programmiert, wird aber nie angezeigt (siehe [Dashboard](dashboard.md),
    [US-0048](../01-goals/stories/US-0048.md)).
-4. **Erneut freigeben:** Ein direkter Wechsel `APPROVED → APPROVED` ist nicht erlaubt. Der
-   Prüfer setzt die Vorlage zurück nach `SUBMITTED` und gibt sie mit neuem Gültigkeitsbeginn
-   und Zyklus frei; der Import ersetzt den Eintrag mit derselben `id` in `production`.
-   Alternativ entsteht über „Als Kopie“ oder `…/new-draft` eine neue Version.
+4. **Erneut freigeben:** Weder `APPROVED → APPROVED` noch die Rückstufung nach `SUBMITTED`
+   ist erlaubt ([REQ-0062](../01-goals/requirements/REQ-0062.md)). Über „Als Kopie“ oder
+   `…/new-draft` entsteht eine neue Version, die eingereicht und mit neuem Gültigkeitsbeginn
+   und Zyklus freigegeben wird.
 5. **Ablauf:** Ist `validUntil` überschritten, findet render die Version nicht mehr und
    antwortet beim [Rendern per Name](render-by-name.md) mit 404
    ([REQ-0022](../01-goals/requirements/REQ-0022.md)), wegen des Caches bis zu 10 Minuten
