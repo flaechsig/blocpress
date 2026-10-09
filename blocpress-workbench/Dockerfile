@@ -13,11 +13,18 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*; \
     sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
 
+# Unprivilegierter Benutzer (REQ-0050). Numerische UID, damit Kubernetes runAsNonRoot
+# pruefen kann; HOME=/tmp bleibt das einzige Verzeichnis, in das der Dienst schreibt.
+RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /tmp \
+      --shell /usr/sbin/nologin blocpress
+
 ENV HOME=/tmp
 WORKDIR /app
 
 # Quarkus "fast-jar" Layout
 COPY target/quarkus-app/ /app/
+
+USER 10001:10001
 
 EXPOSE 8081
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s \
