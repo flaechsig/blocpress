@@ -1,8 +1,8 @@
-<!-- docspine 0.20 · source: standard/en/STANDARD.md · do not edit in projects -->
+<!-- docspine 0.21 · source: standard/en/STANDARD.md · do not edit in projects -->
 
 # docspine Standard
 
-Version 0.20 (draft)
+Version 0.21 (draft)
 
 This document defines the rules for projects that follow docspine, a way of developing
 in which the documentation is the spine: from vision through requirements and decisions
@@ -74,7 +74,9 @@ docs/                         the documentation
   08-concepts/<name>.md       chapter 8: domain and technical concepts
   09-decisions/ADR-NNNN.md    chapter 9: architecture decisions
   10-quality.md               chapter 10: quality requirements (generated)
-  11-risks.md                 chapter 11: risks and technical debt
+  11-risks/                   chapter 11: risks and technical debt
+    README.md                 overview of all risks (generated region)
+    R-NNNN.md, SEC-NNNN.md, TD-NNNN.md
   12-glossary.md              chapter 12: glossary
   diagrams/                   sources and images of large diagrams
   legacy/                     imported old documentation, temporary (section 10)
@@ -169,6 +171,9 @@ translate only the labels. With `language: en`, the README is copied unchanged.
 | Story | `US-NNNN` | `01-goals/stories/US-NNNN.md` |
 | Requirement | `REQ-NNNN` | `01-goals/requirements/REQ-NNNN.md` |
 | Decision | `ADR-NNNN` | `09-decisions/ADR-NNNN.md` |
+| Architecture risk | `R-NNNN` | `11-risks/R-NNNN.md` |
+| Security risk | `SEC-NNNN` | `11-risks/SEC-NNNN.md` |
+| Technical debt | `TD-NNNN` | `11-risks/TD-NNNN.md` |
 
 `NNNN` is four digits with leading zeros. A new artifact takes the next free number.
 The `id` in the front matter must match the file name.
@@ -252,6 +257,7 @@ epic: E-NAME                  # must exist
 requirements: [REQ-NNNN]      # each must exist; [] is allowed
 status: open
 evidence: []                  # optional: paths that prove the story
+addresses: [SEC-NNNN]         # optional: risks and debts the story works on
 superseded_by: ADR-NNNN       # only with superseded or retired
 ---
 ```
@@ -404,7 +410,58 @@ stories: [US-NNNN]            # optional: stories the scenario realises
 ---
 ```
 
-### 3.8 Other chapters
+### 3.8 Risk and technical debt
+
+`11-risks/<ID>.md`, one file per risk or debt:
+
+```yaml
+---
+id: SEC-NNNN                  # R-NNNN, SEC-NNNN or TD-NNNN
+title: <short title>
+status: open                  # open | accepted | closed | superseded
+severity: medium              # optional: low | medium | high | critical
+source: <where it came from>  # optional, free text, e.g. a security test and its date
+supersedes: R-NNNN            # optional
+superseded_by: SEC-NNNN       # only with superseded
+---
+```
+
+| Prefix | Kind |
+|---|---|
+| `R-` | architecture risk: something that may happen |
+| `SEC-` | security risk: a gap or weakness an attacker can use |
+| `TD-` | technical debt: already there, and it costs continuously |
+
+The kind is part of the ID on purpose: an open security risk can be recognised wherever
+there is no front matter, in commit messages, branch names and diffs.
+
+Body of a risk: the risk, its consequence, how it is handled. Body of a debt: the debt
+and its consequence.
+
+| `status` | Meaning | Rule |
+|---|---|---|
+| `open` | not handled yet | none |
+| `accepted` | consciously accepted, nothing is done | none |
+| `closed` | resolved | every story that addresses it is `verified` or `superseded` |
+| `superseded` | replaced, for example by a risk of another kind | `superseded_by` |
+
+A story names the risks it works on in `addresses`. Whether a risk is resolved is not
+written into the story or repeated in the chapter; the risk shows its stories with
+their status (section 4).
+
+The kind of a risk does not change. When a risk turns out to be a security risk, a new
+`SEC-NNNN` supersedes the `R-NNNN`.
+
+A project without such files may keep chapter 11 as a single file `11-risks.md`
+without IDs. Stories can then not refer to risks.
+
+**Other tools.** docspine defines what is in `docs/` and how it is checked, `SEC-`
+included. It knows no other tools. A tool that writes into `docs/` (for example a
+security test) writes artifacts by these rules and defines no format of its own for
+them. How open security risks are handled (who sees them, what is pushed) belongs to
+the security process, not to docspine.
+
+### 3.9 Other chapters
 
 No required front matter. A chapter that is only partly filled carries
 `arc42_status: PARTIAL` in its front matter. A missing file means the chapter is
@@ -418,10 +475,11 @@ Relations are stated **only in the front matter, in one direction**:
 |---|---|---|
 | Story | `epic` | Epic |
 | Story | `requirements` | Requirements |
+| Story | `addresses` | Risks and debts |
 | Runtime scenario | `stories` | Stories |
 | ADR | `requires` | Requirements |
 | Building block | `path` | Code; requirements are matched through their `evidence` paths |
-| Requirement, story, ADR | `superseded_by` | successor |
+| Requirement, story, ADR, risk | `superseded_by` | successor |
 
 Every other direction, and every piece of content shown in more than one place, is
 generated into a **generated region** inside a hand-written file:
@@ -440,6 +498,8 @@ generated into a **generated region** inside a hand-written file:
 | `context` | requirement | epic and story it belongs to, ADRs that require it |
 | `realized` | building block | requirements whose evidence lies under its path, without superseded and rejected ones |
 | `scenarios` | story | runtime scenarios that realise it |
+| `stories` | risk | the stories that address it, with status |
+| `risks` | `11-risks/README.md` | all risks and debts, grouped into architecture risks, security risks and technical debt, with status, severity and stories |
 
 Generated regions must not be edited by hand. A region that differs from what the
 checker would generate is an error. On merge conflicts inside a region, discard the
@@ -674,6 +734,7 @@ network. The skills from docspine run it when they start.
 | 13 | broken relative link |
 | 14 | `README.md` was translated from a different docspine version than the installed `STANDARD.md` |
 | 15 | an `evidence` path does not exist |
+| 16 | risk `closed`, but a story that addresses it is neither `verified` nor `superseded` |
 
 **Generated views:**
 
@@ -710,10 +771,13 @@ terms. The German column is binding for projects with `language: de`.
 | rationale | Begründung |
 | requirement | Requirement, Anforderung |
 | requirement defect | Requirement-Defekt |
+| risk | Risiko |
 | runtime scenario | Laufzeitszenario |
 | source (norm) | Quelle |
 | story | Story |
+| security risk | Security-Risiko |
 | supersede | ablösen |
 | test gap | Test-Lücke |
+| technical debt | technische Schuld |
 | test result | Testergebnis |
 | verdict: full / partial / hollow | Verdikt: voll / teil / hohl |

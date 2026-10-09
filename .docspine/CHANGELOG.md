@@ -4,6 +4,18 @@ What changed in what docspine delivers to projects (`.docspine/`, `.agents/skill
 The newest version comes first. `docspine-update` shows the entries between the installed and
 the new version.
 
+## 0.21
+
+- **Risks, security risks and technical debt with IDs** (standard 3.8, ADR-0029). Chapter 11
+  can be a folder `docs/11-risks/` with one file per entry: `R-NNNN`, `SEC-NNNN` or
+  `TD-NNNN`, status `open`, `accepted`, `closed` or `superseded`, optional `severity`. A
+  story names what it works on in the new field `addresses`. `render` shows the stories at
+  each risk and writes an overview grouped by kind into `docs/11-risks/README.md`. New
+  error 16: a risk is `closed` while a story that addresses it is not done. `renumber`
+  keeps the prefix of a risk. A single file `11-risks.md` without IDs still works;
+  `docspine-update` offers to migrate numbered risks.
+- **Other tools** (such as secspine) write into `docs/` only by these rules (standard 3.8).
+
 ## 0.20
 
 - **Skills are named `docspine-*`** instead of `spine-*` (standard 2.2, ADR-0026), so that
