@@ -55,9 +55,19 @@ spec:
     metadata:
       labels: {app: blocpress-render}
     spec:
+      # REQ-0051: kein root, keine Rechteausweitung (die blocpress-Images laufen als UID 10001)
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: render
           image: flaechsig/blocpress-render:2.5.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true   # REQ-0052: geschrieben wird nur nach /tmp
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}   # HOME, Temp-Dateien, LibreOffice-Profile
           env:
             - {name: QUARKUS_DATASOURCE_JDBC_URL, value: "jdbc:postgresql://blocpress-db:5432/production"}
             - {name: QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY, value: update}
@@ -71,6 +81,8 @@ spec:
             httpGet: {path: /q/health/ready, port: 8080}
           livenessProbe:
             httpGet: {path: /q/health/live, port: 8080}
+      volumes:
+        - {name: tmp, emptyDir: {}}
 ---
 apiVersion: v1
 kind: Service

@@ -12,10 +12,19 @@ spec:
     metadata:
       labels: {app: blocpress-workbench}
     spec:
+      # REQ-0051: kein root, keine Rechteausweitung (die blocpress-Images laufen als UID 10001)
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       initContainers:
         # wartet, bis die Datenbank Verbindungen annimmt; sonst bricht Liquibase beim Start ab
         - name: wait-for-db
           image: postgres:18
+          securityContext:
+            runAsUser: 999                 # Benutzer postgres im Image, sonst root
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
           command: [sh, -c, 'until pg_isready -h blocpress-db -p 5432; do sleep 2; done']
           resources:
             requests: {cpu: 10m, memory: 16Mi}
@@ -23,6 +32,12 @@ spec:
       containers:
         - name: workbench
           image: flaechsig/blocpress-workbench
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true   # REQ-0052: geschrieben wird nur nach /tmp
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}   # HOME, Temp-Dateien, PDF-Vergleich
           env:
             - {name: QUARKUS_DATASOURCE_JDBC_URL, value: "jdbc:postgresql://blocpress-db:5432/workbench"}
             - name: QUARKUS_DATASOURCE_USERNAME
@@ -43,6 +58,8 @@ spec:
             httpGet: {path: /q/health/ready, port: 8081}
           livenessProbe:
             httpGet: {path: /q/health/live, port: 8081}
+      volumes:
+        - {name: tmp, emptyDir: {}}
 ---
 apiVersion: v1
 kind: Service

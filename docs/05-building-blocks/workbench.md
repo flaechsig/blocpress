@@ -196,4 +196,5 @@ _(confidence: verified — WebDavResource.java, PROPFIND.java)_
 - [REQ-0032](../01-goals/requirements/REQ-0032.md) IF the search index is missing or a change could not be written to it, THEN the workbench shall create the index and rebuild it from the database, and the workbench shall rebuild the index on request.
 - [REQ-0036](../01-goals/requirements/REQ-0036.md) The render service shall render by name only templates and shall inline only building blocks.
 - [REQ-0045](../01-goals/requirements/REQ-0045.md) WHEN the workbench renders a preview or a regression test, the workbench shall inline each linked building block as its draft if one exists, otherwise as its valid approved version, before sending the template to the render service.
+- [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 <!-- /generated -->

@@ -12,9 +12,19 @@ spec:
     metadata:
       labels: {app: blocpress-studio}
     spec:
+      # REQ-0051: kein root, keine Rechteausweitung (die blocpress-Images laufen als UID 10001)
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: studio
           image: flaechsig/blocpress-studio
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true   # REQ-0052: geschrieben wird nur nach /tmp
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}   # HOME und Temp-Dateien
           env:
             - {name: WORKBENCH_URL, value: "http://blocpress-workbench:8081"}
           ports: [{containerPort: 8082}]
@@ -25,6 +35,8 @@ spec:
             httpGet: {path: /q/health/ready, port: 8082}
           livenessProbe:
             httpGet: {path: /q/health/live, port: 8082}
+      volumes:
+        - {name: tmp, emptyDir: {}}
 ---
 apiVersion: v1
 kind: Service
