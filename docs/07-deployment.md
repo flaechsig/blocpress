@@ -143,7 +143,7 @@ JWT-Variablen wirken nicht allgemein, sondern nur in render bei eingeschalteter 
 
 Seit [US-0046](01-goals/stories/US-0046.md) (2026-10-06): Elasticsearch bleibt intern, Port
 9200 ist nicht mehr freigegeben. LibreOffice arbeitet per WebDAV über das Studio
-(`http://localhost:8080/api/webdav/templates/<name>.odt`): Der Proxy leitet OPTIONS, HEAD,
+(`http://localhost:8080/api/webdav/design/templates/<name>.odt`): Der Proxy leitet OPTIONS, HEAD,
 PROPFIND, LOCK und UNLOCK samt WebDAV-Headern weiter und macht eine `Location` der Workbench
 serverrelativ ([REQ-0029](01-goals/requirements/REQ-0029.md)).
 

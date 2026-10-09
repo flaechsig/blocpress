@@ -23,13 +23,12 @@ import java.util.List;
 /**
  * WebDAV endpoint for accessing templates and Bausteine via HTTP.
  *
- * URL-Schema:
- *   GET/PUT  /api/webdav/bausteine/{name}.odt          → latest DRAFT (read-write)
- *   GET      /api/webdav/released/bausteine/{name}.odt → latest APPROVED (read-only)
- *   GET/PUT  /api/webdav/templates/{name}.odt          → latest DRAFT (read-write)
- *   GET      /api/webdav/released/templates/{name}.odt → latest APPROVED (read-only)
- *   PROPFIND /api/webdav/{collection}/                 → directory listing (207)
- *   OPTIONS  /api/webdav/                              → DAV: 1
+ * URL-Schema (REQ-0044, ADR-0018):
+ *   GET/PUT  /api/webdav/design/{bausteine|templates}/{name}.odt   → Entwurf (read-write)
+ *   GET      /api/webdav/released/{bausteine|templates}/{name}.odt → gueltiger freigegebener Stand (read-only)
+ *   PROPFIND /api/webdav/{design|released}/{collection}/           → directory listing (207)
+ *   OPTIONS  /api/webdav/                                         → DAV: 1
+ * Der bisherige Entwurfspfad /api/webdav/{bausteine|templates}/… bleibt bis Release 3.0 als Alias.
  */
 @Path("/api/webdav")
 public class WebDavResource {
@@ -54,6 +53,18 @@ public class WebDavResource {
     }
 
     // ===== GET — DRAFT (read-write) collections =====
+
+    private static final String DESIGN = "/api/webdav/design/";
+    /** Bisheriger Entwurfspfad, Alias bis Release 3.0. */
+    private static final String LEGACY = "/api/webdav/";
+
+    @GET
+    @Path("design/{collection}/{name}.odt")
+    @Produces(ODT_CONTENT_TYPE)
+    public Response getDesign(@PathParam("collection") String collection,
+                              @PathParam("name") String name) {
+        return getDraft(collection, name);
+    }
 
     @GET
     @Path("{collection}/{name}.odt")
@@ -86,11 +97,24 @@ public class WebDavResource {
     // ===== PUT — update DRAFT content =====
 
     @PUT
+    @Path("design/{collection}/{name}.odt")
+    @Transactional
+    public Response putDesign(@PathParam("collection") String collection,
+                              @PathParam("name") String name,
+                              byte[] content) {
+        return putDraft(DESIGN, collection, name, content);
+    }
+
+    @PUT
     @Path("{collection}/{name}.odt")
     @Transactional
     public Response putDraft(@PathParam("collection") String collection,
                              @PathParam("name") String name,
                              byte[] content) {
+        return putDraft(LEGACY, collection, name, content);
+    }
+
+    private Response putDraft(String prefix, String collection, String name, byte[] content) {
         TemplateType type = resolveType(collection);
         Template template = findLatestDraft(name, type);
         if (template == null) {
@@ -109,7 +133,7 @@ public class WebDavResource {
             template.persist();
             elasticsearchIndexService.indexAfterCommit(template);
             return Response.created(
-                jakarta.ws.rs.core.UriBuilder.fromPath("/api/webdav/{c}/{n}.odt")
+                jakarta.ws.rs.core.UriBuilder.fromPath(prefix + "{c}/{n}.odt")
                     .build(collection, name)
             ).build();
         }
@@ -141,6 +165,12 @@ public class WebDavResource {
     // ===== PROPFIND — directory listing (JAX-RS custom method via @HttpMethod) =====
 
     @OPTIONS
+    @Path("design/{collection}/")
+    public Response optionsDesignCollection() {
+        return optionsCollection();
+    }
+
+    @OPTIONS
     @Path("{collection}/")
     public Response optionsCollection() {
         return Response.ok()
@@ -159,10 +189,25 @@ public class WebDavResource {
     }
 
     @PROPFIND
+    @Path("design/{collection}/")
+    @Produces("application/xml")
+    public Response propfindDesign(@PathParam("collection") String collection) {
+        return buildPropfind(DESIGN, collection, false);
+    }
+
+    @PROPFIND
     @Path("{collection}/")
     @Produces("application/xml")
     public Response propfind(@PathParam("collection") String collection) {
-        return buildPropfind(collection, false);
+        return buildPropfind(LEGACY, collection, false);
+    }
+
+    @PROPFIND
+    @Path("design/{collection}/{name}.odt")
+    @Produces("application/xml")
+    public Response propfindDesignFile(@PathParam("collection") String collection,
+                                       @PathParam("name") String name) {
+        return propfindDraftFile(DESIGN, collection, name);
     }
 
     @PROPFIND
@@ -170,19 +215,23 @@ public class WebDavResource {
     @Produces("application/xml")
     public Response propfindFile(@PathParam("collection") String collection,
                                  @PathParam("name") String name) {
+        return propfindDraftFile(LEGACY, collection, name);
+    }
+
+    private Response propfindDraftFile(String prefix, String collection, String name) {
         TemplateType type = resolveType(collection);
         Template template = findLatestDraft(name, type);
         if (template == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
-        return buildFilePropfind("/api/webdav/" + collection + "/" + name + ".odt", name, template);
+        return buildFilePropfind(prefix + collection + "/" + name + ".odt", name, template);
     }
 
     @PROPFIND
     @Path("released/{collection}/")
     @Produces("application/xml")
     public Response propfindReleased(@PathParam("collection") String collection) {
-        return buildPropfind(collection, true);
+        return buildPropfind("/api/webdav/released/", collection, true);
     }
 
     @PROPFIND
@@ -248,9 +297,9 @@ public class WebDavResource {
                 .build();
     }
 
-    private Response buildPropfind(String collection, boolean releasedOnly) {
+    private Response buildPropfind(String prefix, String collection, boolean releasedOnly) {
         TemplateType type = resolveType(collection);
-        String basePath = releasedOnly ? "/api/webdav/released/" + collection + "/" : "/api/webdav/" + collection + "/";
+        String basePath = prefix + collection + "/";
 
         List<Template> templates;
         if (releasedOnly) {

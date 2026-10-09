@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **WebDAV-Pfade für Entwurf und Freigabe** (REQ-0044, US-0062): Entwürfe liegen unter `/api/webdav/design/{templates|bausteine}/{name}.odt`, der gültige freigegebene Stand unter `/api/webdav/released/…`. Der bisherige Entwurfspfad `/api/webdav/{templates|bausteine}/` bleibt bis Release 3.0 als Alias.
 - **Vorschau und Regressionstest mit Bausteinen** (REQ-0045): Die Workbench setzt verknüpfte Bausteine selbst ein — den Entwurf, sonst die gültige freigegebene Version — und schickt render eine Vorlage ohne Verknüpfung.
 - **Import nach production mit Typ** (REQ-0036): Vorlage oder Baustein; per Name rendert render nur Vorlagen, eingebunden werden nur Bausteine. Neues Liquibase-Changeset `002-template-type`.
 - **Suche der Workbench:** Low-Level-Client `Rest5Client` aus elasticsearch-java 9, wie ihn Quarkus 3.40 mitbringt; der Server bleibt Elasticsearch 8.x.
