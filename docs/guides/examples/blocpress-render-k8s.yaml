@@ -1,6 +1,7 @@
 # Beispiel: blocpress-render in Kubernetes, bemessen nach docs/guides/render-sizing.md
-# (Standardgroesse "2 CPU / 2 Worker", gemessen ~3,7 Renders/s je Pod; sparsam: 1 / 1 / 384Mi).
-# Hinweis: Das Messprotokoll fuer k8s wurde mit der sparsamen Groesse (1/1/384Mi) erstellt.
+# (Standardgroesse "2 CPU / 1Gi / 2 Worker", gemessen ~100 Renders/s je Pod mit warmen
+# LibreOffice-Instanzen; sparsam: 1 CPU / 640Mi / 1 Worker, ~50 Renders/s).
+# Hinweis: Das Messprotokoll fuer k8s (2.5.1) wurde mit der sparsamen Groesse von damals (1/1/384Mi) erstellt.
 # Die PostgreSQL hier ist nur fuer Tests/Messungen gedacht — produktiv eine echte DB verwenden.
 #
 #   kubectl apply -f blocpress-render-k8s.yaml
@@ -74,8 +75,8 @@ spec:
             - {name: BLOCPRESS_DEFAULT_LOCALE, value: de-DE}  # Ersatzsprache fuer Zahlen/Daten
           ports: [{containerPort: 8080}]
           resources:
-            requests: {cpu: "2", memory: 640Mi}
-            limits:   {cpu: "2", memory: 640Mi}  # gemessene Spitze ~454Mi bei 16 parallelen Renders
+            requests: {cpu: "2", memory: 1Gi}
+            limits:   {cpu: "2", memory: 1Gi}    # 2 Worker (Grundbedarf + 2 × 350 MiB); gemessene Spitze ~300Mi bei 16 parallelen Renders
                                                  # Worker = CPU-Limit abgerundet (render leitet es ab)
           readinessProbe:
             httpGet: {path: /q/health/ready, port: 8080}

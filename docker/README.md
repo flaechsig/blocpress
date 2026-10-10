@@ -80,17 +80,15 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 
 ## Sizing
 
-> **Note:** The sizes below were measured with 2.5.1, when every conversion started its own LibreOffice process. Since 2.8.0 render keeps one warm LibreOffice instance per worker: a one-page document takes about 0.07 CPU-seconds instead of 0.5, but each worker keeps ~250 MiB resident, and render also limits the number of workers by the memory limit (with 640Mi: one worker). New sizes will follow from a load test.
+Measured with 2.8.0 (native, warm LibreOffice instances): one render of a 1–2 page document ≈ 0.02 CPU-seconds, about 50 renders/s per worker. render derives the number of workers from the CPU limit and the memory limit (about 180 MiB base + 350 MiB per worker for the native image); each worker keeps one LibreOffice instance resident.
 
-Measured with 2.5.1 (native): one render ≈ 0.5 CPU-seconds, throughput ≈ 2 renders/s per CPU core.
-
-| Size | CPU (request = limit) | Workers (derived) | Memory (request = limit) | ≈ renders/s per pod |
+| Size | CPU (request = limit) | Memory (request = limit) | Workers (derived) | ≈ renders/s per pod |
 |------|------|------|------|------|
-| **standard** | 2 | 2 | 640Mi | 3.7 |
-| lean (test/staging) | 1 | 1 | 384Mi | 2 |
-| more load | replicas of *standard* | 2 | 640Mi | 3.7 × replicas |
+| **standard** | 2 | 1Gi | 2 | ~100 |
+| lean (test/staging) | 1 | 640Mi | 1 | ~50 |
+| more load | replicas of *standard* | 1Gi | 2 | ~100 × replicas |
 
-The CPU limit is the usual bottleneck (CFS throttling); more workers than cores do not help, so render derives the worker count from the CPU limit.
+Memory is now the usual bottleneck: with 640Mi render derives only one worker, however many cores it has. The JVM image (`Dockerfile`) needs about 320 MiB more.
 Guide and load test: [render-sizing.md](https://github.com/flaechsig/blocpress/blob/main/docs/guides/render-sizing.md).
 
 ---

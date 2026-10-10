@@ -179,7 +179,7 @@ Status: 🟡 in Arbeit
 
 ## Widersprüche
 
-- [guides/render-sizing.md](../guides/render-sizing.md): Die Größen werden mit `RenderLoadIT` neu gemessen. (contradiction)
+_keine_
 
 ## Kapitel ohne Inhalt
 
