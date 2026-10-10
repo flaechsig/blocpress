@@ -26,4 +26,5 @@ eines Tests sollen deshalb nachvollziehbar zu einer Behebung führen.
 - [US-0064](../stories/US-0064.md) — Security-Header in Workbench, Studio und render
 - [US-0066](../stories/US-0066.md) — Engine nur mit API-Schlüssel
 - [US-0067](../stories/US-0067.md) — Voller Modus nur mit gültigem Token
+- [US-0074](../stories/US-0074.md) — Engine nur für benannte Clients oder mit Issuer
 <!-- /generated -->
