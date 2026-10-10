@@ -13,7 +13,7 @@ wiederholt.
 | Image | Inhalt | Port | Dockerfile |
 |---|---|---|---|
 | `flaechsig/blocpress-studio-quickstart` | studio, workbench, render, PostgreSQL, Elasticsearch | 8080, 8081, 9200 | `docker/studio/Dockerfile.native` (Release), `docker/studio/Dockerfile` (JVM, nur lokal) |
-| `flaechsig/blocpress-render` | render, LibreOffice (`libreoffice-core`, `libreoffice-writer`), Schriften | 8080 | `blocpress-render/Dockerfile.native`, `Dockerfile` |
+| `flaechsig/blocpress-render` | render, LibreOffice (`libreoffice-core`, `libreoffice-writer`), `python3-uno` für die warmen Instanzen ([ADR-0021](09-decisions/ADR-0021.md)), Schriften | 8080 | `blocpress-render/Dockerfile.native`, `Dockerfile` |
 | `flaechsig/blocpress-workbench` | workbench, `poppler-utils`, ImageMagick (für den PDF-Vergleich) | 8081 | `blocpress-workbench/Dockerfile.native`, `Dockerfile` |
 | `flaechsig/blocpress-studio` | studio | 8082 | `blocpress-studio/Dockerfile.native`, `Dockerfile` |
 
@@ -218,7 +218,7 @@ flowchart TD
 
 | Teil | Inhalt |
 |---|---|
-| `deploy/k8s/app` | render (2 CPU, 640Mi), workbench (768Mi), studio (256Mi), Elasticsearch 8.11.0 (ein Knoten, ohne Security, 1Gi Volume); render und workbench warten in einem Init-Container auf `blocpress-db:5432` |
+| `deploy/k8s/app` | render (2 CPU, 640Mi, siehe Widerspruch in [render bemessen](guides/render-sizing.md)), workbench (768Mi), studio (256Mi), Elasticsearch 8.11.0 (ein Knoten, ohne Security, 1Gi Volume); render und workbench warten in einem Init-Container auf `blocpress-db:5432` |
 | `deploy/k8s/postgres` | PostgreSQL 18 mit 2Gi Volume; ein Init-Skript legt die leeren Datenbanken `workbench` und `production` an |
 | `deploy/k8s` | beide Teile plus Ingress für das Studio unter `/` |
 

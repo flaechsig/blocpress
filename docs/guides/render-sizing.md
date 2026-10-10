@@ -7,6 +7,16 @@
 > leitet render ab 2.8.0 selbst aus dem CPU-Limit ab (abgerundet, mindestens 1);
 > `BLOCPRESS_LO_WORKERS` kann sie nur noch senken, etwa bei knappem Speicher.
 
+> [!CAUTION]
+> Die Anleitung sagt ~150 MiB je Worker und empfiehlt 2 CPU / 2 Worker / 640Mi; gemessen ist
+> das mit 2.5.1, als jede Konvertierung einen eigenen `soffice`-Prozess startete. Der Code hält
+> seit [ADR-0021](../09-decisions/ADR-0021.md) je Worker eine warme Instanz dauerhaft im
+> Speicher (~250 MiB, nach sehr großen Dokumenten bis ~570 MiB, dann ersetzt) und begrenzt die
+> Worker-Zahl zusätzlich nach dem Speicherlimit (Grundbedarf + 350 MiB je Instanz). Mit 640Mi
+> leitet render deshalb nur noch einen Worker ab. Ein Render kostet bei kleinen Dokumenten
+> statt ~0,5 nur noch ~0,07 CPU-Sekunden ([Messprotokoll](measurements/libreoffice-warm-2026-10-10.md)).
+> Die Größen werden mit `RenderLoadIT` neu gemessen. (contradiction)
+
 Diese Anleitung erklärt, wie du die Ressourcen für `blocpress-render` **misst statt rätst**.
 Sie stützt sich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
 und den Lasttest `RenderLoadIT`, mit dem du dieselbe Messung gegen deine eigene Umgebung
