@@ -7,7 +7,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 16 · ✅ verifiziert 53 · ⛔ abgelöst 4 |
 | Requirements | vorgeschlagen 32 · umgesetzt 69 · abgelöst 7 |
-| [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 3 |
+| [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 4 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
