@@ -125,3 +125,30 @@ Große Mengen, gleiche Bedingungen (Ende-zu-Ende, 1 CPU, 1 Worker):
 
 Die Zeit wächst linear mit einem festen Sockel von rund 0,5 s je Dokument (vor allem der
 Start von LibreOffice): 3,3-fache Positionen von 3000 auf 10 000, 2,6-fache Zeit.
+
+## Nach US-0072 (warme Instanzen in render)
+
+render mit warmen Instanzen ([US-0072](../../01-goals/stories/US-0072.md)), Image 2.8.0-SNAPSHOT
+(JVM), `--cpus 1 --memory 1g --read-only --tmpfs /tmp`, ein Worker, Ende-zu-Ende über
+`POST /api/render/template`:
+
+| Positionen | Seiten | Ø je Dokument | Seiten/s | Dokumente/s | vorher (US-0071) |
+|---|---|---|---|---|---|
+| 3 | 1 | 0,07 s | 15,1 | 15,1 | 0,54 s |
+| 50 | 2 | 0,07 s | 28,8 | 14,4 | 0,55 s |
+| 425 | 10 | 0,19 s | 53,5 | 5,4 | 0,63 s |
+| 1349 | 30 | 0,81 s | 37,2 | 1,2 | 1,16 s |
+| 2129 | 50 | 1,12 s | 44,7 | 0,9 | 1,48 s |
+| 3000 | 72 | 1,45 s | 49,7 | 0,7 | 1,77 s |
+| 10 000 | 251 | 4,68 s | 53,6 | 0,2 | 4,65 s |
+
+Nach den Dokumenten mit 3000 und 10 000 Positionen lag die Instanz bei 568 bis 590 MiB und wurde
+ersetzt (Grenze 512 MiB). Die JVM von render belegte rund 380 MiB; `memory.peak` erreichte das
+Limit von 1 GiB (einschließlich Seiten-Cache und `/tmp` im Speicher), ohne dass der Container
+beendet wurde.
+
+**Fortschritt nur beim Export.** Beim Laden eines roh gemischten Dokuments ruft LibreOffice den
+StatusIndicator zehntausendfach auf (251 Seiten: ~50 000 synchrone Aufrufe über die Pipe,
+~25 % der Zeit). Der Helfer fragt Fortschritt deshalb nur beim Export ab (rund ein Aufruf je
+Seite) und meldet nach dem Laden selbst einmal Fortschritt: 251 Seiten 3,6 s statt 4,4 s im
+Helfer allein.

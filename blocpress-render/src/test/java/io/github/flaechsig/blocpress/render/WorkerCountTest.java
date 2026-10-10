@@ -54,4 +54,23 @@ class WorkerCountTest {
         int workers = new LibreOfficePool().workers();
         assertTrue(workers >= 1 && workers <= Runtime.getRuntime().availableProcessors(), "workers=" + workers);
     }
+
+    @ParameterizedTest(name = "{displayName} [{index}] memory.max=''{0}'' → {1}")
+    @DisplayName("REQ-0103: memoryLimitBoundsTheWorkers")
+    @CsvSource(delimiter = '|', value = {
+            "1073741824|2",   // 1 GiB: (1024 - 256) / 350 = 2
+            "2147483648|5",   // 2 GiB: (2048 - 256) / 350 = 5
+            "536870912|1",    // 512 MiB: weniger als eine Instanz, mindestens 1
+            "104857600|1"     // 100 MiB: unter dem Grundbedarf, mindestens 1
+    })
+    void memoryLimitBoundsTheWorkers(String memoryMax, int expected) {
+        assertEquals(Optional.of(expected), WorkerCount.byMemory(memoryMax, 256L << 20, 350L << 20));
+    }
+
+    @Test
+    @DisplayName("REQ-0103: withoutMemoryLimitOnlyTheCpuCounts")
+    void withoutMemoryLimitOnlyTheCpuCounts() {
+        assertEquals(Optional.empty(), WorkerCount.byMemory("max", 256L << 20, 350L << 20));
+        assertEquals(Optional.empty(), WorkerCount.byMemory(null, 256L << 20, 350L << 20));
+    }
 }

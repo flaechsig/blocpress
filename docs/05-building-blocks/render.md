@@ -171,4 +171,11 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0063](../01-goals/requirements/REQ-0063.md) WHEN the production store changes, the render service shall use the changed state for the next rendering, regardless of which instance made the change.
 - [REQ-0067](../01-goals/requirements/REQ-0067.md) The render service shall send the header X-Content-Type-Options with the value nosniff with every response.
+- [REQ-0098](../01-goals/requirements/REQ-0098.md) WHEN the render service starts, the render service shall start one LibreOffice instance per worker and report readiness only after all instances accept conversions.
+- [REQ-0099](../01-goals/requirements/REQ-0099.md) The render service shall convert documents in a running LibreOffice instance without starting a new LibreOffice process per conversion.
+- [REQ-0100](../01-goals/requirements/REQ-0100.md) IF a conversion reports no progress for the configured idle time, 30 seconds by default, THEN the render service shall terminate and replace the instance and fail the request with an error that names the limit.
+- [REQ-0101](../01-goals/requirements/REQ-0101.md) WHEN an instance has completed the configured number of conversions or its memory exceeds the configured limit, the render service shall replace it before its next conversion.
+- [REQ-0102](../01-goals/requirements/REQ-0102.md) IF an instance terminates unexpectedly, THEN the render service shall replace it and fail only the conversion that was running.
+- [REQ-0103](../01-goals/requirements/REQ-0103.md) The render service shall run no more conversions in parallel than the memory limit of its container allows for its base need plus the need per instance, and at least one.
+- [REQ-0104](../01-goals/requirements/REQ-0104.md) IF a conversion exceeds the configured maximum duration, 10 minutes by default, THEN the render service shall terminate and replace the instance and fail the request with an error that names the limit.
 <!-- /generated -->
