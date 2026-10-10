@@ -112,3 +112,16 @@ LibreOffice noch wie bisher mit einem Prozess je Konvertierung:
 Bei großen Dokumenten ist jetzt die Konvertierung der größte Teil (50 Seiten: rund 1,1 s von
 1,5 s); bei einseitigen Dokumenten bleibt der Start von LibreOffice der Kostentreiber, den
 ADR-0021 angeht.
+
+Große Mengen, gleiche Bedingungen (Ende-zu-Ende, 1 CPU, 1 Worker):
+
+| Positionen | Seiten | Ø je Dokument | Seiten/s |
+|---|---|---|---|
+| 3 | 1 | 0,54 s | 1,9 |
+| 50 | 2 | 0,55 s | 3,6 |
+| 500 | 11 | 0,66 s | 16,7 |
+| 3000 | 72 | 1,77 s | 40,6 |
+| 10 000 | 251 | 4,65 s | 53,9 |
+
+Die Zeit wächst linear mit einem festen Sockel von rund 0,5 s je Dokument (vor allem der
+Start von LibreOffice): 3,3-fache Positionen von 3000 auf 10 000, 2,6-fache Zeit.
