@@ -18,7 +18,8 @@ RUN set -eux; \
       fonts-freefont-ttf \
       curl \
       libreoffice-core \
-      libreoffice-writer; \
+      libreoffice-writer \
+      python3-uno; \
     rm -rf /var/lib/apt/lists/*;
 
 # Unprivilegierter Benutzer (REQ-0050). Numerische UID, damit Kubernetes runAsNonRoot

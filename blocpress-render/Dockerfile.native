@@ -3,8 +3,8 @@ FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Kein JRE noetig — das GraalVM-Native-Image ist ein eigenstaendiges Binary.
-# LibreOffice + Fonts bleiben: die Konvertierung laeuft ueber den externen
-# soffice-CLI-Prozess (siehe LibreOfficeProcessor).
+# LibreOffice + Fonts bleiben: die Konvertierung laeuft in warmen soffice-Instanzen,
+# die ein Python-UNO-Helfer steuert (python3-uno, ADR-0021).
 RUN set -eux; \
     sed -i 's/^Components: *main/Components: main universe/' /etc/apt/sources.list.d/ubuntu.sources; \
     apt-get update; \
@@ -20,7 +20,8 @@ RUN set -eux; \
       fonts-freefont-ttf \
       curl \
       libreoffice-core \
-      libreoffice-writer; \
+      libreoffice-writer \
+      python3-uno; \
     rm -rf /var/lib/apt/lists/*;
 
 # Unprivilegierter Benutzer (REQ-0050). Numerische UID, damit Kubernetes runAsNonRoot

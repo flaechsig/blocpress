@@ -46,6 +46,7 @@ RUN set -eux; \
       curl \
       libreoffice-core \
       libreoffice-writer \
+      python3-uno \
       # PDF diff (for workbench regression tests)
       poppler-utils \
       imagemagick \
