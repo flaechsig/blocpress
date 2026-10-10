@@ -4,8 +4,8 @@ description: >-
   Phase 6 des Pentests (Bericht): die Befunde prüfen und security-review/report.md neu generieren,
   Risiko je Fund einschätzen (Schwere × Wahrscheinlichkeit), offene Lücken benennen. Verwenden,
   wenn ein Zwischenstand oder der Abschlussbericht ansteht, oder bei Aufruf /secspine-report.
-  In Projekten mit Architektur-Doku (docspine) zusätzlich die bestätigten Funde nach arc42
-  Kapitel 11 destillieren.
+  In Projekten mit Architektur-Doku (docspine) zusätzlich die bestätigten Funde nach den
+  Regeln von docspine in Kapitel 11 übertragen (je Fund ein SEC-Risiko).
 ---
 
 # secspine-report
@@ -29,26 +29,55 @@ nicht von Hand geschrieben: die Wahrheit steht in `security-review/`.
 
 ## docspine-Modus: Funde in die Architektur-Doku destillieren
 
-Erkennst du im Projekt eine Architektur-Dokumentation (`.docspine/` bzw. `docs/11-risks.md`),
+Erkennst du im Projekt eine Architektur-Dokumentation nach docspine (`.docspine/STANDARD.md`),
 gehört die **dauerhafte** Erkenntnis dorthin, nicht nur nach `security-review/` (ADR-0007).
-Dann zusätzlich — **vorschlagen, dann nach Freigabe** ausführen:
+Was in `docs/` steht, regelt **docspine**, nicht secspine (ADR-0008): Format, IDs, Verweise
+und Prüfung stehen in `.docspine/STANDARD.md`. Du schreibst dort nur nach diesen Regeln.
 
-1. **Risiken nach arc42 Kapitel 11** (`docs/11-risks.md`): je **bestätigtem** Fund eine Zeile
-   in einem eigenen Abschnitt „Security-Test-Befunde" — **direkt unter den Architekturrisiken,
-   vor den technischen Schulden**. Eigener Präfix **`SEC-1`, `SEC-2`, …**, getrennt von der
-   `R-`Reihe des Projekts. Spalten: ID, Risiko, Schwere, **Status** (`offen`/`behoben`), Story.
-   Verworfene Funde nicht als Risiko führen; relevante „geprüft, kein Risiko" als Fußnote.
-   Gleicht sich ein Fund mit einem schon dokumentierten Risiko (z. B. einer `R-`Zeile), dort
-   ergänzen oder darauf verweisen, statt ihn doppelt zu führen.
-2. **Aufträge als Stories**, gebündelt in einem Epic **`E-SECURITY`** („Sicherheit"). Jede
-   `SEC-`Zeile verweist auf ihre Story, jede Story zurück auf ihr `SEC-`Risiko.
-3. **`security-review/` ist dann Arbeitsstand** — in die `.gitignore` des Projekts aufnehmen
-   (`logs/` und `certs/` schützt secspine bereits). Der `report.md` bleibt lokal.
-4. **Erhalt**: behobene `SEC-`Einträge bleiben stehen, nur als `behoben` markiert (mit Verweis
-   auf die lösende Änderung) — Nachweis und Historie bleiben sichtbar.
-5. Die docspine-Prüfung laufen lassen (`render`, dann `check`), bis sie OK meldet.
+Welcher Weg gilt, entscheidet die docspine-Version in der ersten Zeile von
+`.docspine/STANDARD.md` (`<!-- docspine X · … -->`):
 
-Das **Beheben** der Funde ist Sache des Zielprojekts (eigene Branches), nicht von secspine.
+### docspine 0.21 oder neuer: ein `SEC-` je Fund
+
+Lies vorher `.docspine/STANDARD.md` Abschnitt 3.8 (Risiken und Schulden). Dann —
+**vorschlagen, dann nach Freigabe** ausführen:
+
+1. **Liegt Kapitel 11 noch als eine Datei `docs/11-risks.md` vor**, zuerst die Migration mit
+   `docspine-update` vorschlagen und danach weitermachen. Ohne Migration den Übergangsweg
+   unten nehmen; nie beides nebeneinander anlegen.
+2. **Je bestätigtem Fund eine Datei** `docs/11-risks/SEC-NNNN.md` mit der nächsten freien
+   Nummer, `status: open`, `severity` aus dem Befund, `source` mit Test und Datum (etwa
+   „Security-Test 2026-10-07“). Text: Risiko, Folge, Maßnahme — in eigenen Worten, ohne
+   Logs, Payloads oder Pfade aus `security-review/` (die sind lokal).
+3. **Abgleich statt Doppelung.** Deckt ein vorhandenes Risiko den Fund schon ab: Ist es ein
+   `SEC-`, dort ergänzen. Ist es ein `R-`, das sich als Security-Thema herausstellt, ein neues
+   `SEC-` mit `supersedes: R-NNNN` vorschlagen; das `R-` wird `superseded`.
+4. **Stories für die Behebung** schlägst du vor; angelegt werden sie nach den Regeln von
+   docspine (`docspine-require`). Die Story nennt ihr Risiko in `addresses`. Keine Verweise
+   von Hand in die eine oder andere Richtung, kein „behoben am …“ — den Stand zeigt docspine
+   am Risiko. Ein Epic (etwa `E-SECURITY`) ist ein Vorschlag; der Name gehört dem Projekt.
+5. **Verworfene Funde** werden kein Risiko. Relevantes „geprüft, kein Risiko“ gehört als Text
+   in `docs/11-risks/README.md`, oberhalb des generierten Bereichs.
+6. **Behoben** setzt nicht secspine: Ein `SEC-` wird `closed`, wenn seine Stories `verified`
+   sind; das prüft docspine. secspine prüft in einer Nachtestrunde nur, ob der Fund wirklich
+   weg ist (`secspine-verify`).
+
+### Ältere docspine-Version: Übergang
+
+Bis das Projekt docspine 0.21 oder neuer hat, gilt der bisherige Weg: je bestätigtem Fund eine
+Zeile in einem eigenen Abschnitt „Security-Test-Befunde“ in `docs/11-risks.md`, Präfix
+`SEC-1`, `SEC-2`, …, Spalten ID, Risiko, Schwere, Status (`offen`/`behoben`), Story. Schlage
+dabei das Update von docspine vor.
+
+### In beiden Fällen
+
+- **`security-review/` ist Arbeitsstand** — in die `.gitignore` des Projekts aufnehmen
+  (`logs/` und `certs/` schützt secspine bereits). Der `report.md` bleibt lokal.
+- Die docspine-Prüfung laufen lassen (`render`, dann `check`), bis sie OK meldet.
+- Das **Beheben** der Funde ist Sache des Zielprojekts (eigene Branches), nicht von secspine.
+- **Öffentliches Repo** (ADR-0009): Die neuen `SEC-` und ihre Stories bleiben auf dem
+  Security-Branch, bis sie `closed` sind; Fix-Branches zweigen von ihm ab. Weise darauf hin
+  und auf die Sperre vor dem Push (`secspine.py install-hook`), falls sie fehlt.
 
 ## Regeln
 
