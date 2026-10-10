@@ -1,4 +1,4 @@
-<!-- secspine 0.7 · source: .secspine/STANDARD.md · do not edit in projects -->
+<!-- secspine 0.9 · source: .secspine/STANDARD.md · do not edit in projects -->
 
 # secspine — Standard
 
@@ -77,6 +77,12 @@ freie `F-`Nummer. Das Prüfwerkzeug meldet Doppelungen.
 - `render` — baut `security-review/report.md` neu aus den Befunden.
 - `list` — Überblick: ID, Schwere, Status, Titel.
 - `new <ID> "<Titel>"` — legt einen Befund aus der Vorlage an.
+- `version` — zeigt die installierte Version und prüft auf Updates.
+- `pre-push` — Sperre vor dem Push (ADR-0009): verweigert ihn, wenn der gepushte Stand ein
+  `docs/11-risks/SEC-NNNN.md` mit `status: open` ohne `publish` enthält. Als Git-Hook gedacht;
+  ohne Hook prüft der Befehl `HEAD`.
+- `install-hook` — legt `.git/hooks/pre-push` an, der `pre-push` aufruft, oder hängt den
+  Aufruf an einen vorhandenen Hook an. Setzt kein `core.hooksPath`.
 
 Vor jedem Abschluss einer Phase: `check` muss OK melden, dann `render`.
 

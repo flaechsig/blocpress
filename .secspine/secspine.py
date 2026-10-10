@@ -9,12 +9,16 @@ Befehle:
   list             Überblick: ID, Schwere, Status, Titel
   new <ID> "Titel" Befund aus der Vorlage anlegen
   version          installierte Version zeigen und auf Updates prüfen
+  pre-push         Push verweigern, wenn der Stand ein offenes SEC-Risiko enthält (ADR-0009);
+                   als Git-Hook gedacht, ohne Hook prüft er HEAD
+  install-hook     .git/hooks/pre-push anlegen oder ergänzen, der pre-push aufruft
 """
 from __future__ import annotations
 
 import datetime as _dt
 import os
 import re
+import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -294,6 +298,99 @@ def cmd_version():
     return 0
 
 
+# ---------- Sperre vor dem Push (ADR-0009) ----------
+
+RISKS_DIR = "docs/11-risks"
+SEC_FILE_RE = re.compile(r"(?:^|/)(SEC-\d{4})\.md$")
+ZERO_SHA = re.compile(r"^0+$")
+HOOK_LINE = 'python3 .secspine/secspine.py pre-push "$@" || exit 1'
+HOOK_TEXT = ("#!/bin/sh\n"
+             "# secspine: offene SEC-Risiken nicht pushen (ADR-0009)\n"
+             + HOOK_LINE + "\n")
+
+
+def _git(*args, check=True):
+    res = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    if check and res.returncode != 0:
+        raise RuntimeError(res.stderr.strip() or f"git {' '.join(args)} fehlgeschlagen")
+    return res.stdout
+
+
+def open_sec_risks(rev):
+    """IDs der SEC-Risiken, die im Stand `rev` offen sind und kein `publish` tragen."""
+    if _git("cat-file", "-t", rev, check=False).strip() not in ("commit", "tag"):
+        return []
+    names = _git("ls-tree", "-r", "--name-only", rev, "--", RISKS_DIR, check=False).splitlines()
+    out = []
+    for name in names:
+        m = SEC_FILE_RE.search(name)
+        if not m:
+            continue
+        text = _git("show", f"{rev}:{name}", check=False)
+        meta = {}
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            if end != -1:
+                meta = _parse_frontmatter(text[3:end].strip("\n"))
+        if str(meta.get("status", "")).strip() == "open" and not str(meta.get("publish", "")).strip():
+            out.append(m.group(1))
+    return out
+
+
+def cmd_pre_push(stdin):
+    """Git übergibt je Ref eine Zeile: <local ref> <local sha> <remote ref> <remote sha>."""
+    revs = []
+    lines = [] if stdin is None else [l.split() for l in stdin.read().splitlines() if l.strip()]
+    for parts in lines:
+        if len(parts) >= 2 and not ZERO_SHA.match(parts[1]):  # gelöschte Refs zeigen nichts
+            revs.append((parts[0], parts[1]))
+    if stdin is None or not lines:
+        revs = [("HEAD", "HEAD")]
+    blocked = {}
+    for ref, rev in revs:
+        ids = open_sec_risks(rev)
+        if ids:
+            blocked[ref] = ids
+    if not blocked:
+        return 0
+    print("secspine: Push verweigert — der Stand enthält offene Security-Risiken (ADR-0009):",
+          file=sys.stderr)
+    for ref, ids in blocked.items():
+        print(f"  {ref}: {', '.join(ids)}", file=sys.stderr)
+    print("Offene SEC-Risiken bleiben auf dem Security-Branch, bis sie behoben sind.\n"
+          "Bewusst veröffentlichen: im SEC 'publish: <Datum>' setzen, oder einmalig\n"
+          "'git push --no-verify'.", file=sys.stderr)
+    return 1
+
+
+def cmd_install_hook():
+    hooks = _git("rev-parse", "--git-path", "hooks").strip()
+    hooks = hooks if os.path.isabs(hooks) else os.path.join(ROOT, hooks)
+    path = os.path.join(hooks, "pre-push")
+    if _git("config", "core.hooksPath", check=False).strip():
+        print("core.hooksPath ist gesetzt; der Hook gehört dorthin. Bitte von Hand eintragen:\n  "
+              + HOOK_LINE)
+        return 1
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        if HOOK_LINE in text:
+            print(f"Schon eingerichtet: {os.path.relpath(path, ROOT)}")
+            return 0
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(("" if text.endswith("\n") else "\n")
+                     + "# secspine: offene SEC-Risiken nicht pushen (ADR-0009)\n" + HOOK_LINE + "\n")
+        print(f"Ergänzt: {os.path.relpath(path, ROOT)}. Prüfen, dass der vorhandene Hook nicht vorher "
+              "mit 'exit' endet und die Eingabe (stdin) nicht schon verbraucht.")
+    else:
+        os.makedirs(hooks, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(HOOK_TEXT)
+        print(f"Angelegt: {os.path.relpath(path, ROOT)}")
+    os.chmod(path, os.stat(path).st_mode | 0o111)
+    return 0
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -312,6 +409,10 @@ def main(argv):
         return cmd_new(rest[0], " ".join(rest[1:]))
     if cmd == "version":
         return cmd_version()
+    if cmd == "pre-push":
+        return cmd_pre_push(None if sys.stdin is None or sys.stdin.isatty() else sys.stdin)
+    if cmd == "install-hook":
+        return cmd_install_hook()
     print(f"Unbekannter Befehl: {cmd}\n")
     print(__doc__)
     return 1
