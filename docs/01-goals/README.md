@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · ✅ verifiziert 52 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 31 · umgesetzt 66 · abgelöst 7 |
+| Stories | ⚪ offen 17 · ✅ verifiziert 52 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 35 · umgesetzt 66 · abgelöst 7 |
 | [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -98,6 +98,7 @@ Status: 🟡 in Arbeit
 | [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
 | [US-0065](stories/US-0065.md) | render ohne Datenbank als Engine betreiben | ⚪ offen |
 | [US-0072](stories/US-0072.md) | Warme LibreOffice-Instanzen in render | ✅ verifiziert |
+| [US-0073](stories/US-0073.md) | REST-API von render aus openapi.yml | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 

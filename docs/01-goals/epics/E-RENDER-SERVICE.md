@@ -27,4 +27,5 @@ Lastverhalten (Großdokumente, Batch-Läufe) in ein gemeinsames Thema.
 - [US-0045](../stories/US-0045.md) — Asynchrone Aufträge und Dashboard robust machen
 - [US-0065](../stories/US-0065.md) — render ohne Datenbank als Engine betreiben
 - [US-0072](../stories/US-0072.md) — Warme LibreOffice-Instanzen in render
+- [US-0073](../stories/US-0073.md) — REST-API von render aus openapi.yml
 <!-- /generated -->
