@@ -8,6 +8,7 @@
 | Maven | 3.9 oder neuer | Build |
 | Docker | aktuell | Integrationstests, Container-Image von blocpress-render, `@QuarkusTest`s in render (PostgreSQL über Quarkus DevServices) |
 | LibreOffice | 24 oder neuer, `soffice` im `PATH` | PDF- und RTF-Konvertierung zur Laufzeit in blocpress-render und in Tests |
+| Python mit `python3-uno` | Python 3 mit dem UNO-Modul derselben LibreOffice-Version | Helfer der warmen LibreOffice-Instanzen in blocpress-render und in dessen Tests ([ADR-0021](09-decisions/ADR-0021.md)) |
 | Python | 3.9 oder neuer | docspine-Prüfung |
 
 _(confidence: unverified — übernommen aus der bisherigen `CLAUDE.md`, Versionen nicht einzeln

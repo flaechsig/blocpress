@@ -82,15 +82,47 @@ mehr wartet. Minütlich setzt `requeueStaleJobs` hängende Aufträge zurück
 Außerdem protokolliert `recordSync` jeden synchronen Aufruf als `RenderJob` ohne Ergebnis.
 Den Ablauf im Einzelnen beschreibt der [asynchrone Render-Auftrag](../06-runtime/async-render-job.md).
 
-`LibreOfficePool` ist kein Prozess-Pool, sondern ein faires Semaphor mit
-so vielen Plätzen, wie es Worker gibt, vor `LibreOfficeProcessor.refreshAndTransform`. Die
-Zahl bestimmt `WorkerCount`: das CPU-Limit aus `cpu.max`, abgerundet und mindestens 1, ohne
-Limit die Prozessorzahl; `BLOCPRESS_LO_WORKERS` ist eine Obergrenze
-([REQ-0027](../01-goals/requirements/REQ-0027.md)).
-Synchrone Aufrufe und Auftragsschleifen teilen sich diese Plätze.
+`LibreOfficePool` hält je Worker eine warme LibreOffice-Instanz ([ADR-0021](../09-decisions/ADR-0021.md)).
+Jede Instanz ist ein Helferprozess (`bp-convert.py`, Python-UNO), der eine eigene `soffice`-Instanz
+mit eigenem Profil an einer lokalen Pipe startet; render spricht mit ihm über stdin/stdout
+(`READY`, `CONVERT`, `PROGRESS`, `OK`/`FAIL`). Beim Start legt der Pool alle Instanzen an;
+die Readiness „LibreOffice instances“ ist erst grün, wenn alle laufen
+([REQ-0098](../01-goals/requirements/REQ-0098.md)). Eine Konvertierung nimmt eine freie Instanz
+und läuft darin ohne neuen Prozess ([REQ-0099](../01-goals/requirements/REQ-0099.md)).
+
+Die Zahl der Worker bestimmt `WorkerCount`: das CPU-Limit aus `cpu.max`, abgerundet und
+mindestens 1, ohne Limit die Prozessorzahl; `BLOCPRESS_LO_WORKERS` ist eine Obergrenze
+([REQ-0027](../01-goals/requirements/REQ-0027.md)). Zusätzlich begrenzt das Speicherlimit
+(`memory.max`): Grundbedarf plus Bedarf je Instanz (Standard 350 MiB) müssen hineinpassen; den
+Grundbedarf misst render beim Start selbst (eigener Speicher plus 128 MiB)
+([REQ-0103](../01-goals/requirements/REQ-0103.md)). Synchrone Aufrufe und Auftragsschleifen
+teilen sich die Instanzen.
+
+Eine Instanz wird ersetzt, wenn eine Konvertierung 30 s keinen Fortschritt meldet
+([REQ-0100](../01-goals/requirements/REQ-0100.md)) oder länger als 10 min dauert
+([REQ-0104](../01-goals/requirements/REQ-0104.md)) — der Aufruf scheitert dann mit einer
+Meldung, die das Limit nennt —, wenn sie abstürzt ([REQ-0102](../01-goals/requirements/REQ-0102.md))
+oder nach 500 Konvertierungen bzw. über 512 MiB ([REQ-0101](../01-goals/requirements/REQ-0101.md));
+ihr Platz bleibt so lange belegt. Fortschritt meldet der Helfer nach dem Laden und je Seite
+beim Export; beim Laden fragt er ihn nicht ab, weil LibreOffice dort zehntausendfach
+zurückruft ([Messprotokoll](../guides/measurements/libreoffice-warm-2026-10-10.md)).
+
+| Variable | Standard | Wirkung |
+|---|---|---|
+| `BLOCPRESS_LO_WORKERS` | nicht gesetzt | Obergrenze der Worker |
+| `BLOCPRESS_LO_IDLE_TIMEOUT` | `30s` | Zeit ohne Fortschritt bis zum Abbruch |
+| `BLOCPRESS_LO_MAX_DURATION` | `10m` | Höchstdauer einer Konvertierung |
+| `BLOCPRESS_LO_MAX_CONVERSIONS` | `500` | Konvertierungen, nach denen eine Instanz ersetzt wird |
+| `BLOCPRESS_LO_MAX_MEMORY_MB` | `512` | Speicher einer Instanz, ab dem sie ersetzt wird |
+| `BLOCPRESS_LO_MEMORY_BASE_MB` | gemessen | Grundbedarf von render für die Worker-Zahl |
+| `BLOCPRESS_LO_MEMORY_PER_INSTANCE_MB` | `350` | Bedarf je Instanz für die Worker-Zahl |
+
+`LibreOfficeProcessor` in core (ein `soffice`-Prozess je Konvertierung) bleibt für die Nutzung
+als Bibliothek; render verwendet ihn nicht mehr.
 
 _(confidence: verified — RenderJobWorker.java, RenderJob.java (`claimNextPending`),
-LibreOfficePool.java, application.properties)_
+LibreOfficePool.java, LibreOfficeInstance.java, LibreOfficeReadiness.java, WorkerCount.java,
+src/main/resources/libreoffice/bp-convert.py, application.properties)_
 
 ### Cache
 
@@ -148,7 +180,8 @@ _(confidence: verified — TemplateImportResource.java, application.properties
 Gegenüber dem Altbestand korrigiert: render liest nicht das Schema `production` einer
 gemeinsamen Datenbank, sondern die eigene Datenbank `production`. Der Worker holt nicht einen
 Auftrag je Takt; die gültige Version ermittelt `findValidId`, das auch `validUntil`
-beachtet. LibreOffice läuft als `soffice`-Prozess je Konvertierung, nicht über UNO; eine
+beachtet. LibreOffice läuft seit [ADR-0021](../09-decisions/ADR-0021.md) in warmen Instanzen über
+Python-UNO, nicht über Java-UNO oder JODConverter (nicht mit Native Image vereinbar); eine
 Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutzen Panache.
 
 ## Umgesetzte Requirements

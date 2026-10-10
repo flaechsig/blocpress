@@ -45,10 +45,10 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 
 | ID | Titel | Status | Schwere | Stories |
 |---|---|---|---|---|
-| [R-0001](R-0001.md) | Speicher und CPU von soffice | offen | — | [US-0037](../01-goals/stories/US-0037.md), [US-0071](../01-goals/stories/US-0071.md), [US-0072](../01-goals/stories/US-0072.md) |
+| [R-0001](R-0001.md) | Speicher und CPU von soffice | behoben | — | [US-0037](../01-goals/stories/US-0037.md), [US-0071](../01-goals/stories/US-0071.md), [US-0072](../01-goals/stories/US-0072.md) |
 | [R-0002](R-0002.md) | bytea bei wachsendem Bestand | hingenommen | — | — |
 | [R-0003](R-0003.md) | LibreOffice-Version nicht gepinnt | offen | — | [US-0018](../01-goals/stories/US-0018.md) |
-| [R-0004](R-0004.md) | Kein Zeitlimit für soffice | offen | — | [US-0072](../01-goals/stories/US-0072.md) |
+| [R-0004](R-0004.md) | Kein Zeitlimit für soffice | behoben | — | [US-0072](../01-goals/stories/US-0072.md) |
 | [R-0005](R-0005.md) | Suchindex verzögert und nicht wiederherstellbar | offen | — | — |
 | [R-0006](R-0006.md) | Viele Reviews gleichzeitig fällig | offen | — | [US-0040](../01-goals/stories/US-0040.md) |
 | [R-0007](R-0007.md) | Bausteine zur Renderzeit über die Workbench | behoben | — | [US-0060](../01-goals/stories/US-0060.md) |

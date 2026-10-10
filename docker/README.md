@@ -65,7 +65,13 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required when `BLOCPRESS_AUTH_ENABLED=true` (or `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) — the service refuses to start without one. | — |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | — |
 | `RENDER_URL` | Internal URL of this service (used by blocpress-workbench) | `http://localhost:8080` |
-| `BLOCPRESS_LO_WORKERS` | Upper limit for concurrent LibreOffice conversions (each ~150 MiB). Without it, render uses the container's CPU limit rounded down, at least 1 (all cores if there is no limit); the setting can lower that number, e.g. for a tight memory limit, but never raise it above the cores. | CPU limit |
+| `BLOCPRESS_LO_WORKERS` | Upper limit for concurrent LibreOffice conversions, one warm LibreOffice instance each. Without it, render uses the container's CPU limit rounded down, at least 1 (all cores if there is no limit); the setting can lower that number, e.g. for a tight memory limit, but never raise it above the cores. | CPU limit |
+| `BLOCPRESS_LO_IDLE_TIMEOUT` | A conversion that reports no progress for this long is aborted and its LibreOffice instance replaced. | `30s` |
+| `BLOCPRESS_LO_MAX_DURATION` | Maximum duration of one conversion; afterwards it is aborted and the instance replaced. | `10m` |
+| `BLOCPRESS_LO_MAX_CONVERSIONS` | A warm LibreOffice instance is replaced after this many conversions. | `500` |
+| `BLOCPRESS_LO_MAX_MEMORY_MB` | A warm LibreOffice instance is replaced once it uses more memory than this. | `512` |
+| `BLOCPRESS_LO_MEMORY_PER_INSTANCE_MB` | Memory reserved per worker when render derives the worker count from the container's memory limit. | `350` |
+| `BLOCPRESS_LO_MEMORY_BASE_MB` | Memory render needs without LibreOffice, for the same calculation. | measured at start |
 | `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
 > **Operating requirement until 3.0:** JWT authentication is **off by default** so existing integrations keep working — and with it off, anyone who can reach the service can replace or delete production templates through the template import (`/api/render/templates/import`). Unless the service is reachable **only** by blocpress-workbench, run it with `BLOCPRESS_AUTH_ENABLED=true` and your own key and issuer; the import then requires a token with the group `reviewer`, which the workbench forwards from the user. Keep blocpress-workbench in an internal network: it does not check tokens yet. Mandatory authentication everywhere is planned for 3.0.
@@ -73,6 +79,8 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 ---
 
 ## Sizing
+
+> **Note:** The sizes below were measured with 2.5.1, when every conversion started its own LibreOffice process. Since 2.8.0 render keeps one warm LibreOffice instance per worker: a one-page document takes about 0.07 CPU-seconds instead of 0.5, but each worker keeps ~250 MiB resident, and render also limits the number of workers by the memory limit (with 640Mi: one worker). New sizes will follow from a load test.
 
 Measured with 2.5.1 (native): one render ≈ 0.5 CPU-seconds, throughput ≈ 2 renders/s per CPU core.
 
