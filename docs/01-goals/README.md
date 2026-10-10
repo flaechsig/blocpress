@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · ✅ verifiziert 53 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 32 · umgesetzt 69 · abgelöst 7 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 53 · ⛔ abgelöst 5 |
+| Requirements | vorgeschlagen 33 · umgesetzt 69 · abgelöst 11 |
 | [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 4 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -128,8 +128,9 @@ Status: 🟡 in Arbeit
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
 | [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ✅ verifiziert |
 | [US-0064](stories/US-0064.md) | Security-Header in Workbench, Studio und render | ✅ verifiziert |
-| [US-0066](stories/US-0066.md) | Engine nur mit API-Schlüssel | ⚪ offen |
+| [US-0066](stories/US-0066.md) | Engine nur mit API-Schlüssel | ⛔ abgelöst |
 | [US-0067](stories/US-0067.md) | Voller Modus nur mit gültigem Token | ⚪ offen |
+| [US-0074](stories/US-0074.md) | Engine nur für benannte Clients oder mit Issuer | ⚪ offen |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
