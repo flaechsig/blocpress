@@ -73,7 +73,7 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 
 | ID | Titel | Status | Schwere | Stories |
 |---|---|---|---|---|
-| [TD-0002](TD-0002.md) | Generierte OpenAPI-Interfaces ungenutzt | offen | — | — |
+| [TD-0002](TD-0002.md) | Generierte OpenAPI-Interfaces ungenutzt | offen | — | [US-0073](../01-goals/stories/US-0073.md) |
 | [TD-0003](TD-0003.md) | Verschiedene Versionswahl in Workbench und render | behoben | — | [US-0061](../01-goals/stories/US-0061.md) |
 | [TD-0004](TD-0004.md) | Vorlagenprüfung nicht im Kern | offen | — | — |
 | [TD-0005](TD-0005.md) | Pflege der Native-Builds | offen | — | — |
