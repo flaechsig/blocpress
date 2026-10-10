@@ -218,7 +218,7 @@ flowchart TD
 
 | Teil | Inhalt |
 |---|---|
-| `deploy/k8s/app` | render (2 CPU, 640Mi, siehe Widerspruch in [render bemessen](guides/render-sizing.md)), workbench (768Mi), studio (256Mi), Elasticsearch 8.11.0 (ein Knoten, ohne Security, 1Gi Volume); render und workbench warten in einem Init-Container auf `blocpress-db:5432` |
+| `deploy/k8s/app` | render (2 CPU, 1Gi, 2 Worker, [render bemessen](guides/render-sizing.md)), workbench (768Mi), studio (256Mi), Elasticsearch 8.11.0 (ein Knoten, ohne Security, 1Gi Volume); render und workbench warten in einem Init-Container auf `blocpress-db:5432` |
 | `deploy/k8s/postgres` | PostgreSQL 18 mit 2Gi Volume; ein Init-Skript legt die leeren Datenbanken `workbench` und `production` an |
 | `deploy/k8s` | beide Teile plus Ingress für das Studio unter `/` |
 

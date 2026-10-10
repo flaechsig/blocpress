@@ -1,24 +1,15 @@
 # Hands-On: blocpress-render für die eigene Last bemessen
 
-> **Kurz:** Ein Render braucht rund **0,5 CPU-Sekunden**. Plane **1 Worker je CPU-Kern**
-> (mindestens 1), **~150 MiB Speicher je Worker** plus Grundbedarf, und skaliere bei mehr
-> Last über **Replicas**, nicht über Worker. Der Engpass ist fast immer das **CPU-Limit**.
-> **Standard: 2 CPU, 2 Worker, 640Mi** (native) ≈ 3,7 Renders/s je Pod. Die Worker-Zahl
-> leitet render ab 2.8.0 selbst aus dem CPU-Limit ab (abgerundet, mindestens 1);
-> `BLOCPRESS_LO_WORKERS` kann sie nur noch senken, etwa bei knappem Speicher.
-
-> [!CAUTION]
-> Die Anleitung sagt ~150 MiB je Worker und empfiehlt 2 CPU / 2 Worker / 640Mi; gemessen ist
-> das mit 2.5.1, als jede Konvertierung einen eigenen `soffice`-Prozess startete. Der Code hält
-> seit [ADR-0021](../09-decisions/ADR-0021.md) je Worker eine warme Instanz dauerhaft im
-> Speicher (~250 MiB, nach sehr großen Dokumenten bis ~570 MiB, dann ersetzt) und begrenzt die
-> Worker-Zahl zusätzlich nach dem Speicherlimit (Grundbedarf + 350 MiB je Instanz). Mit 640Mi
-> leitet render deshalb nur noch einen Worker ab. Ein Render kostet bei kleinen Dokumenten
-> statt ~0,5 nur noch ~0,07 CPU-Sekunden ([Messprotokoll](measurements/libreoffice-warm-2026-10-10.md)).
-> Die Größen werden mit `RenderLoadIT` neu gemessen. (contradiction)
+> **Kurz:** render hält je Worker eine **warme LibreOffice-Instanz** ([ADR-0021](../09-decisions/ADR-0021.md)).
+> Ein Render (1–2 Seiten) braucht dann rund **0,02 CPU-Sekunden**; ein Kern schafft ~50 Renders/s.
+> Die Worker-Zahl leitet render selbst ab: **CPU-Limit abgerundet** und **so viele, wie das
+> Speicherlimit trägt** (Grundbedarf + 350 MiB je Worker), mindestens 1. Engpass ist meist der
+> **Speicher**, nicht mehr die CPU. **Standard: 2 CPU, 1Gi, 2 Worker** (native) ≈ 100 Renders/s je
+> Pod. Mehr Last über **Replicas**. `BLOCPRESS_LO_WORKERS` kann die Zahl nur senken.
 
 Diese Anleitung erklärt, wie du die Ressourcen für `blocpress-render` **misst statt rätst**.
-Sie stützt sich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
+Sie stützt sich auf das [Messprotokoll zu 2.8.0](measurements/render-2.8.0-native-2026-10-10.md)
+(warme Instanzen), zum Vergleich auf das [Messprotokoll zu 2.5.1](measurements/render-2.5.1-2026-10-02.md)
 und den Lasttest `RenderLoadIT`, mit dem du dieselbe Messung gegen deine eigene Umgebung
 und deine eigenen Vorlagen wiederholen kannst.
 
@@ -85,9 +76,9 @@ Ohne den Test geht es auch von Hand: vor dem Lauf Pod neu starten, dann im Conta
 ### 3.2 Basis messen (N = 1)
 
 Ein Render nach dem anderen. Daraus: **CPU-Sekunden je Render** (CPU-s ÷ Renders) und die
-Mindest-Antwortzeit. Gemessen mit dem blocpress-Lastmix: **~0,46 CPU-s**, **~0,5 s** je Render
-ab 1 CPU — bei 0,5 CPU schon **~0,9 s**, und selbst bei N = 1 wird gedrosselt, weil
-`soffice` beim Start kurz mehrere Kerne nutzt.
+Mindest-Antwortzeit. Gemessen mit dem blocpress-Lastmix und warmen Instanzen (2.8.0):
+**~0,02 CPU-s**, **~0,02 s** je Render bei N = 1. Mit 2.5.1, als jede Konvertierung `soffice`
+neu startete, waren es ~0,46 CPU-s und ~0,5 s, und selbst bei N = 1 wurde gedrosselt.
 
 ### 3.3 Last steigern (N = 2, 4, 8, 16)
 
@@ -99,23 +90,42 @@ Beobachte je Stufe Durchsatz, p95/max, Speicherspitze und Drosselung.
 |---|---|---|
 | Durchsatz stagniert, **Drosselung hoch** (`nr_throttled` steigt mit N) | **CPU-Limit** | mehr CPU oder mehr Replicas — **nicht** mehr Worker |
 | `memory.peak` nahe Limit, *OOMKilled* | **Speicher** | Limit = Spitze + Puffer; weniger Worker |
-| Durchsatz stagniert, **kaum Drosselung**, CPU unter Limit | **Worker** (Anfragen warten an der Semaphore) | Worker bis zur Kernzahl erhöhen |
+| Durchsatz stagniert, **kaum Drosselung**, CPU unter Limit | **Worker** (Anfragen warten auf eine freie Instanz) | mehr Speicher, damit render mehr Worker ableitet (bis zur Kernzahl) |
 | Antwortzeit wächst linear mit N bei gleichem Durchsatz | Warteschlange — normal unter Sättigung | Client-Timeout und Parallelität abstimmen |
 
 ### 3.5 Werte ableiten
 
-- **Worker** = CPU-Limit abgerundet, **mindestens 1** (0,5 → 1, 1 → 1, 2 → 2, 4 → 4).
-- **CPU** ≈ gewünschter Durchsatz × 0,5 CPU-s (mit deinen Vorlagen nachmessen).
-- **Speicher-Limit** ≈ gemessene Spitze bei voller Last + ~30 % Puffer
-  (Faustregel: ~220 MiB + ~150 MiB je weiterem Worker).
+- **Worker** = das Kleinere aus CPU-Limit (abgerundet) und (Speicherlimit − Grundbedarf) ÷ 350 MiB,
+  **mindestens 1** ([REQ-0027](../01-goals/requirements/REQ-0027.md), [REQ-0103](../01-goals/requirements/REQ-0103.md)).
+  Den Grundbedarf misst render beim Start: eigener Speicher + 128 MiB, nativ ≈ 180 MiB, JVM ≈ 500 MiB.
+- **Speicher-Limit** für N Worker ≈ Grundbedarf + N × 350 MiB (nativ: 640Mi → 1, 1Gi → 2,
+  1,5Gi → 3, 1,75Gi → 4). Die 350 MiB sind vorsichtig: kleine Dokumente brauchen weit weniger,
+  sehr große (über 200 Seiten) treiben eine Instanz bis über 500 MiB, bevor render sie ersetzt.
+- **CPU** ≈ gewünschter Durchsatz × 0,02 CPU-s bei Dokumenten mit wenigen Seiten; große Dokumente
+  kosten mehr (50 Seiten ≈ 1 s, siehe [Seiten pro Sekunde](measurements/libreoffice-warm-2026-10-10.md)).
+  Mit deinen Vorlagen nachmessen.
 - **Client-Timeout** > längste gemessene Antwortzeit bei der erwarteten Parallelität.
-- **Mehr Last → mehr Replicas.** Mehrere kleine Pods sind effizienter als ein großer
-  (4 CPU / 4 Worker: 6,4 Renders/s; zwei Pods à 2 CPU / 2 Worker: ~7,4 Renders/s).
+- **Mehr Last → mehr Replicas.**
 
-## 4. Messwerte (2.5.1, native) als Beispiel
+## 4. Messwerte
+
+### 4.1 2.8.0 (native, warme Instanzen)
+
+Auszug aus dem [Messprotokoll](measurements/render-2.8.0-native-2026-10-10.md), Lastmix aus
+Rechnung, Zahlenformaten, Bedingungen und Tabellen, alle Renders inhaltlich korrekt:
+
+| CPU-Limit | Speicher | Worker (abgeleitet) | Durchsatz/s (N = 16) | p95 | Speicherspitze |
+|---|---|---|---|---|---|
+| 1 | 640Mi | 1 | 48 | 0,43 s | 220Mi |
+| 2 | 640Mi | 1 | 74 | 0,29 s | 219Mi |
+| 2 | 1Gi | 2 | **95** (N = 4: 115) | 0,26 s | **299Mi** |
+| 4 | 1Gi | 2 | 128 | 0,19 s | 299Mi |
+| 4 | 1,5Gi | 3 | 170 | 0,12 s | 400Mi |
+
+### 4.2 2.5.1 (native, ein Prozess je Konvertierung) zum Vergleich
 
 Auszug aus dem [Messprotokoll](measurements/render-2.5.1-2026-10-02.md), N = 16 parallele
-Clients (Sättigung), Lastmix aus Rechnung, Zahlenformaten, Bedingungen und Tabellen:
+Clients (Sättigung), gleicher Lastmix:
 
 | CPU-Limit | Worker | Durchsatz/s | p50 / p95 | Speicherspitze | gedrosselt (Perioden) |
 |---|---|---|---|---|---|
@@ -129,9 +139,9 @@ Clients (Sättigung), Lastmix aus Rechnung, Zahlenformaten, Bedingungen und Tabe
 | 2 | 4 | 3,45 | 4,6 / 6,9 s | 732Mi | 185 |
 | 4 | 4 | 6,40 | 2,5 / 3,8 s | 739Mi | 38 |
 
-Was man daran sieht:
+Was man an 2.5.1 sah (der Grund für die warmen Instanzen):
 
-1. **Durchsatz ≈ 2 Renders/s je CPU-Kern** — er folgt dem CPU-Limit, nicht der Worker-Zahl.
+1. **Durchsatz ≈ 2 Renders/s je CPU-Kern** — er folgte dem CPU-Limit, nicht der Worker-Zahl.
 2. **Mehr Worker als Kerne schaden:** mehr Speicher (+~150 MiB je Worker), mehr Drosselung,
    *weniger* Durchsatz. Mit 0,5 CPU und 2 Workern (die Konstellation aus dem Betrieb) ist
    der Durchsatz 18 % schlechter als mit 1 Worker, bei doppeltem Speicher.
@@ -141,23 +151,18 @@ Was man daran sieht:
 
 ## 5. Startempfehlung
 
-| Größe | CPU (Request = Limit) | Worker | Speicher native / JVM (Request = Limit) | ≈ Durchsatz je Pod |
+| Größe | CPU (Request = Limit) | Speicher native / JVM (Request = Limit) | Worker (abgeleitet) | ≈ Durchsatz je Pod |
 |---|---|---|---|---|
-| **Standard** | **2** | **2** (abgeleitet) | **640Mi** / 768Mi | 3,7/s |
-| sparsam (Test/Staging, geringe Last) | 1 | **1** (abgeleitet) | 384Mi / — | 2/s |
-| mehr Last | Replicas der Standardgröße | 2 je Pod | 640Mi je Pod | 3,7/s × Replicas |
+| **Standard** | **2** | **1Gi** / 1280Mi | **2** | ~100/s |
+| sparsam (Test/Staging, geringe Last) | 1 | 640Mi / 896Mi | 1 | ~50/s |
+| mehr Last | Replicas der Standardgröße | 1Gi je Pod | 2 je Pod | ~100/s × Replicas |
 
-- **Worker = CPU-Limit abgerundet, mindestens 1.** Das leitet render ab 2.8.0 selbst aus
-  `cpu.max` der cgroup ab ([REQ-0027](../01-goals/requirements/REQ-0027.md)); bis 2.7.0 galt
-  fest 2, und bei 500m kosteten 2 Worker 18 % Durchsatz und doppelten Speicher.
-  `BLOCPRESS_LO_WORKERS` ist nur noch eine Obergrenze, etwa wenn das Speicher-Limit weniger
-  Worker trägt. **Ohne CPU-Limit** nimmt render alle Kerne des Knotens — dann ein Limit setzen
-  oder die Worker über `BLOCPRESS_LO_WORKERS` begrenzen.
-- Die sparsame Größe ist je Kern sogar etwas effizienter (2,04 statt 1,85 Renders/s), reserviert
-  aber weniger Reserve für Lastspitzen und keine Redundanz — für Produktion lieber zwei
-  Standard-Pods als einen großen.
-- **JVM-Image** (`Dockerfile`): gleicher Durchsatz, aber mehr
-  Speicher — gemessen 585Mi Spitze bei 2 CPU / 2 Worker, daher 768Mi.
+- **Worker leitet render ab** aus `cpu.max` und `memory.max` der cgroup. **Ohne CPU-Limit** nimmt
+  render alle Kerne des Knotens, **ohne Speicherlimit** nur die CPU — dann ein Limit setzen oder
+  die Worker über `BLOCPRESS_LO_WORKERS` begrenzen; jede Instanz belegt dauerhaft Speicher.
+- **2 CPU mit 640Mi** verschenkt einen Kern: render leitet nur einen Worker ab (74/s statt ~100/s).
+- **JVM-Image** (`Dockerfile`): Die JVM braucht rund 380 MiB, der Grundbedarf liegt bei ≈ 500 MiB.
+  Die JVM-Größen sind aus dieser Regel abgeleitet, nicht unter Last gemessen.
 
 - **Request = Limit** bei CPU *und* Speicher macht den Pod zur QoS-Klasse *Guaranteed* und
   das Verhalten vorhersagbar. Request 1 / Limit 2 ist günstiger und darf bis 2 CPU nutzen,
@@ -165,6 +170,8 @@ Was man daran sieht:
   verhält sich der Pod dann wie „1 CPU, 2 Worker“). Ein CPU-Limit unter 1 lohnt nicht: die
   Antwortzeit verdoppelt sich schon ohne Last.
 - **Client-Timeout** mindestens 30 s, besser die Parallelität am Client begrenzen.
+- Die Instanzen starten beim Hochfahren; render ist nach wenigen Sekunden bereit (nativ ~2 s,
+  Readiness „LibreOffice instances“).
 - Vollständiges Beispiel (Standardgröße): [`examples/blocpress-render-k8s.yaml`](examples/blocpress-render-k8s.yaml).
 
 > **Mit eigenen Vorlagen nachmessen.** Große Vorlagen (viele Seiten, Bilder, lange Tabellen)

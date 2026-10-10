@@ -1,5 +1,6 @@
-# render: Dokumente erzeugen. Standardgroesse nach docs/guides/render-sizing.md (2 CPU, 640Mi);
-# die Zahl der LibreOffice-Worker leitet render aus dem CPU-Limit ab. Mehr Last: mehr Replicas.
+# render: Dokumente erzeugen. Standardgroesse nach docs/guides/render-sizing.md (2 CPU, 1Gi);
+# die Zahl der LibreOffice-Worker (warme Instanzen) leitet render aus CPU- und Speicherlimit ab,
+# hier 2. Mehr Last: mehr Replicas.
 # /api/render/templates/import ist nur fuer die Workbench gedacht. Ohne BLOCPRESS_AUTH_ENABLED=true
 # ist er offen — render dann nicht ungefiltert nach aussen freigeben; eingeschaltet verlangt er ein
 # Token mit der Gruppe reviewer (ADR-0019).
@@ -50,8 +51,8 @@ spec:
             - {name: BLOCPRESS_DEFAULT_LOCALE, value: de-DE}
           ports: [{containerPort: 8080}]
           resources:
-            requests: {cpu: "2", memory: 640Mi}
-            limits: {cpu: "2", memory: 640Mi}
+            requests: {cpu: "2", memory: 1Gi}
+            limits: {cpu: "2", memory: 1Gi}
           startupProbe:
             httpGet: {path: /q/health/started, port: 8080}
             periodSeconds: 5
