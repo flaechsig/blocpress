@@ -57,6 +57,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `BLOCPRESS_MODE` | `full`: with the production database (render by name, jobs, dashboard, import). `engine`: no database at all — only `POST /api/render/template` is offered; all other API paths answer 404. | `full` |
 | `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL JDBC URL (production schema) | `jdbc:postgresql://localhost:5432/production` |
 | `QUARKUS_DATASOURCE_USERNAME` | Database username | `workbench` |
 | `QUARKUS_DATASOURCE_PASSWORD` | Database password | `workbench` |

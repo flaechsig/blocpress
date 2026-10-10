@@ -82,6 +82,30 @@ mehr wartet. Minütlich setzt `requeueStaleJobs` hängende Aufträge zurück
 Außerdem protokolliert `recordSync` jeden synchronen Aufruf als `RenderJob` ohne Ergebnis.
 Den Ablauf im Einzelnen beschreibt der [asynchrone Render-Auftrag](../06-runtime/async-render-job.md).
 
+### Betriebsarten
+
+render läuft als `full` (Standard, mit Datenbank `production`) oder als `engine`
+(`BLOCPRESS_MODE=engine`, ohne Datenbank, [ADR-0016](../09-decisions/ADR-0016.md)). Im
+Engine-Modus setzt `EngineModeConfig`, ein Config-Interceptor von SmallRye Config, zur Laufzeit
+Datenquelle, Hibernate ORM, Scheduler und den Datenbank-Check der Readiness auf inaktiv; render
+startet und rendert ohne Datenbank ([REQ-0068](../01-goals/requirements/REQ-0068.md),
+[REQ-0070](../01-goals/requirements/REQ-0070.md)). `EngineModeFilter` weist vor dem Routing alle
+Pfade unter `/api/` außer `POST /api/render/template` mit 404 und einer Meldung ab, die den Modus
+nennt ([REQ-0069](../01-goals/requirements/REQ-0069.md)). Die Eigenschaft heißt
+`blocpress.render.mode`, nicht `blocpress.mode`: Das ist in core ein System-Property für die
+Auflösung von Bausteinen.
+
+> [!CAUTION]
+> ADR-0016 sagt „umgesetzt als Quarkus-Profil“; der Code wählt den Modus über einen
+> Config-Interceptor (`EngineModeConfig`), weil sich das Profil nicht aus `BLOCPRESS_MODE`
+> ableiten lässt, ohne die Variable `QUARKUS_PROFILE` zu verlangen. (contradiction)
+
+_(confidence: verified — EngineModeConfig.java, EngineModeFilter.java,
+META-INF/services/io.smallrye.config.ConfigSourceInterceptor, application.properties; natives
+Image ohne Datenbank gestartet 2026-10-10: bereit nach ~2 s, 117 MiB)_
+
+### LibreOffice
+
 `LibreOfficePool` hält je Worker eine warme LibreOffice-Instanz ([ADR-0021](../09-decisions/ADR-0021.md)).
 Jede Instanz ist ein Helferprozess (`bp-convert.py`, Python-UNO), der eine eigene `soffice`-Instanz
 mit eigenem Profil an einer lokalen Pipe startet; render spricht mit ihm über stdin/stdout
@@ -204,6 +228,9 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
 - [REQ-0063](../01-goals/requirements/REQ-0063.md) WHEN the production store changes, the render service shall use the changed state for the next rendering, regardless of which instance made the change.
 - [REQ-0067](../01-goals/requirements/REQ-0067.md) The render service shall send the header X-Content-Type-Options with the value nosniff with every response.
+- [REQ-0068](../01-goals/requirements/REQ-0068.md) WHERE the render service runs in engine mode, the render service shall start and render templates sent with the request without a database.
+- [REQ-0069](../01-goals/requirements/REQ-0069.md) WHERE the render service runs in engine mode, IF a request targets rendering by name, jobs, the dashboard or the import, THEN the render service shall reject it with HTTP 404 and a message that names the mode, without internal details.
+- [REQ-0070](../01-goals/requirements/REQ-0070.md) WHERE the render service runs in engine mode, the render service shall run no scheduled task and shall report readiness without a database check.
 - [REQ-0098](../01-goals/requirements/REQ-0098.md) WHEN the render service starts, the render service shall start one LibreOffice instance per worker and report readiness only after all instances accept conversions.
 - [REQ-0099](../01-goals/requirements/REQ-0099.md) The render service shall convert documents in a running LibreOffice instance without starting a new LibreOffice process per conversion.
 - [REQ-0100](../01-goals/requirements/REQ-0100.md) IF a conversion reports no progress for the configured idle time, 30 seconds by default, THEN the render service shall terminate and replace the instance and fail the request with an error that names the limit.
