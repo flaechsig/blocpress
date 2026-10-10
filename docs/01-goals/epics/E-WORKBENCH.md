@@ -30,4 +30,5 @@ baut oder Fehler im ODT sucht.
 - [US-0043](../stories/US-0043.md) — Suchindex vollständig nachführen
 - [US-0048](../stories/US-0048.md) — Workbench-Abläufe konsistent machen
 - [US-0062](../stories/US-0062.md) — Entwerfen mit Bausteinen
+- [US-0070](../stories/US-0070.md) — In LibreOffice über Arbeits-Links arbeiten
 <!-- /generated -->

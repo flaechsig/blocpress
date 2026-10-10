@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 15 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 20 · umgesetzt 58 · abgelöst 5 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 16 · abgelöst 2 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 31 · umgesetzt 58 · abgelöst 7 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 17 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -154,6 +154,7 @@ Status: 🟡 in Arbeit
 | [US-0043](stories/US-0043.md) | Suchindex vollständig nachführen | ✅ verifiziert |
 | [US-0048](stories/US-0048.md) | Workbench-Abläufe konsistent machen | ⚪ offen |
 | [US-0062](stories/US-0062.md) | Entwerfen mit Bausteinen | ✅ verifiziert |
+| [US-0070](stories/US-0070.md) | In LibreOffice über Arbeits-Links arbeiten | ⚪ offen |
 
 ## Offene Fragen
 
@@ -167,6 +168,7 @@ Status: 🟡 in Arbeit
 - [09-decisions/ADR-0008.md](../09-decisions/ADR-0008.md): UNKNOWN — offene Frage: Soll der Render-Service selbst ein Zeitlimit für synchrone Aufrufe bzw. für soffice erhalten?
 - [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar.
 - [09-decisions/ADR-0018.md](../09-decisions/ADR-0018.md): UNKNOWN — offene Frage: Was geschieht mit Vorlagen in `production`, deren Verknüpfungen heute nicht auf `/bausteine/{name}.odt` passen (etwa direkte Links auf fremde Server) — bei der Migration abweisen oder erst beim Rendern?
+- [09-decisions/ADR-0020.md](../09-decisions/ADR-0020.md): UNKNOWN — offene Frage: Wie zuverlässig ist der Ein-Klick-Start je Betriebssystem? Auf macOS übergibt der Protokoll-Handler die URL laut Bugtracker nicht (tdf#158260); das Schema hatte Sicherheitslücken (CVE-2022-3140, CVE-2025-1080). Wird beim Bau geprüft.
 
 ## Offene Entscheidungen
 
