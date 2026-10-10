@@ -24,4 +24,5 @@ vom ersten `docker run` zum ersten gerenderten Dokument muss in Minuten gehen.
 - [US-0039](../stories/US-0039.md) — blocpress mit docker-compose vollständig starten
 - [US-0046](../stories/US-0046.md) — Quickstart-Image betriebstauglich machen
 - [US-0051](../stories/US-0051.md) — blocpress in Kubernetes betreiben (Tutorial und Manifeste)
+- [US-0069](../stories/US-0069.md) — Quickstart als eigener Issuer
 <!-- /generated -->

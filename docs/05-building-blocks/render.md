@@ -156,8 +156,6 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 <!-- generated:realized -->
 - [REQ-0006](../01-goals/requirements/REQ-0006.md) WHEN a number, currency, percentage or date style referenced by a user field declares no language, the render engine shall format the value using the default locale supplied by the caller, independent of the operating-system locale.
 - [REQ-0007](../01-goals/requirements/REQ-0007.md) IF the configured default locale is not a valid BCP-47 tag or no number-format data is available for it at runtime, THEN the render service shall refuse to start with an error naming the locale.
-- [REQ-0008](../01-goals/requirements/REQ-0008.md) WHERE JWT authentication is enabled, the render service shall reject requests to the rendering, job and dashboard endpoints that carry no valid bearer token with HTTP 401; while it is disabled, these endpoints shall remain accessible without a token.
-- [REQ-0009](../01-goals/requirements/REQ-0009.md) IF JWT authentication is enabled and no token verification key is configured, THEN the render service shall refuse to start with an error naming the missing setting.
 - [REQ-0012](../01-goals/requirements/REQ-0012.md) WHERE PDF or RTF output is requested, the render engine shall convert the merged document to that format with a headless LibreOffice process provided by the core library.
 - [REQ-0014](../01-goals/requirements/REQ-0014.md) WHEN a reviewer approves a submitted template, the workbench shall transfer the unchanged template content to the production store of the render service exactly once.
 - [REQ-0022](../01-goals/requirements/REQ-0022.md) IF the expiry date of a template has passed, THEN the render service shall not render it by name and answer with status 404.
@@ -171,8 +169,6 @@ Repository-Schicht oder einen Storage-Service gibt es nicht, die Entitäten nutz
 - [REQ-0038](../01-goals/requirements/REQ-0038.md) The render service shall use the version that is valid at the moment of rendering, also when a version is cached.
 - [REQ-0040](../01-goals/requirements/REQ-0040.md) WHEN a version is approved, the workbench shall end the validity of the version valid until then at the start of validity of the new one, so that at most one version of a name is valid at any time.
 - [REQ-0050](../01-goals/requirements/REQ-0050.md) The container images of render, workbench and studio shall run the service process as a non-root user with a numeric UID.
-- [REQ-0054](../01-goals/requirements/REQ-0054.md) WHERE JWT authentication is enabled, the render service shall reject requests to import or remove production templates with HTTP 401 if they carry no valid bearer token, and with HTTP 403 if the token lacks the group reviewer.
-- [REQ-0055](../01-goals/requirements/REQ-0055.md) WHILE JWT authentication is disabled, the render service shall accept requests to import or remove production templates without a token.
 - [REQ-0063](../01-goals/requirements/REQ-0063.md) WHEN the production store changes, the render service shall use the changed state for the next rendering, regardless of which instance made the change.
 - [REQ-0067](../01-goals/requirements/REQ-0067.md) The render service shall send the header X-Content-Type-Options with the value nosniff with every response.
 <!-- /generated -->

@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 10 · ✅ verifiziert 52 · ⛔ abgelöst 2 |
-| Requirements | vorgeschlagen 4 · umgesetzt 62 · abgelöst 1 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 3 · angenommen 15 · abgelöst 1 |
+| Stories | ⚪ offen 15 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 20 · umgesetzt 58 · abgelöst 5 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 16 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -19,10 +19,11 @@ Status: 🟡 in Arbeit
 | [US-0021](stories/US-0021.md) | Rollen bei jedem API-Aufruf prüfen | ⚪ offen |
 | [US-0022](stories/US-0022.md) | Workflow-Änderungen im Audit-Log festhalten | ⚪ offen |
 | [US-0044](stories/US-0044.md) | Absicherung durchgängig | ✅ verifiziert |
+| [US-0068](stories/US-0068.md) | Nachvollziehen, wer in Produktion gebracht hat | ⚪ offen |
 
 ## [E-AUSLIEFERUNG](epics/E-AUSLIEFERUNG.md) — Auslieferung (Docker, Quickstart, Native)
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
@@ -34,6 +35,7 @@ Status: ✅ verifiziert
 | [US-0039](stories/US-0039.md) | blocpress mit docker-compose vollständig starten | ⛔ abgelöst |
 | [US-0046](stories/US-0046.md) | Quickstart-Image betriebstauglich machen | ✅ verifiziert |
 | [US-0051](stories/US-0051.md) | blocpress in Kubernetes betreiben (Tutorial und Manifeste) | ✅ verifiziert |
+| [US-0069](stories/US-0069.md) | Quickstart als eigener Issuer | ⚪ offen |
 
 ## [E-FORMATE](epics/E-FORMATE.md) — Formatkonvertierung (ODT → PDF/RTF)
 
@@ -90,10 +92,11 @@ Status: 🟡 in Arbeit
 | [US-0004](stories/US-0004.md) | Dokument synchron per REST rendern | ✅ verifiziert |
 | [US-0005](stories/US-0005.md) | Freigegebene Vorlage per Name rendern (versioniert) | ✅ verifiziert |
 | [US-0006](stories/US-0006.md) | Asynchron rendern über eine Job-Queue | ✅ verifiziert |
-| [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ✅ verifiziert |
+| [US-0007](stories/US-0007.md) | Render-API optional per JWT absichern | ⛔ abgelöst |
 | [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
 | [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ✅ verifiziert |
 | [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
+| [US-0065](stories/US-0065.md) | render ohne Datenbank als Engine betreiben | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 
@@ -110,11 +113,11 @@ Status: 🟡 in Arbeit
 
 ## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
 
-Status: ✅ verifiziert
+Status: 🟡 in Arbeit
 
 | Story | Titel | Status |
 |---|---|---|
-| [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ✅ verifiziert |
+| [US-0054](stories/US-0054.md) | Vorlagen-Import in render nur authentifiziert annehmen | ⛔ abgelöst |
 | [US-0055](stories/US-0055.md) | CORS in Workbench und render auf bekannte Origins beschränken | ✅ verifiziert |
 | [US-0056](stories/US-0056.md) | Quarkus-Plattform auf einen Stand ohne bekannte Lücken heben | ✅ verifiziert |
 | [US-0057](stories/US-0057.md) | Quickstart ohne öffentlich bekannten JWT-Schlüssel | ✅ verifiziert |
@@ -122,6 +125,8 @@ Status: ✅ verifiziert
 | [US-0059](stories/US-0059.md) | Actions im Release-Workflow auf Commit-SHA pinnen | ✅ verifiziert |
 | [US-0060](stories/US-0060.md) | Bausteine nur aus der eigenen Bibliothek | ✅ verifiziert |
 | [US-0064](stories/US-0064.md) | Security-Header in Workbench, Studio und render | ✅ verifiziert |
+| [US-0066](stories/US-0066.md) | Engine nur mit API-Schlüssel | ⚪ offen |
+| [US-0067](stories/US-0067.md) | Voller Modus nur mit gültigem Token | ⚪ offen |
 
 ## [E-STUDIO](epics/E-STUDIO.md) — Portal und Micro-Frontends (Studio)
 
@@ -166,8 +171,6 @@ Status: 🟡 in Arbeit
 ## Offene Entscheidungen
 
 - [ADR-0013](../09-decisions/ADR-0013.md) — REST-API von render API-first aus openapi.yml
-- [ADR-0016](../09-decisions/ADR-0016.md) — render in zwei Betriebsarten — Engine und voll
-- [ADR-0017](../09-decisions/ADR-0017.md) — Alle fachlichen Aufrufe sind authentifiziert
 
 ## Widersprüche
 

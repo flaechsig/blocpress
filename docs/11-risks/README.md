@@ -67,7 +67,7 @@ Job-Status; asynchrone Jobs melden ihr Ende per Webhook).
 | [SEC-0005](SEC-0005.md) | Actions über veränderliche Tags | behoben | niedrig | [US-0059](../01-goals/stories/US-0059.md) |
 | [SEC-0006](SEC-0006.md) | Eingebundene Abschnitte laden beliebige Adressen | behoben | mittel | [US-0060](../01-goals/stories/US-0060.md) |
 | [SEC-0007](SEC-0007.md) | Oberflächen ohne Security-Header | behoben | niedrig | [US-0064](../01-goals/stories/US-0064.md) |
-| [SEC-0008](SEC-0008.md) | Workbench und Import ohne Authentifizierung | offen | mittel | [US-0021](../01-goals/stories/US-0021.md), [US-0054](../01-goals/stories/US-0054.md) |
+| [SEC-0008](SEC-0008.md) | Workbench und Import ohne Authentifizierung | offen | mittel | [US-0021](../01-goals/stories/US-0021.md), [US-0054](../01-goals/stories/US-0054.md), [US-0066](../01-goals/stories/US-0066.md), [US-0067](../01-goals/stories/US-0067.md), [US-0069](../01-goals/stories/US-0069.md) |
 
 ## Technische Schulden
 
