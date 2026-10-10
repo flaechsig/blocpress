@@ -60,7 +60,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL JDBC URL (production schema) | `jdbc:postgresql://localhost:5432/production` |
 | `QUARKUS_DATASOURCE_USERNAME` | Database username | `workbench` |
 | `QUARKUS_DATASOURCE_PASSWORD` | Database password | `workbench` |
-| `BLOCPRESS_AUTH_ENABLED` | Require a JWT Bearer token for all endpoints below `/api/render/` (rendering, jobs, dashboard). Requests without a valid token get HTTP 401. The internal template import and `/q/*` stay open. | `false` |
+| `BLOCPRESS_AUTH_ENABLED` | Require a JWT Bearer token for all endpoints below `/api/render/` (rendering, jobs, dashboard). Requests without a valid token get HTTP 401. The template import additionally requires the group `reviewer` (403 without it); `/q/*` stays open. | `false` |
 | `BLOCPRESS_CORS_ORIGINS` | Browser origins allowed to call the API cross-origin, comma-separated (e.g. `https://portal.example`). Server-to-server clients do not need it. | not set (same-origin only) |
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required when `BLOCPRESS_AUTH_ENABLED=true` (or `MP_JWT_VERIFY_PUBLICKEY_LOCATION`) — the service refuses to start without one. | — |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | — |
@@ -68,7 +68,7 @@ Full API docs available at `/q/swagger-ui` once the container is running.
 | `BLOCPRESS_LO_WORKERS` | Upper limit for concurrent LibreOffice conversions (each ~150 MiB). Without it, render uses the container's CPU limit rounded down, at least 1 (all cores if there is no limit); the setting can lower that number, e.g. for a tight memory limit, but never raise it above the cores. | CPU limit |
 | `BLOCPRESS_DEFAULT_LOCALE` | Default locale (BCP-47, e.g. `de-DE`, `en-US`) for number/date formats in templates that do not declare a language themselves. A language set in the template's format always wins. Checked at startup — the service refuses to start if the locale is not available. | `de-DE` |
 
-> **Note:** JWT authentication is **off by default** so existing integrations keep working. If the service is reachable from outside a trusted network, set `BLOCPRESS_AUTH_ENABLED=true` with your own key and issuer. The template import (`/api/render/templates/import`, called by blocpress-workbench on approval) then requires a token with the group `reviewer`, which the workbench forwards from the user; with authentication off it stays open — expose it only to blocpress-workbench.
+> **Operating requirement until 3.0:** JWT authentication is **off by default** so existing integrations keep working — and with it off, anyone who can reach the service can replace or delete production templates through the template import (`/api/render/templates/import`). Unless the service is reachable **only** by blocpress-workbench, run it with `BLOCPRESS_AUTH_ENABLED=true` and your own key and issuer; the import then requires a token with the group `reviewer`, which the workbench forwards from the user. Keep blocpress-workbench in an internal network: it does not check tokens yet. Mandatory authentication everywhere is planned for 3.0.
 
 ---
 

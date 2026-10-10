@@ -53,7 +53,7 @@ The workbench (8082), PostgreSQL (5432) and Elasticsearch (9200) are only reacha
 | `MP_JWT_VERIFY_PUBLICKEY` | RSA public key for JWT verification (PEM). Required with `BLOCPRESS_AUTH_ENABLED=true` — render refuses to start without it | not set |
 | `MP_JWT_VERIFY_ISSUER` | Expected JWT issuer (`iss` claim) | `https://blocpress.dev` |
 
-> **Note:** This image is meant for evaluation and development. It has no built-in verification key: without `BLOCPRESS_AUTH_ENABLED=true` and your own key, tokens are not checked, and the token entered in the studio has no protective effect. Do not expose it to untrusted networks.
+> **Note:** This image is meant for evaluation and development. It has no built-in verification key: without `BLOCPRESS_AUTH_ENABLED=true` and your own key, tokens are not checked, and the token entered in the studio has no protective effect. Do not expose it to untrusted networks: without authentication, anyone who reaches it can change templates and replace or delete production templates. Mandatory authentication is planned for 3.0.
 
 ---
 

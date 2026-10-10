@@ -26,6 +26,27 @@ als `:X.Y.Z` und `:latest` (siehe [Release](#release-releaseyml)).
 _(confidence: verified — die sechs Dockerfiles unter blocpress-render/, blocpress-workbench/,
 blocpress-studio/, docker/studio/Dockerfile und Dockerfile.native, .github/workflows/release.yml)_
 
+## Betriebsvorgabe bis 3.0
+
+Bis die Pflicht-Authentifizierung aus [ADR-0017](09-decisions/ADR-0017.md) mit Release 3.0
+gebaut ist, ist die Absicherung optional und in der Voreinstellung aus. Für den Betrieb gilt
+deshalb ([SEC-0008](11-risks/SEC-0008.md)):
+
+- **render** mit `BLOCPRESS_AUTH_ENABLED=true` und eigenem Schlüssel (`MP_JWT_VERIFY_PUBLICKEY`
+  oder `…_LOCATION`, `MP_JWT_VERIFY_ISSUER`) betreiben, sobald es außer der Workbench jemand
+  erreichen kann. Ohne Absicherung nimmt render Import und Löschen produktiver Vorlagen
+  (`/api/render/templates/import`) ohne Token an.
+- **Workbench** nur im internen Netz, erreichbar für Gestalter und Prüfer. Sie prüft kein Token;
+  wer sie erreicht, kann Entwürfe lesen, ändern und Status wechseln. In die Produktion gelangt
+  eine Vorlage mit eingeschalteter Absicherung nur mit einem Token der Gruppe `reviewer`
+  ([ADR-0019](09-decisions/ADR-0019.md)).
+- Der **Quickstart** ist zur Evaluierung gedacht und gehört nicht in ein offenes Netz.
+
+_(confidence: verified — blocpress-render/src/main/resources/application.properties
+(`quarkus.http.auth.permission.import.*`), TemplateImportResource.java (`@PermitAll`),
+blocpress-workbench ohne Token-Prüfung; Import mit Absicherung am Container geprüft
+2026-10-09: ohne Token 401, ohne Gruppe 403)_
+
 ## Quickstart-Image
 
 Start:
@@ -109,7 +130,7 @@ Löschen des Containers.
 | Variable | Voreinstellung | Wirkung |
 |---|---|---|
 | `BLOCPRESS_LO_WORKERS` | 1 | Obergrenze für gleichzeitige Konvertierungen und Auftragsschleifen in render; render teilt sich die CPU hier mit den anderen Diensten |
-| `BLOCPRESS_AUTH_ENABLED` | nicht gesetzt, also aus | JWT-Prüfung in render ([ADR-0002](09-decisions/ADR-0002.md)) |
+| `BLOCPRESS_AUTH_ENABLED` | nicht gesetzt, also aus | JWT-Prüfung in render ([ADR-0002](09-decisions/ADR-0002.md)); außerhalb einer Evaluierung einschalten ([Betriebsvorgabe](#betriebsvorgabe-bis-30)) |
 | `BLOCPRESS_CORS_ORIGINS` | nicht gesetzt, also nur same-origin | fremde Origins, die render und workbench aus dem Browser aufrufen dürfen, kommagetrennt; das Studio braucht keine, es leitet alles weiter |
 | `MP_JWT_VERIFY_PUBLICKEY` | nicht gesetzt, kein eingebauter Schlüssel ([REQ-0053](01-goals/requirements/REQ-0053.md)) | wirkt nur in render; mit `BLOCPRESS_AUTH_ENABLED=true` Pflicht, sonst startet render nicht |
 | `MP_JWT_VERIFY_ISSUER` | `https://blocpress.dev` | wie oben |
