@@ -47,6 +47,9 @@ public class OdtTemplateDocument implements TemplateDocument {
     private final URL url;
     OdfTextDocument document;
 
+    /** Formate fuer setFieldValue, einmal je Dokument gesammelt; merge() setzt ihn zurueck (REQ-0097). */
+    private UserFieldFormatter.StyleIndex styleIndex;
+
     private static final String OFFICE_NS = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
     private static final String STYLE_NS = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
     private static final String TEXT_NS = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
@@ -272,7 +275,10 @@ public class OdtTemplateDocument implements TemplateDocument {
         // Rumpf (content.xml) oder Kopf-/Fusszeile (styles.xml) — das Ersatz-Element im selben DOM anlegen
         OdfFileDom dom = (OdfFileDom) parent.getOwnerDocument();
         TextSpanElement span = dom.newOdfElement(TextSpanElement.class);
-        span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue, defaultLocale));
+        if (styleIndex == null) {
+            styleIndex = new UserFieldFormatter.StyleIndex();
+        }
+        span.setTextContent(UserFieldFormatter.formatUserFieldValue(document, odfElement, newValue, defaultLocale, styleIndex));
 
         parent.insertBefore(span, odfElement);
         parent.removeChild(odfElement);
@@ -286,6 +292,7 @@ public class OdtTemplateDocument implements TemplateDocument {
         OdtTemplateDocument source = (OdtTemplateDocument) tbDocument;
 
         Map<String, String> renameMap = mergeStylesSmart(source);
+        styleIndex = null; // eingefuegte Formate
         Map<String, String> pathMapping = parseSectionNameMapping(section);
 
         List<Node> nodesToImport = new ArrayList<>();

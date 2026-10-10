@@ -46,4 +46,5 @@ Reihenfolge der Schritte übernommen aus der bisherigen `CLAUDE.md`)_
 - [REQ-0034](../01-goals/requirements/REQ-0034.md) IF a linked section of a template rendered by name does not match a path ending in /bausteine/{name}.odt or no valid building block of that name exists, THEN the render service shall reject the request with HTTP 422 without technical details of the failure.
 - [REQ-0035](../01-goals/requirements/REQ-0035.md) IF a template sent with the request contains a linked section, THEN the render service shall reject the request with HTTP 422.
 - [REQ-0045](../01-goals/requirements/REQ-0045.md) WHEN the workbench renders a preview or a regression test, the workbench shall inline each linked building block as its draft if one exists, otherwise as its valid approved version, before sending the template to the render service.
+- [REQ-0097](../01-goals/requirements/REQ-0097.md) WHEN a template with a table loop is merged, the render engine shall need at most eight times as long for 2000 rows as for 500 rows.
 <!-- /generated -->

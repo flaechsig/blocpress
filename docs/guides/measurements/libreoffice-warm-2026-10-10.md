@@ -96,3 +96,19 @@ werden die Zahlen- und Datumsformate mit `getElementsByTagName` im ganzen Dokume
 (`blocpress-core/…/odt/UserFieldFormatter.java`), auch in `content.xml`, das mit jeder Zeile
 wächst. Diese Werte sind deshalb kein Maß für LibreOffice und nicht zur Veröffentlichung
 gedacht; nach Behebung und ADR-0021 wird neu gemessen.
+
+## Nach US-0071 (lineares Mischen)
+
+Gleiche Messung, render neu gebaut mit dem Index der Formate ([US-0071](../../01-goals/stories/US-0071.md)),
+LibreOffice noch wie bisher mit einem Prozess je Konvertierung:
+
+| Seiten | Positionen | Ø je Dokument | Seiten/s | vorher |
+|---|---|---|---|---|
+| 1 | 1 | 0,51 s | 2,0 | 0,49 s / 2,1 |
+| 10 | 425 | 0,63 s | 16,0 | 2,48 s / 4,0 |
+| 30 | 1349 | 1,16 s | 25,8 | 21,8 s / 1,4 |
+| 50 | 2129 | 1,48 s | 33,8 | 51,7 s / 1,0 |
+
+Bei großen Dokumenten ist jetzt die Konvertierung der größte Teil (50 Seiten: rund 1,1 s von
+1,5 s); bei einseitigen Dokumenten bleibt der Start von LibreOffice der Kostentreiber, den
+ADR-0021 angeht.

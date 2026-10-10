@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 18 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 39 · umgesetzt 58 · abgelöst 7 |
+| Stories | ⚪ offen 17 · ✅ verifiziert 51 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 38 · umgesetzt 59 · abgelöst 7 |
 | [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 18 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -111,7 +111,7 @@ Status: 🟡 in Arbeit
 | [US-0033](stories/US-0033.md) | Zahlen und Daten im Sprachformat der Vorlage | ✅ verifiziert |
 | [US-0035](stories/US-0035.md) | Platzhalter in Kopf- und Fußzeilen | ✅ verifiziert |
 | [US-0036](stories/US-0036.md) | Word-Vorlagen (DOCX) als Quelle | ⚪ offen |
-| [US-0071](stories/US-0071.md) | Große Tabellen in linearer Zeit mischen | ⚪ offen |
+| [US-0071](stories/US-0071.md) | Große Tabellen in linearer Zeit mischen | ✅ verifiziert |
 
 ## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
 

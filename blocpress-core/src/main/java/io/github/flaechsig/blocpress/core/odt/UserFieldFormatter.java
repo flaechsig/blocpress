@@ -24,6 +24,7 @@ import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * Helper für text:user-field-get / text:variable-get.
@@ -68,21 +69,34 @@ public final class UserFieldFormatter {
      */
     public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue,
                                               @NonNull Locale defaultLocale) {
+        return formatUserFieldValue(document, field, officeValue, defaultLocale, new StyleIndex());
+    }
+
+    /**
+     * Wie {@link #formatUserFieldValue(OdfTextDocument, OdfElement, Object, Locale)}, mit einem
+     * Index der Formate, den der Aufrufer fuer alle Felder eines Dokuments wiederverwendet. Ohne
+     * Index wuerde je Feld das ganze Dokument nach den Formaten durchsucht; bei Tabellen-Schleifen
+     * waechst es mit jeder Zeile, die Laufzeit damit quadratisch (REQ-0097).
+     *
+     * @param styles Index der Formate; nur gueltig, solange sich die Formate des Dokuments nicht aendern
+     */
+    public static String formatUserFieldValue(OdfTextDocument document, OdfElement field, Object officeValue,
+                                              @NonNull Locale defaultLocale, @NonNull StyleIndex styles) {
         if (document == null || field == null || officeValue == null || StringUtils.isBlank(officeValue.toString())) {
             return "";
         }
 
         // 1) Rohwert lesen: office:value (präferiert) oder Text-Inhalt
         List<Document> styleDoms = styleLookupOrder(document, field);
-        DataType officeValueType = findFieldType(styleDoms, field);
+        DataType officeValueType = findFieldType(styles, styleDoms, field);
         String raw = officeValue.toString().trim();
         String styleName = field.getAttributeNS(STYLE_NS, "data-style-name");
 
         // 2) Falls office:value-type float oder numeric, parsen wir als Zahl
         return switch (officeValueType) {
-            case FLOAT -> formatNumber(styleDoms, styleName, raw, defaultLocale);
-            case CURRENCY -> formatNumber(styleDoms, styleName, raw, defaultLocale);
-            case DATE -> formatDate(styleDoms, styleName, raw, defaultLocale);
+            case FLOAT -> formatNumber(styles, styleDoms, styleName, raw, defaultLocale);
+            case CURRENCY -> formatNumber(styles, styleDoms, styleName, raw, defaultLocale);
+            case DATE -> formatDate(styles, styleDoms, styleName, raw, defaultLocale);
             default -> raw;
         };
     }
@@ -102,11 +116,11 @@ public final class UserFieldFormatter {
         return List.of(document.getContentDom(), stylesDom);
     }
 
-    private static DataType findFieldType(List<Document> styleDoms, @NonNull OdfElement field) {
+    private static DataType findFieldType(StyleIndex styles, List<Document> styleDoms, @NonNull OdfElement field) {
         // Direkt aus dem übergebenen Feld (user-field-get) den style:data-style-name holen
         String dataStyleName = field.getAttributeNS(STYLE_NS, "data-style-name");
         if (StringUtils.isNotBlank(dataStyleName)) {
-            DataType detected = detectTypeFromStyle(styleDoms, dataStyleName);
+            DataType detected = detectTypeFromStyle(styles, styleDoms, dataStyleName);
             if (detected != null) {
                 return detected;
             }
@@ -118,36 +132,19 @@ public final class UserFieldFormatter {
      * Ermittelt den Typ ("date", "currency", "float", ...) anhand des Style-Namens.
      * Durchsucht die DOMs in der Reihenfolge von {@link #styleLookupOrder}; das erste passende gewinnt.
      */
-    private static DataType detectTypeFromStyle(List<Document> styleDoms, String styleName) {
+    private static DataType detectTypeFromStyle(StyleIndex styles, List<Document> styleDoms, String styleName) {
         if (StringUtils.isBlank(styleName)) return null;
-
-        // Liste der relevanten Style-Tags und die zu erwartende Rückgabe
-        Map<String, DataType> tagToType = Map.of(
-                "date:date-style", DataType.DATE,
-                "number:date-style", DataType.DATE,
-                "number:time-style", DataType.DATE,
-                "number:number-style", DataType.FLOAT,
-                "number:percentage-style", DataType.FLOAT,
-                "number:currency-style", DataType.CURRENCY
-        );
-
         for (Document dom : styleDoms) {
-            for (Map.Entry<String, DataType> e : tagToType.entrySet()) {
-                NodeList nl = dom.getElementsByTagName(e.getKey());
-                for (int i = 0; i < nl.getLength(); i++) {
-                    if (nl.item(i) instanceof Element elem && styleName.equals(elem.getAttribute("style:name"))) {
-                        return e.getValue();
-                    }
-                }
+            DataType type = styles.of(dom).types.get(styleName);
+            if (type != null) {
+                return type;
             }
         }
-
-
         return DataType.UNKNOWN;
     }
 
     @SneakyThrows
-    private static String formatDate(List<Document> styleDoms, String styleName, String raw, Locale defaultLocale) {
+    private static String formatDate(StyleIndex styles, List<Document> styleDoms, String styleName, String raw, Locale defaultLocale) {
         if (StringUtils.isBlank(raw)) return "";
 
         List<DateTimeFormatter> parseCandidates = List.of(
@@ -173,7 +170,7 @@ public final class UserFieldFormatter {
             return raw;
         }
 
-        DateTimeFormatter outFmt = buildDateFormatter(styleDoms, styleName, defaultLocale);
+        DateTimeFormatter outFmt = buildDateFormatter(styles, styleDoms, styleName, defaultLocale);
 
         try {
             LocalDate date = parsed.query(TemporalQueries.localDate());
@@ -189,7 +186,7 @@ public final class UserFieldFormatter {
         }
     }
 
-    private static DateTimeFormatter buildDateFormatter(List<Document> styleDoms, String styleName, Locale defaultLocale) {
+    private static DateTimeFormatter buildDateFormatter(StyleIndex styles, List<Document> styleDoms, String styleName, Locale defaultLocale) {
         DateTimeFormatter fallback = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         if (StringUtils.isBlank(styleName)) {
             return fallback;
@@ -197,7 +194,7 @@ public final class UserFieldFormatter {
 
         Element styleElement = null;
         for (Document dom : styleDoms) {
-            styleElement = findDateStyleElement(dom, styleName);
+            styleElement = styles.of(dom).dateStyles.get(styleName);
             if (styleElement != null) {
                 break;
             }
@@ -231,20 +228,7 @@ public final class UserFieldFormatter {
         return DateTimeFormatter.ofPattern(pattern.toString()).withLocale(locale);
     }
 
-    private static Element findDateStyleElement(Document dom, String styleName) {
-        for (String tag : List.of("number:date-style", "date:date-style", "number:time-style")) {
-            NodeList nl = dom.getElementsByTagName(tag);
-            for (int i = 0; i < nl.getLength(); i++) {
-                if (nl.item(i) instanceof Element elem
-                        && styleName.equals(elem.getAttribute("style:name"))) {
-                    return elem;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static String formatNumber(List<Document> styleDoms, String style, String value, Locale defaultLocale) {
+    private static String formatNumber(StyleIndex styles, List<Document> styleDoms, String style, String value, Locale defaultLocale) {
         if (StringUtils.isBlank(style)) {
             return value;
         }
@@ -265,27 +249,21 @@ public final class UserFieldFormatter {
         }
 
         // Versuch DecimalFormat aus number-style zu erzeugen
-        DecimalFormat df = findDecimalFormatForStyle(styleDoms, style, defaultLocale);
+        DecimalFormat df = findDecimalFormatForStyle(styles, styleDoms, style, defaultLocale);
 
         return df.format(numericValue);
     }
 
-    private static DecimalFormat findDecimalFormatForStyle(List<Document> styleDoms, String styleName, Locale defaultLocale) {
-        String[] styleElements = {"number:number-style", "number:percentage-style", "number:currency-style"};
-        Map<String, NumberStyle> styleNodes = new HashMap<>();
-
+    private static DecimalFormat findDecimalFormatForStyle(StyleIndex styles, List<Document> styleDoms,
+                                                           String styleName, Locale defaultLocale) {
         // Reihenfolge aus styleLookupOrder: bei Namensgleichheit gewinnt das zuerst durchsuchte DOM
         for (Document dom : styleDoms) {
-            for (String style : styleElements) {
-                NodeList nl = dom.getElementsByTagName(style);
-                for (int i = 0; i < nl.getLength(); i++) {
-                    var item = (Element) nl.item(i);
-                    styleNodes.putIfAbsent(item.getAttribute("style:name"), createNumberStyle(item, defaultLocale));
-                }
+            Element elem = styles.of(dom).numberStyles.get(styleName);
+            if (elem != null) {
+                return buildDecimalFormatFromNumberStyleElement(createNumberStyle(elem, defaultLocale));
             }
         }
-
-        return buildDecimalFormatFromNumberStyleElement(styleNodes.get(styleName));
+        return buildDecimalFormatFromNumberStyleElement(null);
     }
 
     /**
@@ -411,5 +389,61 @@ public final class UserFieldFormatter {
             return pattern;
         }
 
+    }
+
+    /**
+     * Formate (data-styles) eines Dokuments, je DOM einmal gesammelt statt je Feld gesucht.
+     * Reihenfolge der Tags und "erster Treffer gewinnt" entsprechen der bisherigen Suche.
+     * Gilt nur, solange sich die Formate nicht aendern; wer Formate einfuegt, legt einen neuen an.
+     */
+    public static final class StyleIndex {
+
+        private static final List<String> NUMBER_TAGS =
+                List.of("number:number-style", "number:percentage-style", "number:currency-style");
+        private static final List<String> DATE_TAGS =
+                List.of("number:date-style", "date:date-style", "number:time-style");
+        private static final Map<String, DataType> TYPE_BY_TAG = typeByTag();
+
+        private final Map<Document, DomStyles> byDom = new IdentityHashMap<>();
+
+        DomStyles of(Document dom) {
+            return byDom.computeIfAbsent(dom, DomStyles::new);
+        }
+
+        private static Map<String, DataType> typeByTag() {
+            Map<String, DataType> map = new LinkedHashMap<>();
+            map.put("date:date-style", DataType.DATE);
+            map.put("number:date-style", DataType.DATE);
+            map.put("number:time-style", DataType.DATE);
+            map.put("number:number-style", DataType.FLOAT);
+            map.put("number:percentage-style", DataType.FLOAT);
+            map.put("number:currency-style", DataType.CURRENCY);
+            return map;
+        }
+
+        private static final class DomStyles {
+            final Map<String, Element> numberStyles = new HashMap<>();
+            final Map<String, Element> dateStyles = new HashMap<>();
+            final Map<String, DataType> types = new HashMap<>();
+
+            DomStyles(Document dom) {
+                for (String tag : NUMBER_TAGS) {
+                    collect(dom, tag, numberStyles::putIfAbsent);
+                }
+                for (String tag : DATE_TAGS) {
+                    collect(dom, tag, dateStyles::putIfAbsent);
+                }
+                TYPE_BY_TAG.forEach((tag, type) -> collect(dom, tag, (name, elem) -> types.putIfAbsent(name, type)));
+            }
+
+            private static void collect(Document dom, String tag, BiConsumer<String, Element> sink) {
+                NodeList nl = dom.getElementsByTagName(tag);
+                for (int i = 0; i < nl.getLength(); i++) {
+                    if (nl.item(i) instanceof Element elem) {
+                        sink.accept(elem.getAttribute("style:name"), elem);
+                    }
+                }
+            }
+        }
     }
 }
