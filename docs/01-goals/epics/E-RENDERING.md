@@ -24,4 +24,5 @@ wird.
 - [US-0033](../stories/US-0033.md) — Zahlen und Daten im Sprachformat der Vorlage
 - [US-0035](../stories/US-0035.md) — Platzhalter in Kopf- und Fußzeilen
 - [US-0036](../stories/US-0036.md) — Word-Vorlagen (DOCX) als Quelle
+- [US-0071](../stories/US-0071.md) — Große Tabellen in linearer Zeit mischen
 <!-- /generated -->
