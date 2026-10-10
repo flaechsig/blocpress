@@ -85,7 +85,7 @@ Den Ablauf im Einzelnen beschreibt der [asynchrone Render-Auftrag](../06-runtime
 ### Betriebsarten
 
 render läuft als `full` (Standard, mit Datenbank `production`) oder als `engine`
-(`BLOCPRESS_MODE=engine`, ohne Datenbank, [ADR-0016](../09-decisions/ADR-0016.md)). Im
+(`BLOCPRESS_MODE=engine`, ohne Datenbank, [ADR-0022](../09-decisions/ADR-0022.md)). Im
 Engine-Modus setzt `EngineModeConfig`, ein Config-Interceptor von SmallRye Config, zur Laufzeit
 Datenquelle, Hibernate ORM, Scheduler und den Datenbank-Check der Readiness auf inaktiv; render
 startet und rendert ohne Datenbank ([REQ-0068](../01-goals/requirements/REQ-0068.md),
@@ -94,11 +94,6 @@ Pfade unter `/api/` außer `POST /api/render/template` mit 404 und einer Meldung
 nennt ([REQ-0069](../01-goals/requirements/REQ-0069.md)). Die Eigenschaft heißt
 `blocpress.render.mode`, nicht `blocpress.mode`: Das ist in core ein System-Property für die
 Auflösung von Bausteinen.
-
-> [!CAUTION]
-> ADR-0016 sagt „umgesetzt als Quarkus-Profil“; der Code wählt den Modus über einen
-> Config-Interceptor (`EngineModeConfig`), weil sich das Profil nicht aus `BLOCPRESS_MODE`
-> ableiten lässt, ohne die Variable `QUARKUS_PROFILE` zu verlangen. (contradiction)
 
 _(confidence: verified — EngineModeConfig.java, EngineModeFilter.java,
 META-INF/services/io.smallrye.config.ConfigSourceInterceptor, application.properties; natives

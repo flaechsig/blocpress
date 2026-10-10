@@ -7,7 +7,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 16 · ✅ verifiziert 53 · ⛔ abgelöst 4 |
 | Requirements | vorgeschlagen 32 · umgesetzt 69 · abgelöst 7 |
-| [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 2 |
+| [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 3 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -173,6 +173,7 @@ Status: 🟡 in Arbeit
 - [09-decisions/ADR-0018.md](../09-decisions/ADR-0018.md): UNKNOWN — offene Frage: Was geschieht mit Vorlagen in `production`, deren Verknüpfungen heute nicht auf `/bausteine/{name}.odt` passen (etwa direkte Links auf fremde Server) — bei der Migration abweisen oder erst beim Rendern?
 - [09-decisions/ADR-0020.md](../09-decisions/ADR-0020.md): UNKNOWN — offene Frage: Wie zuverlässig ist der Ein-Klick-Start je Betriebssystem? Auf macOS übergibt der Protokoll-Handler die URL laut Bugtracker nicht (tdf#158260); das Schema hatte Sicherheitslücken (CVE-2022-3140, CVE-2025-1080). Wird beim Bau geprüft.
 - [09-decisions/ADR-0021.md](../09-decisions/ADR-0021.md): UNKNOWN — offene Frage: Standardwerte für Neustart (Zahl, Speichergrenze) und Zeitlimit sowie das Verhalten unter Last werden beim Bau mit `RenderLoadIT` gemessen.
+- [09-decisions/ADR-0022.md](../09-decisions/ADR-0022.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar. Entschieden wird das beim Bau von ADR-0013 in `openapi.yml`.
 
 ## Offene Entscheidungen
 
@@ -180,7 +181,7 @@ _keine_
 
 ## Widersprüche
 
-- [05-building-blocks/render.md](../05-building-blocks/render.md): ableiten lässt, ohne die Variable `QUARKUS_PROFILE` zu verlangen. (contradiction)
+_keine_
 
 ## Kapitel ohne Inhalt
 
