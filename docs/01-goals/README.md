@@ -7,7 +7,7 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 |---|---|
 | Stories | ⚪ offen 16 · ✅ verifiziert 52 · ⛔ abgelöst 4 |
 | Requirements | vorgeschlagen 31 · umgesetzt 66 · abgelöst 7 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 18 · abgelöst 2 |
+| [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -175,7 +175,7 @@ Status: 🟡 in Arbeit
 
 ## Offene Entscheidungen
 
-- [ADR-0013](../09-decisions/ADR-0013.md) — REST-API von render API-first aus openapi.yml
+_keine_
 
 ## Widersprüche
 
