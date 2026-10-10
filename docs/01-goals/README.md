@@ -5,9 +5,9 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 16 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 31 · umgesetzt 58 · abgelöst 7 |
-| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 17 · abgelöst 2 |
+| Stories | ⚪ offen 18 · ✅ verifiziert 50 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 39 · umgesetzt 58 · abgelöst 7 |
+| [Entscheidungen](../09-decisions/) | vorgeschlagen 1 · angenommen 18 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
 
@@ -97,6 +97,7 @@ Status: 🟡 in Arbeit
 | [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ✅ verifiziert |
 | [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
 | [US-0065](stories/US-0065.md) | render ohne Datenbank als Engine betreiben | ⚪ offen |
+| [US-0072](stories/US-0072.md) | Warme LibreOffice-Instanzen in render | ⚪ offen |
 
 ## [E-RENDERING](epics/E-RENDERING.md) — Render-Pipeline (Vorlage + Daten → Dokument)
 
@@ -110,6 +111,7 @@ Status: 🟡 in Arbeit
 | [US-0033](stories/US-0033.md) | Zahlen und Daten im Sprachformat der Vorlage | ✅ verifiziert |
 | [US-0035](stories/US-0035.md) | Platzhalter in Kopf- und Fußzeilen | ✅ verifiziert |
 | [US-0036](stories/US-0036.md) | Word-Vorlagen (DOCX) als Quelle | ⚪ offen |
+| [US-0071](stories/US-0071.md) | Große Tabellen in linearer Zeit mischen | ⚪ offen |
 
 ## [E-SECURITY](epics/E-SECURITY.md) — Sicherheit
 
@@ -169,6 +171,7 @@ Status: 🟡 in Arbeit
 - [09-decisions/ADR-0016.md](../09-decisions/ADR-0016.md): UNKNOWN — offene Frage: Bekommen die Endpunkte mit Release 3.0 neue Namen (`POST /api/render` statt `/api/render/template`, `/{name}` nach `/templates/{name}`)? Heute ist eine Vorlage namens „template“ per Namen nicht erreichbar.
 - [09-decisions/ADR-0018.md](../09-decisions/ADR-0018.md): UNKNOWN — offene Frage: Was geschieht mit Vorlagen in `production`, deren Verknüpfungen heute nicht auf `/bausteine/{name}.odt` passen (etwa direkte Links auf fremde Server) — bei der Migration abweisen oder erst beim Rendern?
 - [09-decisions/ADR-0020.md](../09-decisions/ADR-0020.md): UNKNOWN — offene Frage: Wie zuverlässig ist der Ein-Klick-Start je Betriebssystem? Auf macOS übergibt der Protokoll-Handler die URL laut Bugtracker nicht (tdf#158260); das Schema hatte Sicherheitslücken (CVE-2022-3140, CVE-2025-1080). Wird beim Bau geprüft.
+- [09-decisions/ADR-0021.md](../09-decisions/ADR-0021.md): UNKNOWN — offene Frage: Standardwerte für Neustart (Zahl, Speichergrenze) und Zeitlimit sowie das Verhalten unter Last werden beim Bau mit `RenderLoadIT` gemessen.
 
 ## Offene Entscheidungen
 
