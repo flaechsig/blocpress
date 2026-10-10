@@ -5,8 +5,8 @@ soll, heruntergebrochen in Epics, Stories und Requirements.
 <!-- generated:status -->
 | | Anzahl |
 |---|---|
-| Stories | ⚪ offen 17 · ✅ verifiziert 52 · ⛔ abgelöst 4 |
-| Requirements | vorgeschlagen 35 · umgesetzt 66 · abgelöst 7 |
+| Stories | ⚪ offen 16 · ✅ verifiziert 53 · ⛔ abgelöst 4 |
+| Requirements | vorgeschlagen 32 · umgesetzt 69 · abgelöst 7 |
 | [Entscheidungen](../09-decisions/) | angenommen 19 · abgelöst 2 |
 
 ## [E-ADMINISTRATION](epics/E-ADMINISTRATION.md) — Rollen und Audit (über den Identity-Provider)
@@ -96,7 +96,7 @@ Status: 🟡 in Arbeit
 | [US-0038](stories/US-0038.md) | Fehlerpfade und Dashboard von render testen | ⚪ offen |
 | [US-0041](stories/US-0041.md) | Abgelaufene und ausgemusterte Vorlagen sofort sperren | ✅ verifiziert |
 | [US-0045](stories/US-0045.md) | Asynchrone Aufträge und Dashboard robust machen | ⚪ offen |
-| [US-0065](stories/US-0065.md) | render ohne Datenbank als Engine betreiben | ⚪ offen |
+| [US-0065](stories/US-0065.md) | render ohne Datenbank als Engine betreiben | ✅ verifiziert |
 | [US-0072](stories/US-0072.md) | Warme LibreOffice-Instanzen in render | ✅ verifiziert |
 | [US-0073](stories/US-0073.md) | REST-API von render aus openapi.yml | ⚪ offen |
 
@@ -180,7 +180,7 @@ _keine_
 
 ## Widersprüche
 
-_keine_
+- [05-building-blocks/render.md](../05-building-blocks/render.md): ableiten lässt, ohne die Variable `QUARKUS_PROFILE` zu verlangen. (contradiction)
 
 ## Kapitel ohne Inhalt
 
