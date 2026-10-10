@@ -24,4 +24,5 @@ blocpress brächte keinen Mehrwert. Noch nicht begonnen.
 - [US-0021](../stories/US-0021.md) — Rollen bei jedem API-Aufruf prüfen
 - [US-0022](../stories/US-0022.md) — Workflow-Änderungen im Audit-Log festhalten
 - [US-0044](../stories/US-0044.md) — Absicherung durchgängig
+- [US-0068](../stories/US-0068.md) — Nachvollziehen, wer in Produktion gebracht hat
 <!-- /generated -->

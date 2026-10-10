@@ -24,4 +24,6 @@ eines Tests sollen deshalb nachvollziehbar zu einer Behebung führen.
 - [US-0059](../stories/US-0059.md) — Actions im Release-Workflow auf Commit-SHA pinnen
 - [US-0060](../stories/US-0060.md) — Bausteine nur aus der eigenen Bibliothek
 - [US-0064](../stories/US-0064.md) — Security-Header in Workbench, Studio und render
+- [US-0066](../stories/US-0066.md) — Engine nur mit API-Schlüssel
+- [US-0067](../stories/US-0067.md) — Voller Modus nur mit gültigem Token
 <!-- /generated -->
